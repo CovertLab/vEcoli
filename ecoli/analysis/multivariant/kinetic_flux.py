@@ -28,7 +28,7 @@ import numpy as np
 import plotly.express as px
 import polars as pl
 
-from ecoli.analysis.multivariant.utils import create_variant_label
+from ecoli.analysis.multivariant.utils import compute_variant_grid, create_variant_label
 from ecoli.library.parquet_emitter import (
     field_metadata,
     ndlist_to_ndarray,
@@ -181,6 +181,15 @@ def plot(
     color_range = PASTEL[: len(unique_variants)]
     color_scale = alt.Scale(domain=variant_labels, range=color_range)
 
+    # Row-major grid order (grouped by first/second sweep param, baseline
+    # first) so facets don't fall back to Vega-Lite's default alphabetical
+    # string sort of "Variant 1, Variant 11, ..., Variant 2, ..."
+    _, grid_columns, ordered_variant_ids = compute_variant_grid(per_variant_params)
+    variant_sort_order = [
+        variant_label_map[v] for v in ordered_variant_ids if v in variant_label_map
+    ]
+    num_cols = grid_columns
+
     # ── Numpy arrays ──────────────────────────────────────────────────────────
     target_arr = ndlist_to_ndarray(raw["target_kinetic_fluxes"])  # (T, n_kinetic)
     estimated_arr = ndlist_to_ndarray(raw["estimated_fluxes"])  # (T, n_all_rxns)
@@ -306,8 +315,6 @@ def plot(
         )
     )
 
-    num_cols = min(len(unique_variants), 4)
-
     scatter_layers = [ref_line, scatter_pts, annotation]
     if rxn_to_catalyst_label:
         # Catalyst color scale is independent of the Variant scale used by
@@ -366,7 +373,7 @@ def plot(
     scatter_faceted = (
         scatter_layered.properties(width=280, height=280)
         .facet(
-            facet=alt.Facet("Variant:N", title="Variant"),
+            facet=alt.Facet("Variant:N", title="Variant", sort=variant_sort_order),
             columns=num_cols,
         )
         .resolve_scale(x="independent", y="independent")
@@ -394,7 +401,7 @@ def plot(
         )
         .properties(width=280, height=200)
         .facet(
-            facet=alt.Facet("Variant:N", title="Variant"),
+            facet=alt.Facet("Variant:N", title="Variant", sort=variant_sort_order),
             columns=num_cols,
         )
         .resolve_scale(x="independent", y="independent")

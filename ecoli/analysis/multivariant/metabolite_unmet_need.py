@@ -17,7 +17,7 @@ from typing import Any, TYPE_CHECKING, cast
 import altair as alt
 import polars as pl
 
-from ecoli.analysis.multivariant.utils import create_variant_label
+from ecoli.analysis.multivariant.utils import compute_variant_grid, create_variant_label
 from ecoli.library.parquet_emitter import (
     field_metadata,
     read_stacked_columns,
@@ -195,7 +195,7 @@ def plot(
 
     # Collect metabolites used across all variants for a shared color scale
     ordered_mets: list[str] = []
-    per_variant_data = []
+    data_by_variant: dict[int, tuple[pl.DataFrame, pl.DataFrame]] = {}
     for variant_val in variants:
         sub = agg.filter(pl.col("variant") == variant_val)
         if sub.is_empty():
@@ -217,9 +217,9 @@ def plot(
         for m in list(dict.fromkeys(top_mets + line_mets)):
             if m not in ordered_mets:
                 ordered_mets.append(m)
-        per_variant_data.append((variant_val, top_bar, agg_line))
+        data_by_variant[int(variant_val)] = (top_bar, agg_line)
 
-    if not per_variant_data:
+    if not data_by_variant:
         print("metabolite_unmet_need: no per-variant data after aggregation; skipping.")
         return
 
@@ -227,8 +227,14 @@ def plot(
     color_range = [PASTEL[i % len(PASTEL)] for i in range(len(color_domain))]
     w = subplot_width
 
+    _, columns, ordered_variant_ids = compute_variant_grid(per_variant_params)
+
     subplot_charts: list[alt.VConcatChart] = []
-    for variant_val, top_bar, agg_line in per_variant_data:
+    for variant_val in ordered_variant_ids:
+        entry = data_by_variant.get(variant_val)
+        if entry is None:
+            continue
+        top_bar, agg_line = entry
         label = create_variant_label(variant_val, per_variant_params)
         seeds, gens = variant_coverage[int(variant_val)]
         subtitle = (
@@ -294,7 +300,7 @@ def plot(
             )
         )
 
-    combined = alt.vconcat(*subplot_charts).properties(
+    combined = alt.concat(*subplot_charts, columns=columns).properties(
         title="Unmet homeostatic need by variant"
     )
 

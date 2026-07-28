@@ -13,6 +13,8 @@ import polars as pl
 import pandas as pd
 from duckdb import DuckDBPyConnection
 
+from ecoli.analysis.multivariant.utils import compute_variant_grid
+
 
 def plot(
     params: dict[str, Any],
@@ -52,15 +54,22 @@ def plot(
         ]
     )
 
-    # Get variants and create plots
-    variants = df.select("variant").unique().to_series().to_list()
+    # Row-major grid order (grouped by first/second sweep param, baseline
+    # first) so variants aren't stacked in Polars' unspecified unique() order
+    experiment_id = next(iter(variant_metadata.keys()), None)
+    per_variant_params: dict[int, Any] = (
+        variant_metadata[experiment_id] if experiment_id else {}
+    )
+    _, columns, ordered_variant_ids = compute_variant_grid(per_variant_params)
 
     # ----------------------------------------#
     plots = []
 
     # Create subplot for each variant
-    for variant in variants:
+    for variant in ordered_variant_ids:
         variant_df = df.filter(pl.col("variant") == variant).to_pandas()
+        if variant_df.empty:
+            continue
         variant_name = variant_names.get(variant, f"Variant {variant}")
 
         # Create base chart with line plots only
@@ -138,7 +147,7 @@ def plot(
         plots.append(variant_combined)
 
     # Create combined plot
-    final_plot = plots[0] if len(plots) == 1 else alt.vconcat(*plots)
+    final_plot = plots[0] if len(plots) == 1 else alt.concat(*plots, columns=columns)
     final_plot = final_plot.resolve_scale(x="independent", y="independent").properties(
         title="Multi-Variant Cell Mass Analysis"
     )

@@ -63,7 +63,7 @@ EFF_KIN_LOG_INTERCEPT = 1.8
 #     EFF_LOG_RANGE[1],
 # )
 
-OUT_DIR = "notebooks/Heena notebooks/Metabolism_New Genes/pareto_results_relationship_v2_10000samples"
+OUT_DIR = "notebooks/Heena notebooks/Metabolism_New Genes/pareto_results_relationship_v1_10000samples"
 pe.OUT_DIR = OUT_DIR  # redirect run()'s output (CSV + 4 plots) to this directory
 
 

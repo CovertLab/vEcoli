@@ -14,7 +14,7 @@ as "Weighted Homeostatic Term" and then divided by the weight again. Here,
 solve_one() — no re-normalization is applied.
 
 Usage:
-    python 20260723_knockdown_retest.py
+    uvenv notebooks/Heena\ notebooks/Metabolism_New\ Genes/20260723_knockdown_retest.py
 """
 
 import os
@@ -29,12 +29,10 @@ from pareto_exploration import (
     solve_one,
 )
 
-OUT_DIR = (
-    "notebooks/Heena notebooks/Metabolism_New Genes/pareto_results_jul_10000samples"
-)
+OUT_DIR = "notebooks/Heena\ notebooks/Metabolism_New\ Genes/pareto_results_relationship_v1_10000samples"
 SHORTLIST_PATH = f"{OUT_DIR}/best_of_best_v2.csv"
 KNOCKDOWN_DIR = f"{OUT_DIR}/knockdown_v2"
-FRACTIONS = [1.0, 0.5, 0.1]
+FRACTIONS = [1.0, 0.8, 0.5, 0.3, 0.1]
 
 
 def solve_and_score(candidate: dict, fraction: float, problem_data: dict) -> dict:

@@ -9,7 +9,7 @@ with lines broken at cell division (detail by generation).
 from typing import Any, TYPE_CHECKING
 import os
 
-from ecoli.analysis.multivariant.utils import create_variant_label
+from ecoli.analysis.multivariant.utils import compute_variant_grid, create_variant_label
 from ecoli.library.parquet_emitter import read_stacked_columns
 import altair as alt
 import polars as pl
@@ -98,9 +98,9 @@ def plot(
         )
     )
 
-    variants = melted["variant"].unique().sort()
+    _, columns, ordered_variant_ids = compute_variant_grid(per_variant_params)
     plots = []
-    for variant_val in variants:
+    for variant_val in ordered_variant_ids:
         variant_name = create_variant_label(variant_val, per_variant_params)
         variant_melted = melted.filter(pl.col("variant") == variant_val).to_pandas()
 
@@ -110,7 +110,7 @@ def plot(
         plots.append(subplot)
 
     final = (
-        alt.vconcat(*plots)
+        alt.concat(*plots, columns=columns)
         .resolve_scale(x="independent", y="shared")
         .properties(title="Weighted Objective Terms by Variant")
     )

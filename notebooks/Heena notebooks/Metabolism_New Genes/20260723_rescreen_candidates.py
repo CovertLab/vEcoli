@@ -16,7 +16,7 @@ pareto_results_jul_10000samples/pareto_results.csv (current process code,
 widened kinetics weight range).
 
 Usage:
-    python notebooks/Heena\ notebooks/Metabolism_New\ Genes/20260723_rescreen_candidates.py
+    uvenv notebooks/Heena\ notebooks/Metabolism_New\ Genes/20260723_rescreen_candidates.py
 """
 
 import os
@@ -25,9 +25,9 @@ import plotly.express.colors as pc
 import plotly.graph_objects as go
 import polars as pl
 
-OUT_DIR = "notebooks/Heena notebooks/Metabolism_New Genes/pareto_results_jul_relationship_10000samples"
+OUT_DIR = "notebooks/Heena notebooks/Metabolism_New Genes/pareto_results_relationship_v1_10000samples"
 TOYA_R2_MIN = 0.5
-OBJ_HOMEO_NOISE_FLOOR = 1e-2  # empirically: obj_homeo deciles jump from ~1e-11 to ~2e-4
+OBJ_HOMEO_NOISE_FLOOR = 2e-4  # empirically: obj_homeo deciles jump from ~1e-11 to ~2e-4
 N_CANDIDATES = 20
 
 

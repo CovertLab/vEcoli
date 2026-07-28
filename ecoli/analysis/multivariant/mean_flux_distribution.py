@@ -14,7 +14,7 @@ import altair as alt
 import numpy as np
 import polars as pl
 
-from ecoli.analysis.multivariant.utils import create_variant_label
+from ecoli.analysis.multivariant.utils import compute_variant_grid, create_variant_label
 from ecoli.library.parquet_emitter import (
     ndlist_to_ndarray,
     read_stacked_columns,
@@ -26,7 +26,6 @@ if TYPE_CHECKING:
 
 alt.data_transformers.enable("vegafusion")
 
-DEFAULT_FACET_COLUMNS = 2
 # Pastel salmon — matches the rest of the multivariant palette
 PASTEL_COLOR = "#FBB4AE"
 
@@ -57,10 +56,15 @@ def plot(
     per_variant_params: dict[int, Any] = (
         variant_metadata[experiment_id] if experiment_id else {}
     )
+    _, grid_columns, ordered_variant_ids = compute_variant_grid(per_variant_params)
+
+    def _variant_label(variant_id: int) -> str:
+        label_l = create_variant_label(variant_id, per_variant_params)
+        return " ".join(label_l) if isinstance(label_l, list) else label_l
 
     in_molar = params.get("in_molar", True)
     is_reduxclassic = params.get("is_reduxclassic", True)
-    facet_columns = int(params.get("facet_columns", DEFAULT_FACET_COLUMNS))
+    facet_columns = int(params.get("facet_columns", grid_columns))
     bin_edges_param = params.get("bin_edges")
     subplot_w = int(params.get("subplot_width", 400))
     subplot_h = int(params.get("subplot_height", 300))
@@ -142,8 +146,7 @@ def plot(
         mask = variant_col == variant_val
         sim_flux_mean = flux_matrix[mask, :].mean(axis=0)
         counts, _ = np.histogram(sim_flux_mean, bins=bin_edges)
-        label_l = create_variant_label(variant_val, per_variant_params)
-        label = " ".join(label_l) if isinstance(label_l, list) else label_l
+        label = _variant_label(variant_val)
         for i, count in enumerate(counts):
             rows.append(
                 {
@@ -155,6 +158,14 @@ def plot(
             )
 
     df_plot = pl.DataFrame(rows).to_pandas()
+
+    # Explicit sort order for the "Variant" facet: Vega-Lite's default sort
+    # for nominal (:N) fields is alphabetical on the string label (e.g.
+    # "Variant 1, Variant 11, Variant 12, ..., Variant 2, ..."), so we
+    # override it with the grid order from compute_variant_grid.
+    variant_sort = [
+        _variant_label(vid) for vid in ordered_variant_ids if vid in unique_variants
+    ]
 
     x_enc = alt.X(
         "Bin:N",
@@ -195,6 +206,7 @@ def plot(
         .facet(
             facet=alt.Facet(
                 "Variant:N",
+                sort=variant_sort,
                 title=f"Variant \n Diversity weight = {diversity_weight:.2e}",
             ),
             columns=facet_columns,

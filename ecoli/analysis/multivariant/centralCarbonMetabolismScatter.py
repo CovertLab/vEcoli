@@ -11,7 +11,7 @@ import os
 import pickle
 import numpy as np
 
-from ecoli.analysis.multivariant.utils import create_variant_label
+from ecoli.analysis.multivariant.utils import compute_variant_grid, create_variant_label
 from wholecell.utils import units, toya
 from fsspec import open as fsspec_open
 from ecoli.library.parquet_emitter import (
@@ -96,9 +96,15 @@ def plot(
 
     all_dfs = []
     summary_rows = []
+    variant_label_by_id: dict[int, str] = {}
     for variant_val in unique_variants:
         variant_label_list = create_variant_label(variant_val, per_variant_params)
-        variant_label = " ".join(variant_label_list)
+        variant_label = (
+            " ".join(variant_label_list)
+            if isinstance(variant_label_list, list)
+            else variant_label_list
+        )
+        variant_label_by_id[variant_val] = variant_label
         mask = variant_col == variant_val
 
         cell_masses_ref = units.fg * raw.filter(pl.Series(mask))["cell_mass"]
@@ -223,10 +229,22 @@ def plot(
         .encode(text="multiline_label:N")
     )
 
+    _, grid_columns, ordered_variant_ids = compute_variant_grid(per_variant_params)
+    variant_label_sort = [
+        variant_label_by_id[vid]
+        for vid in ordered_variant_ids
+        if vid in variant_label_by_id
+    ]
+
     final_chart = (
         alt.layer(points, x_errorbars, y_errorbars, annotation, data=df_all)
         .properties(width=300, height=300)
-        .facet(facet=alt.Facet("variant_label:N", title="Variant"), columns=4)
+        .facet(
+            facet=alt.Facet(
+                "variant_label:N", title="Variant", sort=variant_label_sort
+            ),
+            columns=grid_columns,
+        )
         .resolve_scale(y="independent")
         .configure_view(strokeWidth=0, fill=None)
         .properties(title="Central Carbon Metabolism Flux by Variant")

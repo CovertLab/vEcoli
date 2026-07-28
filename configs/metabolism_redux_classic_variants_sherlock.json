@@ -1,9 +1,9 @@
 {
-  "experiment_id": "objective_weight_variants",
+  "experiment_id": "sherlock_bob_v2_kd",
   "fail_at_max_duration": true,
   "progress_bar": true,
   "log_updates": false,
-  "generations": 1,
+  "generations": 3,
   "n_init_sims": 1,
   "emitter": "parquet",
   "emitter_arg": {

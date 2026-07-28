@@ -28,7 +28,7 @@ import altair as alt
 import plotly.express as px
 import polars as pl
 
-from ecoli.analysis.multivariant.utils import create_variant_label
+from ecoli.analysis.multivariant.utils import compute_variant_grid, create_variant_label
 from ecoli.library.parquet_emitter import (
     field_metadata,
     named_idx,
@@ -248,9 +248,9 @@ def plot(
     dash_range = [DASH_STYLES[i % len(DASH_STYLES)] for i in range(len(dash_domain))]
     dash_scale = alt.Scale(domain=dash_domain, range=dash_range)
 
-    variants = sorted(raw["variant"].unique().to_list())
+    _, columns, ordered_variant_ids = compute_variant_grid(per_variant_params)
     blocks = []
-    for variant_val in variants:
+    for variant_val in ordered_variant_ids:
         variant_label = create_variant_label(variant_val, per_variant_params)
         if isinstance(variant_label, list):
             variant_label = " ".join(variant_label)
@@ -305,7 +305,7 @@ def plot(
         block = alt.hconcat(count_chart, flux_chart).properties(title=variant_label)
         blocks.append(block)
 
-    final = alt.vconcat(*blocks).properties(
+    final = alt.concat(*blocks, columns=columns).properties(
         title="Catalyst counts and associated reaction fluxes by variant"
     )
 
