@@ -88,6 +88,7 @@
   "adjust_timestep_for_charging": false,
   "disable_ppgpp_elongation_inhibition": true,
   "analysis_options": {
+    "memory_gb": 48,
     "outdir": "out/objective_weight_jul/analysis/",
     "multivariant": {
       "cell_mass": {},

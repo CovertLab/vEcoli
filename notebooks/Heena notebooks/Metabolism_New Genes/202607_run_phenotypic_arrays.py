@@ -29,12 +29,19 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 
 # Mirrors the example weights in Standalone_FBA.ipynb cell 6 (no per-plate
 # tuning has been done yet for the phenotype-array sweep).
+# DEFAULT_OBJECTIVE_WEIGHTS = {
+#     "secretion": 0.01,
+#     "efficiency": 1e-06,
+#     "kinetics": 1e-05,
+#     "diversity": 1e-07,
+#     "homeostatic": 1,
+# }
 DEFAULT_OBJECTIVE_WEIGHTS = {
-    "secretion": 0.01,
-    "efficiency": 1e-06,
-    "kinetics": 1e-05,
-    "diversity": 1e-07,
-    "homeostatic": 1,
+    "secretion": 5.02061e-05,
+    "efficiency": 2.33e-07,
+    "kinetics": 3.1497e-05,
+    "diversity": 0.008770645,
+    "homeostatic": 0.023748941,
 }
 
 CARBON_REMOVE = {"GLC[p]", "CA+2[p]"}
@@ -230,7 +237,7 @@ def test_NetworkFlowModel(
         binary_kinetic_idx=None,
         force_flow_idx=force_reaction_idx,
         objective_weights=objective_weights,
-        target_minimal_flux=0,
+        target_minimal_flux=counts_to_molar,
         include_new=metabolism.include_new,
         new_reaction_idx=metabolism.new_reaction_idx,
         upper_flux_bound=100,  # matches the live WC sim's scale now everything is in concentration units.

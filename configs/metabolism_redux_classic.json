@@ -1,17 +1,16 @@
 {
-    "experiment_id": "check_hom_obj_threshold",
+    "experiment_id": "basal_new_reactions_bobv2_sec",
     "parca_options": {
         "cpus": 10
     },
     "max_duration": 4000,
-    "sim_data_path": null,
     "fail_at_max_duration": true,
     "progress_bar": true,
     "log_updates": false,
     "generations": 2,
     "emitter": "parquet",
     "emitter_arg": {
-        "out_dir": "out/objective_weights_jul/"
+        "out_dir": "out/phenotypic/"
     },
     "save": false,
     "save_times": [
@@ -92,15 +91,18 @@
     "adjust_timestep_for_charging": false,
     "disable_ppgpp_elongation_inhibition": true,
     "process_configs": {
+        "global_clock": {},
+        "replication_data_listener": {
+            "time_step": 1
+        },
         "ecoli-metabolism-redux-classic": {
             "objective_weights": {
-                "secretion": 0,
-                "efficiency": 0,
-                "kinetics": 0,
-                "diversity": 0,
-                "homeostatic": 1
+                "secretion": 5.02061e-05,
+                "efficiency": 2.33e-07,
+                "kinetics": 3.1497e-05,
+                "diversity": 0.008770645,
+                "homeostatic": 0.023748941
             },
-            "fraction_kinetic_target": 1.0,
             "include_new": true
         }
     }
