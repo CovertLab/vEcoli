@@ -74,7 +74,8 @@ def compute_variant_grid(
 
     def _fallback() -> tuple[int, int, list[int]]:
         all_ids = sorted(per_variant_params.keys())
-        return len(all_ids), 1, all_ids
+        n_col = 3
+        return len(all_ids) / n_col, n_col, all_ids
 
     if not other_ids:
         return _fallback()

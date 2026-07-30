@@ -1,9 +1,13 @@
 {
-    "emitter_arg": {
-        "out_dir": "/scratch/users/hsaqibo1/"
-    },
-    "analysis_options": {
-    "outdir": "out/objective_weight_jul/analysis/",
+  "emitter_arg": {
+    "out_dir": "out/objective_weights_jul/"
+  },
+  "analysis_options": {
+    "experiment_id": ["check_hom_obj_threshold_20260724-124052"],
+    "variant_data_dir": ["out/objective_weights_jul/check_hom_obj_threshold_20260724-124052/variant_sim_data"],
+    "validation_data_path": ["out/objective_weights_jul/check_hom_obj_threshold_20260724-124052/parca/kb/validationData.cPickle"],
+    "outdir": "out/objective_weights_jul/analysis/check_hom_obj_threshold_20260724-124052/",
+    "cpus": 1,
     "multivariant": {
       "cell_mass": {},
       "doubling_time_hist": {
