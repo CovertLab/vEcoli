@@ -1,3 +1,96 @@
+# Model-driven metalloproteomics pinpoints tradeoffs impacting cell growth
+
+This section describes how to regenerate the two model-output files used in this study,
+
+`proteins_filtered.tsv` and `complexes_filtered.tsv`.
+
+## Model parameter adjustments
+
+For this study,  we adjusted 16 parameters relative to the previous version of the model to improve agreement with ribosome profiling data. All of them are listed in
+[`reconstruction/ecoli/flat/adjustments/rna_expression_adjustments.tsv`]
+(reconstruction/ecoli/flat/adjustments/rna_expression_adjustments.tsv).
+
+To confirm that these adjustments did not substantially alter the behavior of the model, we ran simulations under two variant conditions and compared the resulting protein and complex abundances against the previous version of the model. The instructions below reproduce those simulations and regenerate the comparison files.
+
+## Regenerating `proteins_filtered.tsv` and `complexes_filtered.tsv`
+
+The workflow runs 32 independent lineages ("seeds") for 8 successive generations under each of
+two nutrient conditions:
+
+<div align="center">
+
+| Variant | Nutrient condition | Media | Seeds | Generations |
+|:-------:|:-------------------|:------|:-----:|:-----------:|
+| 0 | Minimal      | `minimal`                   | 32 | 8 |
+| 1 | Amino-acid supplemented (rich) | `minimal_plus_amino_acids`  | 32 | 8 |
+
+</div>
+
+Variant 0 is the run in glucose minimal medium. Variant 1 switches the nutrients to `minimal_plus_amino_acids` — the same glucose minimal
+base supplemented with all 20 amino acids. Media and condition definitions are in
+`reconstruction/ecoli/flat/condition/`.
+
+Each variant produces files `proteins_filtered.tsv` and `complexes_filtered.tsv`, for four output files in total.
+
+1. Follow the **Setup** instructions below to install vEcoli, `uv`, and Nextflow.
+
+2. Open `configs/protein_counts_cofactor_local.json` and change the number of seeds and generations if needed/desired.  Currently, the config runs a single seed for a single generation for quick testing. To reproduce study outputs change the following: 
+
+```json
+"n_init_sims": 32,
+"generations": 8,
+```
+
+**Warning:** 
+the full 32 x 8 run writes roughly 240 GB of Parquet output (about 420 MB per simulated cell) and is limited by your hardware in both runtime and disk. 
+
+3. From the top level of the repository, run:
+
+```
+uvenv runscripts/workflow.py --config configs/protein_counts_cofactor_local.json
+```
+
+This runs the ParCa, then the simulations for both variants, then the analysis that writes the four TSV files.
+
+4. Output is written to a new `out/` directory in the repository. 
+
+`variant=0` holds the minimal-medium results and `variant=1` the amino-acid-supplemented results.
+
+## What the output files contain
+
+Both files are written by
+[`ecoli/analysis/multiseed/protein_counts_cofactor.py`](ecoli/analysis/multiseed/protein_counts_cofactor.py) and share the same layout. Both are tab-separated with a single header row.
+
+**Rows.**
+One row per simulated cell — that is, one row for each (seed, generation) pair. A
+32-seed, 8-generation run gives 256 rows per file. The first two columns are:
+
+| Column | Description |
+|:-------|:------------|
+| `seed`       | Seed identifying the independent lineage the cell belongs to |
+| `generation` | Generation index within that seed |
+
+**Values.** 
+Every remaining column is a either a complex or protein count for that cell, averaged over all
+simulation timesteps between the cell's intialization and its division. Values are floating point
+because they are time averages of integer counts. Counts are raw counts per cell: they are not
+normalized to cell volume, cell mass, or total protein, and are not log-transformed. 
+
+**`proteins_filtered.tsv`** 
+— 4434 columns after `seed` and `generation`, one per protein
+monomer, named by EcoCyc monomer identifier.
+
+**`complexes_filtered.tsv`** 
+— 1093 columns after `seed` and `generation`, one per
+macromolecular complex, named by EcoCyc complex identifier. 
+
+**What "filtered" means.** 
+The simulation tracks tens of thousands of bulk molecules. Each file
+is restricted to a curated list of identifiers relevant to this study — the cofactor-binding proteins and complexes analyzed in the paper. Those lists are stored as plain text, one identifier per line, in `ecoli/analysis/multiseed/cofactor_ids/protein_ids.txt` and `ecoli/analysis/multiseed/cofactor_ids/complex_ids.txt`, and column order in the output follows the order in those files. This is a subset operation only: no abundance threshold and no statistical filter is applied. A handful of listed identifiers do not exist in the model's molecule set and are emitted as columns of zeros, so that the column set is identical across
+runs and across variants and the two variants can be compared directly.
+
+
+##
 # Vivarium *E. coli*
 
 ![vivarium](doc/_static/ecoli_master_topology.png)
