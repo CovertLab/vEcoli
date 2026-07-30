@@ -66,10 +66,23 @@ def plot(
 
     cell_density = sim_data.constants.cell_density
 
+    reaction_ids = np.array(
+        field_metadata(conn, config_sql, "listeners__fba_results__base_reaction_fluxes")
+    )
+    reaction_id_to_idx = {r: i for i, r in enumerate(reaction_ids)}
+    toya_reactions = validation_data.reactionFlux.toya2010fluxes["reactionID"]
+    common_reactions = [r for r in toya_reactions if r in reaction_id_to_idx]
+    # 1-based indices for DuckDB's list_select, narrows base_reaction_fluxes to
+    # just the Toya-matched reactions so the full ~9,370-reaction-wide column
+    # never has to leave DuckDB.
+    common_reaction_indices_1based = [
+        reaction_id_to_idx[r] + 1 for r in common_reactions
+    ]
+
     query = [
         "listeners__mass__cell_mass AS cell_mass",
         "listeners__mass__dry_mass AS dry_mass",
-        "listeners__fba_results__base_reaction_fluxes AS base_reaction_fluxes",
+        f"list_select(listeners__fba_results__base_reaction_fluxes, {common_reaction_indices_1based}) AS base_reaction_fluxes",
         "listeners__enzyme_kinetics__counts_to_molar AS counts_to_molar",
     ]
 
@@ -79,14 +92,7 @@ def plot(
         )
     )
 
-    reaction_ids = np.array(
-        field_metadata(conn, config_sql, "listeners__fba_results__base_reaction_fluxes")
-    )
-    toya_reactions = validation_data.reactionFlux.toya2010fluxes["reactionID"]
-    common_reactions = [
-        r for r in toya_reactions if r in {r: i for i, r in enumerate(reaction_ids)}
-    ]
-
+    # Already narrowed to common_reactions (in that order) by the list_select above.
     flux_matrix = ndlist_to_ndarray(raw["base_reaction_fluxes"])
 
     if REDUXCLASSIC:
@@ -131,7 +137,7 @@ def plot(
         )
 
         sim_flux_means, sim_flux_stdevs = toya.process_simulated_fluxes(
-            toya_reactions, reaction_ids, sim_reaction_fluxes[mask, :]
+            toya_reactions, common_reactions, sim_reaction_fluxes[mask, :]
         )
         toya_flux_means = toya.process_toya_data(
             common_reactions, toya_reactions, toya_fluxes

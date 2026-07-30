@@ -15,6 +15,12 @@ Optionally, a ``plot_catalysts`` parameter can be used to highlight the
 scatter points for the kinetic reaction(s) associated with one or more
 catalysts (enzymes), labeling each point with its reaction ID and coloring
 it by catalyst.
+
+The line plot pulls per-timestep scalar data (``kinetics_term``,
+``counts_to_molar``, ``time``) at full time resolution, so its memory use
+scales with variant x generation x timestep count. If a wide per-reaction
+listener is ever added to that query, raise ``analysis_options.memory_gb``
+in the config for high-volume multivariant runs.
 """
 
 from __future__ import annotations
@@ -143,12 +149,16 @@ def plot(
                 rxn_to_catalyst_label[rxn] = label
 
     # ── Load raw listener data ─────────────────────────────────────────────────
+    # estimated_fluxes is narrowed to just the kinetic reactions via list_select
+    # so DuckDB never materializes the full ~9,370-reaction-wide list column
+    # (avoids overflowing Arrow's 32-bit ListArray offset limit on large runs).
+    kinetic_indices_1based = (kinetic_indices + 1).tolist()
     raw = pl.DataFrame(
         read_stacked_columns(
             history_sql,
             [
                 "listeners__fba_results__target_kinetic_fluxes AS target_kinetic_fluxes",
-                "listeners__fba_results__estimated_fluxes AS estimated_fluxes",
+                f"list_select(listeners__fba_results__estimated_fluxes, {kinetic_indices_1based}) AS estimated_fluxes",
                 "listeners__fba_results__kinetics_term AS kinetics_term",
                 "listeners__enzyme_kinetics__counts_to_molar AS counts_to_molar",
             ],
@@ -192,8 +202,9 @@ def plot(
 
     # ── Numpy arrays ──────────────────────────────────────────────────────────
     target_arr = ndlist_to_ndarray(raw["target_kinetic_fluxes"])  # (T, n_kinetic)
-    estimated_arr = ndlist_to_ndarray(raw["estimated_fluxes"])  # (T, n_all_rxns)
-    kinetic_flux_arr = estimated_arr[:, kinetic_indices]  # (T, n_kinetic)
+    # Already narrowed to kinetic reactions (in kinetic_rxn_names order) by the
+    # list_select in the query above.
+    kinetic_flux_arr = ndlist_to_ndarray(raw["estimated_fluxes"])  # (T, n_kinetic)
     # counts_to_molar [mmol/L per count]; multiply by S_PER_HR to get mmol/(L·h)
     counts_to_molar = raw["counts_to_molar"].to_numpy()[:, np.newaxis] * S_PER_HR
     variants_col = np.array(raw["variant"].to_list())
