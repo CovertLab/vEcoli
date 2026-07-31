@@ -1,0 +1,229 @@
+{
+  "experiment_id": "sherlock_bob_v2_kd",
+  "fail_at_max_duration": true,
+  "progress_bar": true,
+  "log_updates": false,
+  "generations": 3,
+  "n_init_sims": 1,
+  "emitter": "parquet",
+  "emitter_arg": {
+    "out_dir": "/scratch/users/hsaqibo1/"
+  },
+  "sim_data_path": null,
+  "parca_options": {
+    "cpus": 10
+  },
+  "fixed_media": "minimal",
+  "condition": "basal",
+  "swap_processes": {
+    "ecoli-metabolism": "ecoli-metabolism-redux-classic"
+  },
+  "exclude_processes": [
+    "exchange_data"
+  ],
+  "flow": {
+    "ecoli-metabolism-redux-classic": [
+      [
+        "ecoli-chromosome-structure"
+      ]
+    ],
+    "ecoli-mass-listener": [
+      [
+        "ecoli-metabolism-redux-classic"
+      ]
+    ],
+    "RNA_counts_listener": [
+      [
+        "ecoli-metabolism-redux-classic"
+      ]
+    ],
+    "rna_synth_prob_listener": [
+      [
+        "ecoli-metabolism-redux-classic"
+      ]
+    ],
+    "monomer_counts_listener": [
+      [
+        "ecoli-metabolism-redux-classic"
+      ]
+    ],
+    "dna_supercoiling_listener": [
+      [
+        "ecoli-metabolism-redux-classic"
+      ]
+    ],
+    "replication_data_listener": [
+      [
+        "ecoli-metabolism-redux-classic"
+      ]
+    ],
+    "rnap_data_listener": [
+      [
+        "ecoli-metabolism-redux-classic"
+      ]
+    ],
+    "unique_molecule_counts": [
+      [
+        "ecoli-metabolism-redux-classic"
+      ]
+    ],
+    "ribosome_data_listener": [
+      [
+        "ecoli-metabolism-redux-classic"
+      ]
+    ]
+  },
+  "raw_output": false,
+  "operons": true,
+  "trna_charging": false,
+  "ppgpp_regulation": false,
+  "initial_state_gaussian": true,
+  "trna_attenuation": false,
+  "variable_elongation_transcription": true,
+  "variable_elongation_translation": false,
+  "mechanistic_translation_supply": false,
+  "mechanistic_aa_transport": false,
+  "translation_supply": false,
+  "aa_supply_in_charging": false,
+  "adjust_timestep_for_charging": false,
+  "disable_ppgpp_elongation_inhibition": true,
+  "analysis_options": {
+    "memory_gb": 48,
+    "outdir": "out/objective_weight_jul/analysis/",
+    "multivariant": {
+      "cell_mass": {},
+      "doubling_time_hist": {
+        "skip_n_gens": 0
+      },
+      "centralCarbonMetabolismScatter": {},
+      "centralCarbonMetabolismBoxScatter": {},
+      "weighted_objective_terms": {},
+      "mean_flux_distribution": {
+        "in_molar": false,
+        "bin_edges": [
+          0,
+          1e-06,
+          0.001,
+          1,
+          2,
+          10,
+          1000.0,
+          1000000.0,
+          1000000000.0,
+          1000000000000.0
+        ],
+        "facet_columns": 4,
+        "n_bins": 25
+      },
+      "kinetic_flux": {
+        "plot_catalysts": [
+          "NACGLCTRANS-MONOMER[c]",
+          "UDPNACETYLGLUCOSAMACYLTRANS-CPLX[c]",
+          "UDPNACETYLGLUCOSAMENOLPYRTRANS-MONOMER[c]"
+        ]
+      },
+      "metabolite_unmet_need": {},
+      "selected_catalyst_fluxes": {
+        "plot_catalysts": [
+          "UDP-NACMURALA-GLU-LIG-MONOMER[c]"
+        ]
+      },
+      "sankey_metabolite_flux": {
+        "metabolites_of_interest": [
+          "C6[p]",
+          "WATER[c]"
+        ]
+      }
+    }
+  },
+  "variants": {
+    "metabolism_redux_classic_combined": {
+      "weights": {
+        "nested": {
+          "homeostatic": {
+            "value": [
+              0.0177908526076208,
+              0.0376573270972964,
+              0.0453939788240051,
+              0.0464224644812962,
+              0.0180229095175546,
+              0.0293817453133862,
+              0.0086677437314323,
+              0.0622087592367944,
+              0.0415510789753969
+            ]
+          },
+          "secretion": {
+            "value": [
+              3.66048742562e-05,
+              7.04835260132e-05,
+              9.42467264875e-05,
+              9.69761441004e-05,
+              3.0167869806e-05,
+              5.65146154236e-05,
+              1.50745401354e-05,
+              9.1130598521e-05,
+              6.64155501926e-05
+            ]
+          },
+          "efficiency": {
+            "value": [
+              3.9377380575148196e-07,
+              2.3132538660545945e-07,
+              8.015132943872844e-07,
+              7.267927288152129e-07,
+              2.645078971523072e-07,
+              1.0303981725739061e-07,
+              1.970296847438036e-07,
+              6.469796875875561e-07,
+              5.031633431107086e-07
+            ]
+          },
+          "kinetics": {
+            "value": [
+              2.94205001436e-05,
+              5.33453561417e-05,
+              6.27734775162e-05,
+              6.26521714632e-05,
+              2.33718584151e-05,
+              3.48739752407e-05,
+              8.54169449916271e-06,
+              6.05607243992e-05,
+              4.03438050563e-05
+            ]
+          },
+          "diversity": {
+            "value": [
+              1.76038564087e-05,
+              0.0043611088847568,
+              1.42714389443e-05,
+              0.0019347993185992,
+              4.53800601697e-05,
+              0.0011362615379384,
+              0.0006674181099964,
+              0.0003638264492725,
+              0.0063573825712727
+            ]
+          },
+          "op": "zip"
+        }
+      },
+      "fraction_kinetic_target": {
+        "value": [
+          1.0,
+          0.8,
+          0.6,
+          0.4,
+          0.1
+        ]
+      },
+      "op": "prod"
+    }
+  },
+  "sherlock": {
+    "build_image": true,
+    "container_image": "./test_sherlock/test_image",
+    "hyperqueue": true,
+    "jenkins": false
+  }
+}

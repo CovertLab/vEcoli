@@ -22,7 +22,7 @@ pareto_results_init_selective_2000samples/objective_weights_batch_apr.csv" \\
         --indices 282 424 728
 
     # Just write the merged config JSON without running the workflow:
-    python runscripts/variants_or_json_from_csv.py \\
+    uvenv runscripts/variants_or_json_from_csv.py \\
         --config configs/metabolism_redux_classic_variant.json \\
         --csv path/to/weights.csv \\
         --outdir out/variants_apr \\

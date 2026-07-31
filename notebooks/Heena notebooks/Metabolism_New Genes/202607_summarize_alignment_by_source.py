@@ -41,6 +41,12 @@ DEFAULT_WELLS_JSON = SCRIPT_DIR / "phenotypic_array_wells.json"
 DEFAULT_OUT_DIR = SCRIPT_DIR / "out" / "phenotypic_arrays" / "plots"
 
 CATEGORY_ORDER = ["A", "B", "C", "D", "Missing"]
+CATEGORY_LABELS = {
+    "A": "neither correct",
+    "B": "only OLD correct",
+    "C": "only NEW correct",
+    "D": "both correct",
+}
 SOURCE_ORDER = ["Carbon", "Nitrogen", "Phosphorus", "Sulfur"]
 
 
@@ -82,6 +88,7 @@ def summarize_alignment_by_source(merged, ppr):
 
 def build_summary_table_figure(counts, percentages):
     cell_text = counts.astype(str) + " (" + percentages.astype(str) + "%)"
+    row_labels = [CATEGORY_LABELS.get(cat, cat) for cat in counts.index]
     fig = go.Figure(
         data=[
             go.Table(
@@ -91,7 +98,7 @@ def build_summary_table_figure(counts, percentages):
                     align="left",
                 ),
                 cells=dict(
-                    values=[counts.index, *[cell_text[col] for col in SOURCE_ORDER]],
+                    values=[row_labels, *[cell_text[col] for col in SOURCE_ORDER]],
                     align="left",
                 ),
             )
