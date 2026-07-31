@@ -1215,7 +1215,12 @@ def test_network_flow_model():
     )
 
 
-# TODO (Cyrus) Add test for entire process
+# The entire process is exercised in-sim by
+# test_ecoli_metabolism_redux_solver_fallback in
+# ecoli/experiments/metabolism_redux_sim.py, which runs MetabolismRedux inside
+# a short EcoliSim and asserts the solver fallback recovers a transient GLOP
+# failure. The standalone solver-fallback LP is covered by
+# ecoli/processes/test_metabolism_redux_solver_fallback.py.
 
 if __name__ == "__main__":
     test_network_flow_model()

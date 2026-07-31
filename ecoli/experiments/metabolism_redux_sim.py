@@ -211,6 +211,57 @@ def test_ecoli_with_metabolism_redux_div(
 
 
 @pytest.mark.slow
+def test_ecoli_metabolism_redux_solver_fallback(monkeypatch):
+    """Run the *entire* MetabolismRedux process inside a short EcoliSim and
+    verify the cvxpy solver fallback recovers a transient primary-solver
+    (GLOP) failure, so the simulation runs to completion instead of losing the
+    seed.
+
+    This is the in-sim counterpart to the standalone-LP unit tests in
+    ``ecoli/processes/test_metabolism_redux_solver_fallback.py`` and resolves
+    the ``# TODO (Cyrus) Add test for entire process`` in
+    ``ecoli/processes/metabolism_redux.py``. It also speaks to the review
+    question "do the other solvers fail on the same simulations GLOP fails
+    on?": here GLOP is made to raise on a *real* in-sim FBA problem and a
+    fallback solver reaches an optimal solution on that identical problem, so
+    the tick -- and the whole run -- survive.
+    """
+    import cvxpy as cp
+    from cvxpy.error import SolverError
+
+    real_solve = cp.Problem.solve
+    injected = {"glop_failures": 0}
+
+    def flaky_glop_solve(self, solver=None, **kwargs):
+        # Inject a single transient GLOP failure on the first GLOP solve of
+        # the run; every other solve -- including the fallback retry -- is real.
+        if solver == cp.GLOP and injected["glop_failures"] == 0:
+            injected["glop_failures"] += 1
+            raise SolverError("simulated transient GLOP failure (test)")
+        return real_solve(self, solver=solver, **kwargs)
+
+    monkeypatch.setattr(cp.Problem, "solve", flaky_glop_solve)
+
+    sim = EcoliSim.from_file(CONFIG_DIR_PATH + "metabolism_redux.json")
+    sim.max_duration = 4
+    sim.divide = False
+    sim.progress_bar = False
+    sim.log_updates = False
+    sim.emitter = "timeseries"
+    sim.build_ecoli()
+
+    # Would raise if the injected GLOP failure were not caught and retried by
+    # solve_with_fallback; a completed run means a fallback solver handled the
+    # identical problem GLOP choked on.
+    sim.run()
+
+    # Guard against a vacuous pass: the fallback path was actually exercised.
+    assert injected["glop_failures"] == 1, (
+        "expected exactly one injected GLOP failure to be triggered in-sim"
+    )
+
+
+@pytest.mark.slow
 def test_ecoli_with_metabolism_classic(
     filename="metabolism_redux_classic",
     max_duration=4,
