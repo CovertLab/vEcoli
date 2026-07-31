@@ -1,0 +1,23 @@
+{
+    "emitter_arg": { "out_dir": "out" },
+    "analysis_options": {
+        "experiment_id": ["c6o_long_sim_newHL_TUsOn_20260602-230542", "c6o_fit_TU_HL"],
+        "variant_data_dir": [
+            "out/c6o_long_sim_newHL_TUsOn_20260602-230542/variant_sim_data",
+            "out/c6o_fit_TU_HL/variant_sim_data"
+        ],
+        "validation_data_path": ["out/c6o_long_sim_newHL_TUsOn_20260602-230542/parca/kb/validationData.cPickle"],
+        "outdir": "out/fba_flux_lineage_comparison_with_highlighted_molecules",
+        "cpus": 1,
+        "single": {}, "multidaughter": {}, "multigeneration": {},
+        "multiseed": {}, "multivariant": {},
+        "multiexperiment": {
+            "fba_flux_lineage_comparisons_plotly": {
+                "reaction_id": ["RXN-15131__CYSTATHIONINE-BETA-LYASE-CPLX"],
+                "skip_n_gens": 2,
+                "exclude_metabolite_degree_over": 50,
+                "only_show_reactions_containing_molecules": ["MET", "NUCLEOSIDE-DIP-KIN-CPLX", "MALTOSE", "FOLD-CPLX", "METHYLENE-THF", "GART-MONOMER", "CYS", "FRUCTOSE-6P"]
+            }
+        }
+    }
+}

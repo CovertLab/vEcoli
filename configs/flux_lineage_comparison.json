@@ -1,0 +1,29 @@
+{
+    "emitter_arg": { "out_dir": "out" },
+    "analysis_options": {
+        "experiment_id": ["c6o_long_sim_newHL_TUsOn_20260602-230542", "c6o_fit_TU_HL"],
+        "variant_data_dir": [
+            "out/c6o_long_sim_newHL_TUsOn_20260602-230542/variant_sim_data",
+            "out/c6o_fit_TU_HL/variant_sim_data"
+        ],
+        "validation_data_path": ["out/c6o_long_sim_newHL_TUsOn_20260602-230542/parca/kb/validationData.cPickle"],
+        "outdir": "out/fba_flux_lineage_comparison_all_levels_highlighted",
+        "cpus": 1,
+        "single": {}, "multidaughter": {}, "multigeneration": {},
+        "multiseed": {}, "multivariant": {},
+        "multiexperiment": {
+            "fba_flux_lineage_comparisons_plotly": {
+                "reaction_id": ["RXN-15131__CYSTATHIONINE-BETA-LYASE-CPLX"],
+                "skip_n_gens": 2,
+                "excluded_connector_metabolites": [
+                    "WATER", "ATP", "ADP", "AMP", "Pi", "PPI", "PROTON",
+                    "NAD", "NADH", "NADP", "NADPH", "CO-A",
+                    "CARBON-DIOXIDE", "OXYGEN-MOLECULE"
+                ],
+                "exclude_metabolite_degree_over": 50,
+                "always_include_metabolites": [],
+                "max_levels": 20
+            }
+        }
+    }
+}
