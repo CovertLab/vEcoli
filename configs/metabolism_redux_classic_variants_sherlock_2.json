@@ -1,5 +1,5 @@
 {
-  "experiment_id": "sherlock_bob_v2_kd",
+  "experiment_id": "sherlock_relationship_kd",
   "fail_at_max_duration": true,
   "progress_bar": true,
   "log_updates": false,
