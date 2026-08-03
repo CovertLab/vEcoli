@@ -1,0 +1,22 @@
+{
+    "emitter_arg": {
+        "out_dir": "out"
+    },
+    "analysis_options": {
+        "experiment_id": ["test_anaerobic_with_changes_20260706-125105"],
+        "variant_data_dir": ["out/test_anaerobic_with_changes_20260706-125105/variant_sim_data"],
+        "validation_data_path": ["out/test_anaerobic_with_changes_20260706-125105/parca/kb/validationData.cPickle"],
+        "outdir": "out/test_anaerobic_with_changes_20260706-125105",
+
+        "cpus": 1,
+
+        "single": {},
+        "multidaughter": {},
+        "multigeneration": {},
+        "multiseed": {},
+        "multivariant": {
+            "arca_activity": {}
+        },
+        "multiexperiment": {}
+    }
+}

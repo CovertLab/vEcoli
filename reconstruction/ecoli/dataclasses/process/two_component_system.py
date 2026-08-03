@@ -23,6 +23,51 @@ from wholecell.utils import units
 # Alternative methods to try (in order of priority) when solving ODEs to the next time step
 IVP_METHODS = ["LSODA", "BDF"]
 
+# Approach considered but NOT used: swap in
+# reconstruction/ecoli/flat/two_component_system_templates_no_water.tsv, which
+# deletes WATER entirely from the RR dephosphorylation reaction stoichiometry.
+# That breaks the mass-balance assertion further down in this file (water's
+# ~18 g/mol is no longer balanced against RR/Pi/PHOSPHO-RR on the other side
+# of the reaction). Instead, WATER stays in the stoichiometry (for mass
+# balance and molecule-count bookkeeping) and is only dropped from the rate
+# law itself in _make_y_dy() below, which is what was actually validated via
+# the steady-state solver. Left here in case that alternative is revisited.
+# USE_NO_WATER_TEMPLATE = True
+
+# Also considered but NOT used: dropping WATER[c] from the rate law entirely
+# (rather than substituting a fixed reference value, below) for the ArcA/PhoP
+# dephosphorylation reactions. That drives both systems to ~100% activation,
+# which pins ParCa's promoter-bound-probability fit exactly at its p=1 box
+# boundary and crashes with NaN propagation (see git history/session notes).
+# Using a fixed, calibrated reference value instead gives a tunable,
+# intermediate reverse-rate reduction that avoids that boundary.
+#
+# Calibrated from the mechanistic steady-state balance
+# k1*[HK_free]*[ATP] = k3*[RR-P]*WATER_REF (k1=500, k3=0.01, the NEG-oriented
+# HK-phosphorylation/RR-dephosphorylation rate constants shared by both
+# systems), solved for a ~85% target activation fraction using real
+# HK_free/ATP/RR_total values from a no_oxygen simulation trace (see
+# notebooks/anaerobic/calibrate_water_reference_counts.py for the full
+# derivation).
+#
+# UNITS: the y-vector _make_y_dy() operates on is a CONCENTRATION (mM), not
+# a raw molecule count -- both callers (molecules_to_next_time_step,
+# molecules_to_ss) convert via y = moleculeCounts / (cellVolume[L] *
+# n_avogadro[1/mmol]) before integrating. WATER_REF is substituted directly
+# in place of y[water_idx], so it must be a concentration (mM) too. (An
+# earlier version of this calibration used raw molecule counts (~1e9),
+# which is off from the correct mM-scale value (~1e3-1e4) by the
+# cellVolume*n_avogadro factor -- a ~1e5x overshoot that drove RR-P activation
+# to ~0% instead of the intended ~85%, since it massively inflated rather
+# than reduced the effective reverse-rate multiplier.)
+#
+# Live intracellular WATER[c] concentration is ~1.2e4 mM; these values are
+# an ~2.3x (ArcA) / ~1.1x (PhoP) reduction from that.
+# EXPECT TO ITERATE: verify against sim_data.pPromoterBound after a parca run
+# and adjust if activation lands outside the intended ~80-90% range.
+ARCA_WATER_REF_CONC = 5.382e3  # mM
+PHOP_WATER_REF_CONC = 1.141e4  # mM
+
 
 class TwoComponentSystem(object):
     def __init__(self, raw_data, sim_data):
@@ -64,6 +109,12 @@ class TwoComponentSystem(object):
                 "NEG-RR-DEPHOSPHORYLATION_RXN",
             ],
         }
+
+        # reactionTemplates = (
+        #     raw_data.two_component_system_templates_no_water
+        #     if USE_NO_WATER_TEMPLATE
+        #     else raw_data.two_component_system_templates
+        # )
 
         reactionTemplate = {}
         for reactionIndex, reaction in enumerate(
@@ -407,6 +458,38 @@ class TwoComponentSystem(object):
         yStrings = ["y[%d]" % x for x in range(S.shape[0])]
         y = sp.symbols(yStrings)
 
+        # WATER[c] (~35 M) is a reactant in the RR dephosphorylation reactions
+        # (*-RR-DEPHOSPHORYLATION_RXN). Including it as a literal mass-action
+        # factor amplifies the nominal rate constant (0.01) ~35x, so
+        # dephosphorylation chronically outpaces kinase-driven phosphorylation
+        # and caps RR-P activation far below what ParCa's condition-fits
+        # assume. For the ArcB/ArcA and PhoQ/PhoP dephosphorylation reactions
+        # specifically, the live WATER[c] concentration (y[water_idx], in mM)
+        # is replaced with a fixed, calibrated reference concentration
+        # (ARCA_WATER_REF_CONC / PHOP_WATER_REF_CONC, see module-level
+        # comment above) rather than the live value or dropping it
+        # altogether — WATER[c] remains in the stoichiometry matrix S
+        # itself, so mass balance and molecule-count bookkeeping are
+        # unaffected.
+        #
+        # Scoped to just these two systems (the ones implicated in the
+        # anaerobic ArcA-P/PhoP-P saturation analysis): applying a water-rate
+        # change to all 8 TCS systems at once risks driving several response
+        # regulators toward saturation simultaneously, which breaks
+        # promoter-binding probability fitting elsewhere in ParCa (division
+        # by ~0 for near-fully-saturated active/inactive TF fractions).
+        water_idxs = np.where(self.molecule_names == "WATER[c]")[0]
+        water_idx = water_idxs[0] if water_idxs.size else None
+        water_ref_by_rxn_name = {
+            "NEG-ARCA-MONOMER-DEPHOSPHORYLATION_RXN": ARCA_WATER_REF_CONC,
+            "NEG-PHOP-MONOMER-DEPHOSPHORYLATION_RXN": PHOP_WATER_REF_CONC,
+        }
+        water_ref_by_col_idx = {
+            self.rxn_ids.index(rxn_name): water_ref
+            for rxn_name, water_ref in water_ref_by_rxn_name.items()
+            if rxn_name in self.rxn_ids
+        }
+
         rates = []
         for colIdx in range(S.shape[1]):
             negIdxs = np.where(S[:, colIdx] < 0)[0]
@@ -414,6 +497,9 @@ class TwoComponentSystem(object):
 
             reactantFlux = self.rates_fwd[colIdx]
             for negIdx in negIdxs:
+                if negIdx == water_idx and colIdx in water_ref_by_col_idx:
+                    reactantFlux *= water_ref_by_col_idx[colIdx]
+                    continue
                 stoich = -S[negIdx, colIdx]
                 if stoich == 1:
                     reactantFlux *= y[negIdx]

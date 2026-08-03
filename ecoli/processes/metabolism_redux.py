@@ -179,6 +179,7 @@ class MetabolismRedux(Step):
         self.mechanistic_aa_transport = self.parameters["mechanistic_aa_transport"]
         self.current_timeline = self.parameters["current_timeline"]
         self.media_id = self.parameters["media_id"]
+        print(self.media_id)
         self.exchange_molecules = self.parameters["exchange_molecules"]
         self.aa_names = self.parameters["aa_names"]
         self.aa_targets_not_updated = self.parameters["aa_targets_not_updated"]

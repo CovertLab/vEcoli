@@ -26,7 +26,7 @@ if TYPE_CHECKING:
 
 alt.data_transformers.enable("vegafusion")
 
-DEFAULT_TOP_N = 8
+DEFAULT_TOP_N = 25
 DEFAULT_SUBPLOT_WIDTH = 600
 PASTEL = [
     "#8dd3c7",
@@ -207,7 +207,7 @@ def plot(
         bars = bar_base.mark_bar(cornerRadiusEnd=8, size=28).encode(
             y=alt.Y(
                 "mean_abs_unmet:Q",
-                title="Unmet need (mean |L1 diff|)",
+                title="Homeostatic Difference (mean |L1 diff|)",
                 scale=alt.Scale(type="symlog"),
             ),
         )
@@ -230,7 +230,7 @@ def plot(
             .mark_line(strokeWidth=2)
             .encode(
                 x=alt.X("Time_min:Q", title="Time (min)"),
-                y=alt.Y("unmet_need:Q", title="L1 |Target - Estimate|"),
+                y=alt.Y("unmet_need:Q", title="Normalized (Target - Estimate)"),
                 color=alt.Color(
                     "metabolite:N",
                     scale=alt.Scale(domain=color_domain, range=color_range),

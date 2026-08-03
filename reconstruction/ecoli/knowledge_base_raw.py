@@ -82,6 +82,7 @@ LIST_OF_DICT_FILENAMES = [
     "trna_charging_reactions_removed.tsv",
     "two_component_systems.tsv",
     "two_component_system_templates.tsv",
+    "two_component_system_templates_no_water.tsv",
     os.path.join("mass_fractions", "glycogen_fractions.tsv"),
     os.path.join("mass_fractions", "ion_fractions.tsv"),
     os.path.join("mass_fractions", "LPS_fractions.tsv"),

@@ -27,6 +27,26 @@ TOPOLOGY = {
 }
 topology_registry.register(NAME, TOPOLOGY)
 
+# --- BEGIN water-floor fix (added alongside the ArcA/PhoP WATER_REF_CONC
+# calibration in reconstruction/ecoli/dataclasses/process/two_component_system.py) ---
+#
+# calculate_request()'s WATER[c] request is normally computed from the real,
+# short timestep (~1-2 s), which legitimately rounds to ~0 net water
+# turnover for ArcA/PhoP. But evolve_state()'s fallback branch (triggered
+# whenever an unrelated molecule, e.g. a low-copy histidine kinase complex,
+# is allocated less than requested) reuses that same allocation while
+# integrating over a much longer 10000 s nominal timestep, where ArcA/PhoP's
+# now-real dephosphorylation flux (see WATER_REF_CONC) needs non-negligible
+# water. With 0 water allocated, that fallback integration can dip
+# fractionally negative and raise "Solution to ODE ... has negative values."
+#
+# WATER_REQUEST_FLOOR reserves a small water buffer every timestep so the
+# fallback is never starved of it. Trivial relative to the real WATER[c]
+# pool (~1e9-1e10 molecules), so this does not meaningfully reduce water
+# available to any other process.
+WATER_REQUEST_FLOOR = 5000
+# --- END water-floor fix ---
+
 
 class TwoComponentSystem(PartitionedProcess):
     """Two Component System PartitionedProcess"""
@@ -70,6 +90,12 @@ class TwoComponentSystem(PartitionedProcess):
         # Helper indices for Numpy indexing
         self.molecule_idx = None
 
+        # --- water-floor fix: locate WATER[c] within moleculeNames so
+        # calculate_request() can apply WATER_REQUEST_FLOOR to it below.
+        water_matches = np.where(np.asarray(self.moleculeNames) == "WATER[c]")[0]
+        self.water_request_idx = water_matches[0] if water_matches.size else None
+        # --- end water-floor fix ---
+
     def ports_schema(self):
         return {
             "bulk": numpy_schema("bulk"),
@@ -108,6 +134,17 @@ class TwoComponentSystem(PartitionedProcess):
                 jit=self.jit,
             )
         )
+
+        # --- water-floor fix: see WATER_REQUEST_FLOOR comment above. Reserve
+        # a small water buffer regardless of what this timestep's short-window
+        # calculation requested, so evolve_state()'s fallback (which reuses
+        # this allocation over a much longer nominal timestep) isn't starved.
+        if self.water_request_idx is not None:
+            self.molecules_required[self.water_request_idx] = max(
+                self.molecules_required[self.water_request_idx], WATER_REQUEST_FLOOR
+            )
+        # --- end water-floor fix ---
+
         requests = {"bulk": [(self.molecule_idx, self.molecules_required.astype(int))]}
         return requests
 
