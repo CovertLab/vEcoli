@@ -1637,7 +1637,8 @@ def build_molecule_highlight_figure(
         )
 
     # Distinct high-contrast qualitative palette giving each highlighted molecule
-    # its own legend color; cycled if there are more molecules than colors:
+    # its own legend color from https://sashamaps.net/docs/resources/20-colors/
+    # (cycles if there are more molecules than colors):
     palette = [
         "#e6194B",
         "#3cb44b",
