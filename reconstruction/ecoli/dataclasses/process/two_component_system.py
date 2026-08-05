@@ -35,12 +35,12 @@ IVP_METHODS = ["LSODA", "BDF"]
 # USE_NO_WATER_TEMPLATE = True
 
 # Also considered but NOT used: dropping WATER[c] from the rate law entirely
-# (rather than substituting a fixed reference value, below) for the ArcA/PhoP
-# dephosphorylation reactions. That drives both systems to ~100% activation,
-# which pins ParCa's promoter-bound-probability fit exactly at its p=1 box
-# boundary and crashes with NaN propagation (see git history/session notes).
-# Using a fixed, calibrated reference value instead gives a tunable,
-# intermediate reverse-rate reduction that avoids that boundary.
+# (rather than substituting a fixed reference value, below) for the ArcA
+# dephosphorylation reaction. That drives activation to ~100%, which pins
+# ParCa's promoter-bound-probability fit exactly at its p=1 box boundary and
+# crashes with NaN propagation (see git history/session notes). Using a
+# fixed, calibrated reference value instead gives a tunable, intermediate
+# reverse-rate reduction that avoids that boundary.
 #
 # Calibrated from the mechanistic steady-state balance
 # k1*[HK_free]*[ATP] = k3*[RR-P]*WATER_REF (k1=500, k3=0.01, the NEG-oriented
@@ -61,12 +61,19 @@ IVP_METHODS = ["LSODA", "BDF"]
 # to ~0% instead of the intended ~85%, since it massively inflated rather
 # than reduced the effective reverse-rate multiplier.)
 #
-# Live intracellular WATER[c] concentration is ~1.2e4 mM; these values are
-# an ~2.3x (ArcA) / ~1.1x (PhoP) reduction from that.
+# Live intracellular WATER[c] concentration is ~1.2e4 mM; this value is an
+# ~2.3x reduction from that.
 # EXPECT TO ITERATE: verify against sim_data.pPromoterBound after a parca run
 # and adjust if activation lands outside the intended ~80-90% range.
+#
+# PhoP originally had an analogous PHOP_WATER_REF_CONC substitution, but it
+# was reverted: PhoQ/PhoP isn't oxygen-gated the way ArcB is, so the same
+# reference-concentration fix (calibrated for anaerobic ArcA) also pushed
+# PhoP-P active fraction from ~26% to ~86% under aerobic/basal conditions --
+# an unintended, condition-independent side effect that was implicated in a
+# multi-generation growth/division slowdown under basal. PhoP now uses the
+# live WATER[c] concentration again, matching pre-2026-07-13 behavior.
 ARCA_WATER_REF_CONC = 5.382e3  # mM
-PHOP_WATER_REF_CONC = 1.141e4  # mM
 
 
 class TwoComponentSystem(object):
@@ -463,26 +470,25 @@ class TwoComponentSystem(object):
         # factor amplifies the nominal rate constant (0.01) ~35x, so
         # dephosphorylation chronically outpaces kinase-driven phosphorylation
         # and caps RR-P activation far below what ParCa's condition-fits
-        # assume. For the ArcB/ArcA and PhoQ/PhoP dephosphorylation reactions
-        # specifically, the live WATER[c] concentration (y[water_idx], in mM)
-        # is replaced with a fixed, calibrated reference concentration
-        # (ARCA_WATER_REF_CONC / PHOP_WATER_REF_CONC, see module-level
-        # comment above) rather than the live value or dropping it
-        # altogether — WATER[c] remains in the stoichiometry matrix S
-        # itself, so mass balance and molecule-count bookkeeping are
-        # unaffected.
+        # assume. For the ArcB/ArcA dephosphorylation reaction specifically,
+        # the live WATER[c] concentration (y[water_idx], in mM) is replaced
+        # with a fixed, calibrated reference concentration (ARCA_WATER_REF_CONC,
+        # see module-level comment above) rather than the live value or
+        # dropping it altogether — WATER[c] remains in the stoichiometry
+        # matrix S itself, so mass balance and molecule-count bookkeeping are
+        # unaffected. PhoQ/PhoP uses the live WATER[c] concentration
+        # unmodified (see module-level comment above for why).
         #
-        # Scoped to just these two systems (the ones implicated in the
-        # anaerobic ArcA-P/PhoP-P saturation analysis): applying a water-rate
-        # change to all 8 TCS systems at once risks driving several response
-        # regulators toward saturation simultaneously, which breaks
-        # promoter-binding probability fitting elsewhere in ParCa (division
-        # by ~0 for near-fully-saturated active/inactive TF fractions).
+        # Scoped to just this one system (the one implicated in the anaerobic
+        # ArcA-P saturation analysis): applying a water-rate change to all 8
+        # TCS systems at once risks driving several response regulators
+        # toward saturation simultaneously, which breaks promoter-binding
+        # probability fitting elsewhere in ParCa (division by ~0 for
+        # near-fully-saturated active/inactive TF fractions).
         water_idxs = np.where(self.molecule_names == "WATER[c]")[0]
         water_idx = water_idxs[0] if water_idxs.size else None
         water_ref_by_rxn_name = {
             "NEG-ARCA-MONOMER-DEPHOSPHORYLATION_RXN": ARCA_WATER_REF_CONC,
-            "NEG-PHOP-MONOMER-DEPHOSPHORYLATION_RXN": PHOP_WATER_REF_CONC,
         }
         water_ref_by_col_idx = {
             self.rxn_ids.index(rxn_name): water_ref
