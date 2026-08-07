@@ -12,6 +12,7 @@
   "emitter_arg": {
     "out_dir": "/scratch/users/hsaqibo1/"
   },
+  "sim_data_path": null,
   "save": false,
   "save_times": [
     1
