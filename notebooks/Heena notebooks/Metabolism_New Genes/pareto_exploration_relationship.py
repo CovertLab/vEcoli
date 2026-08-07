@@ -52,21 +52,25 @@ import pareto_exploration as pe
 # pareto_exploration.WEIGHT_RANGES, and drawn log-uniform as before.
 # ---------------------------------------------------------------------------
 KIN_RANGE = (-6.0, -4.0)  # log10(lambda_kin)
-HOM_KIN_RATIO_RANGE = (2, 4.0)  # log10(lambda_hom) - log10(lambda_kin)
-EFF_KIN_RATIO_RANGE = (-2.5, 0.5)  # log10(lambda_eff) - log10(lambda_kin)
-SEC_KIN_RATIO_RANGE = (-0.7, 1.0)  # log10(lambda_sec) - log10(lambda_kin)
+HOM_KIN_RATIO_RANGE = (2.81, 2.91)  # log10(lambda_hom) - log10(lambda_kin)
+EFF_KIN_RATIO_RANGE = (-2.5, -1.59)  # log10(lambda_eff) - log10(lambda_kin)
+SEC_KIN_RATIO_RANGE = (0.05, 0.35)  # log10(lambda_sec) - log10(lambda_kin)
 DIV_RANGE = (1e-5, 1e-2)
 
 # Rejection windows for the two ratios that are *derived* from the three
 # ratios-to-kin above (ratio_hom_eff = ratio_hom_kin - ratio_eff_kin;
 # ratio_hom_sec = ratio_hom_kin - ratio_sec_kin) -- not independently
 # drawable, so enforced by rejecting candidates that land outside these.
-# Note the achievable ceiling given the ranges above is ~6.0 for
-# ratio_hom_eff and ~5.5 for ratio_hom_sec, below the stated upper bounds.
-HOM_EFF_TARGET_RANGE = (4.0, 6.0)
-HOM_SEC_TARGET_RANGE = (2.7, 7.0)
+# These ranges (and the three above) were derived from the knockdown-
+# responsiveness analysis in pareto_all/ (see 20260807 conversation):
+# candidates with ratio_hom_kin in [2.81,2.91] and ratio_hom_sec in
+# [2.7,2.76] showed a genuine, reproducible orders-of-magnitude obj_homeo
+# response to kinetic knockdown, cross-validated against the raw
+# ratio_pairwise_analysis_obj_home.html plots for the jul and v6 datasets.
+HOM_EFF_TARGET_RANGE = (4.5, 5.5)
+HOM_SEC_TARGET_RANGE = (2.6, 2.76)
 
-OUT_DIR = "notebooks/Heena notebooks/Metabolism_New Genes/pareto_results_relationship_v5_10000samples"
+OUT_DIR = "notebooks/Heena notebooks/Metabolism_New Genes/pareto_results_relationship_v7_10000samples"
 pe.OUT_DIR = OUT_DIR  # redirect run()'s output (CSV + 4 plots) to this directory
 
 
@@ -93,7 +97,9 @@ def relationship_sample(n_samples: int, seed: int = 42) -> np.ndarray:
 
     n_remaining = n_samples
     while n_remaining > 0:
-        batch_size = max(n_remaining * 5, 100)  # ~25% acceptance rate observed
+        batch_size = max(
+            n_remaining * 5, 100
+        )  # ~50% acceptance rate observed, 5x is generous headroom
         log_kin = rng.uniform(KIN_RANGE[0], KIN_RANGE[1], size=batch_size)
         ratio_hom_kin = rng.uniform(
             HOM_KIN_RATIO_RANGE[0], HOM_KIN_RATIO_RANGE[1], size=batch_size

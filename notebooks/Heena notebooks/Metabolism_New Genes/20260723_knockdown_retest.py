@@ -29,7 +29,7 @@ from pareto_exploration import (
     solve_one,
 )
 
-OUT_DIR = "notebooks/Heena notebooks/Metabolism_New Genes/pareto_results_relationship_v5_10000samples"
+OUT_DIR = "notebooks/Heena notebooks/Metabolism_New Genes/pareto_results_relationship_v7_10000samples"
 SHORTLIST_PATH = f"{OUT_DIR}/best_of_best_v2.csv"
 KNOCKDOWN_DIR = f"{OUT_DIR}/knockdown_v2"
 FRACTIONS = [1.0, 0.8, 0.5, 0.3, 0.1]
