@@ -1,10 +1,10 @@
 # Model-driven metalloproteomics pinpoints tradeoffs impacting cell growth
+## Model parameter adjustments
+
 
 This section describes how to regenerate the two model-output files used in this study,
 
 `proteins_filtered.tsv` and `complexes_filtered.tsv`.
-
-## Model parameter adjustments
 
 For this study,  we adjusted 16 parameters relative to the previous version of the model to improve agreement with ribosome profiling data. All of them are listed in
 [`reconstruction/ecoli/flat/adjustments/rna_expression_adjustments.tsv`]

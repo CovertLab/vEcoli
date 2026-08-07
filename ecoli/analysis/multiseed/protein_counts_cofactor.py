@@ -16,12 +16,11 @@ PROTEIN_IDS_PATH = os.path.join(_IDS_DIR, "protein_ids.txt")
 
 
 def _read_id_list(path: str) -> list[str]:
-    """Read a headerless, one-ID-per-line truth file into a list of IDs."""
-    return (
-        pl.read_csv(path, has_header=False, new_columns=["id"])
-        .get_column("id")
-        .to_list()
-    )
+    """Read a one-ID-per-line truth file into a list of IDs.
+
+    The first line is a header (``protein_id`` / ``Complex_id``), not an ID.
+    """
+    return pl.read_csv(path, has_header=True).to_series(0).to_list()
 
 
 def _filter_to_truth_ids(wide_df: pl.DataFrame, truth_ids: list[str]) -> pl.DataFrame:
