@@ -2,29 +2,39 @@
 Relationship-constrained twin of pareto_exploration.py.
 
 Instead of sampling all five lambda weights independently in log space,
-draws `lambda_hom`, `lambda_div`, and `lambda_sec` independently (no known
-explicit relationship for lambda_sec), then *derives* `lambda_kin` and
-`lambda_eff` from relationships found in prior analysis:
+anchors on `lambda_kin` and draws three ratios-to-kin independently, then
+derives `lambda_hom`, `lambda_eff`, and `lambda_sec` from them:
 
-- lambda_kin = lambda_hom * ratio, ratio drawn log-uniform in
-  KIN_HOM_RATIO_RANGE.
-- lambda_eff is drawn uniformly (in log space) from the region at or above
-  the fitted lower-bound line log10(lambda_eff) = 1.1*log10(lambda_kin) - 0.5
-  (2026-07-24 refit) — i.e. the "lower-right triangular region" visible in
-  the lambda_eff-vs-lambda_kin feasibility scatter
-  (notebooks/Heena notebooks/Metabolism_New Genes/out/objective_weights/
-  pareto_conditional_analysis/lamda_pairwise_scatter_feasibility.svg),
-  sampled directly (no rejection needed) rather than placed exactly on the
-  line.
+- log10(lambda_kin) drawn uniform in KIN_RANGE.
+- ratio_hom_kin = log10(lambda_hom) - log10(lambda_kin), drawn uniform in
+  HOM_KIN_RATIO_RANGE; derives lambda_hom.
+- ratio_eff_kin = log10(lambda_eff) - log10(lambda_kin), drawn uniform in
+  EFF_KIN_RATIO_RANGE; derives lambda_eff.
+- ratio_sec_kin = log10(lambda_sec) - log10(lambda_kin), drawn uniform in
+  SEC_KIN_RATIO_RANGE; derives lambda_sec.
+
+ratio_hom_eff and ratio_hom_sec are NOT independent of the above — they are
+exactly ratio_hom_kin - ratio_eff_kin and ratio_hom_kin - ratio_sec_kin
+respectively (differences of the same 4 logs). To still land in a target
+window for those two derived ratios (found via the joint obj_homeo/toya_r²
+constraint analysis in 20260804_pareto_conditional_analysis.ipynb), each
+candidate draw is rejection-sampled: reject and redraw unless the derived
+ratio_hom_eff falls in HOM_EFF_TARGET_RANGE and ratio_hom_sec falls in
+HOM_SEC_TARGET_RANGE. This is cheap since rejection happens before the
+expensive CVXPY solve in solve_one() -- only accepted candidates ever reach
+run()'s solve loop.
+
+lambda_div is drawn independently (no known relationship), unchanged from
+prior versions of this script.
 
 This reuses pareto_exploration.py's run()/solve_one()/load_problem_data()/
 plotting functions as-is (they don't care how weight samples were
-generated) rather than duplicating them — only the sampling function
+generated) rather than duplicating them -- only the sampling function
 differs. See run()'s `sample_fn` parameter in pareto_exploration.py.
 
 Usage:
-    python pareto_exploration_relationship.py
-    python pareto_exploration_relationship.py --n_samples 500 --n_jobs 4
+    uvenv pareto_exploration_relationship.py
+    uvenv pareto_exploration_relationship.py --n_samples 500 --n_jobs 4
 """
 
 import argparse
@@ -36,75 +46,94 @@ import numpy as np
 import pareto_exploration as pe
 
 # ---------------------------------------------------------------------------
-# Independent-draw ranges (log-uniform), same defaults as
-# pareto_exploration.WEIGHT_RANGES — override here if needed.
+# Independent-draw ranges. KIN_RANGE and the three *_KIN_RATIO_RANGE bounds
+# are already log10-space quantities, so they're drawn linear-uniform (no
+# extra log-transform). DIV_RANGE is in linear lambda-space, same as
+# pareto_exploration.WEIGHT_RANGES, and drawn log-uniform as before.
 # ---------------------------------------------------------------------------
-HOM_RANGE = (1e-3, 1.0)
+KIN_RANGE = (-6.0, -4.0)  # log10(lambda_kin)
+HOM_KIN_RATIO_RANGE = (2, 4.0)  # log10(lambda_hom) - log10(lambda_kin)
+EFF_KIN_RATIO_RANGE = (-2.5, 0.5)  # log10(lambda_eff) - log10(lambda_kin)
+SEC_KIN_RATIO_RANGE = (-0.7, 1.0)  # log10(lambda_sec) - log10(lambda_kin)
 DIV_RANGE = (1e-5, 1e-2)
-SEC_RANGE = (1e-7, 1e-4)  # no known explicit relationship for lambda_sec
 
-# lambda_kin is derived from lambda_hom via this ratio band (log-uniform).
-KIN_HOM_RATIO_RANGE = (0.0005, 0.005)
+# Rejection windows for the two ratios that are *derived* from the three
+# ratios-to-kin above (ratio_hom_eff = ratio_hom_kin - ratio_eff_kin;
+# ratio_hom_sec = ratio_hom_kin - ratio_sec_kin) -- not independently
+# drawable, so enforced by rejecting candidates that land outside these.
+# Note the achievable ceiling given the ranges above is ~6.0 for
+# ratio_hom_eff and ~5.5 for ratio_hom_sec, below the stated upper bounds.
+HOM_EFF_TARGET_RANGE = (4.0, 6.0)
+HOM_SEC_TARGET_RANGE = (2.7, 7.0)
 
-# lambda_eff is derived from lambda_kin: drawn uniformly (log space) from
-# [fitted lower bound, EFF_LOG_RANGE[1]], clipped into EFF_LOG_RANGE so the
-# sampled range never inverts (can happen when lambda_kin is large enough
-# that the fitted lower bound would exceed EFF_LOG_RANGE[1]).
-EFF_LOG_RANGE = (-7.0, -4.0)  # bounds for log10(lambda_eff), same as the
-# efficiency range in pareto_exploration.WEIGHT_RANGES
-EFF_KIN_LOG_SLOPE = 2
-EFF_KIN_LOG_INTERCEPT = 1.8
-
-OUT_DIR = "notebooks/Heena notebooks/Metabolism_New Genes/pareto_results_relationship_v1_10000samples"
+OUT_DIR = "notebooks/Heena notebooks/Metabolism_New Genes/pareto_results_relationship_v5_10000samples"
 pe.OUT_DIR = OUT_DIR  # redirect run()'s output (CSV + 4 plots) to this directory
-
-
-def derive_lambda_kin(lambda_hom, ratio):
-    return lambda_hom * ratio
-
-
-def derive_lambda_eff(lambda_kin, rng):
-    # return 10 ** np.clip(
-    #     EFF_KIN_LOG_SLOPE * np.log10(lambda_kin) + EFF_KIN_LOG_INTERCEPT,
-    #     EFF_LOG_RANGE[0],
-    #     EFF_LOG_RANGE[1],
-    # )
-    return 10 ** rng.uniform(
-        np.clip(
-            EFF_KIN_LOG_SLOPE * np.log10(lambda_kin) + EFF_KIN_LOG_INTERCEPT,
-            EFF_LOG_RANGE[0],
-            EFF_LOG_RANGE[1],
-        ),
-        EFF_LOG_RANGE[1],
-    )
 
 
 def relationship_sample(n_samples: int, seed: int = 42) -> np.ndarray:
     """
-    Draw lambda_hom and lambda_div independently (log-uniform); derive
-    lambda_kin, lambda_eff, lambda_sec from the relationships above.
+    Draw log10(lambda_kin) and three ratios-to-kin independently (log_lambda_kin,
+    ratio_hom_kin, ratio_eff_kin, ratio_sec_kin), derive lambda_hom/lambda_eff/
+    lambda_sec/lambda_kin from them, and draw lambda_div independently.
+
+    Rejection-samples so that the two *derived* ratios ratio_hom_eff and
+    ratio_hom_sec also land within HOM_EFF_TARGET_RANGE / HOM_SEC_TARGET_RANGE
+    (see module docstring -- these aren't independently controllable).
 
     Returns array of shape (n_samples, 5) with columns ordered
     [homeostatic, secretion, efficiency, kinetics, diversity], matching
     pareto_exploration.log_uniform_sample()'s convention.
     """
     rng = np.random.default_rng(seed)
-    lambda_hom = 10 ** rng.uniform(
-        np.log10(HOM_RANGE[0]), np.log10(HOM_RANGE[1]), size=n_samples
-    )
+
+    accepted_log_kin = []
+    accepted_ratio_hom_kin = []
+    accepted_ratio_eff_kin = []
+    accepted_ratio_sec_kin = []
+
+    n_remaining = n_samples
+    while n_remaining > 0:
+        batch_size = max(n_remaining * 5, 100)  # ~25% acceptance rate observed
+        log_kin = rng.uniform(KIN_RANGE[0], KIN_RANGE[1], size=batch_size)
+        ratio_hom_kin = rng.uniform(
+            HOM_KIN_RATIO_RANGE[0], HOM_KIN_RATIO_RANGE[1], size=batch_size
+        )
+        ratio_eff_kin = rng.uniform(
+            EFF_KIN_RATIO_RANGE[0], EFF_KIN_RATIO_RANGE[1], size=batch_size
+        )
+        ratio_sec_kin = rng.uniform(
+            SEC_KIN_RATIO_RANGE[0], SEC_KIN_RATIO_RANGE[1], size=batch_size
+        )
+
+        ratio_hom_eff = ratio_hom_kin - ratio_eff_kin
+        ratio_hom_sec = ratio_hom_kin - ratio_sec_kin
+        accept = (
+            (ratio_hom_eff >= HOM_EFF_TARGET_RANGE[0])
+            & (ratio_hom_eff <= HOM_EFF_TARGET_RANGE[1])
+            & (ratio_hom_sec >= HOM_SEC_TARGET_RANGE[0])
+            & (ratio_hom_sec <= HOM_SEC_TARGET_RANGE[1])
+        )
+
+        n_take = min(int(accept.sum()), n_remaining)
+        idx = np.flatnonzero(accept)[:n_take]
+        accepted_log_kin.append(log_kin[idx])
+        accepted_ratio_hom_kin.append(ratio_hom_kin[idx])
+        accepted_ratio_eff_kin.append(ratio_eff_kin[idx])
+        accepted_ratio_sec_kin.append(ratio_sec_kin[idx])
+        n_remaining -= n_take
+
+    log_kin = np.concatenate(accepted_log_kin)
+    ratio_hom_kin = np.concatenate(accepted_ratio_hom_kin)
+    ratio_eff_kin = np.concatenate(accepted_ratio_eff_kin)
+    ratio_sec_kin = np.concatenate(accepted_ratio_sec_kin)
+
+    lambda_kin = 10**log_kin
+    lambda_hom = 10 ** (log_kin + ratio_hom_kin)
+    lambda_eff = 10 ** (log_kin + ratio_eff_kin)
+    lambda_sec = 10 ** (log_kin + ratio_sec_kin)
     lambda_div = 10 ** rng.uniform(
         np.log10(DIV_RANGE[0]), np.log10(DIV_RANGE[1]), size=n_samples
     )
-    lambda_sec = 10 ** rng.uniform(
-        np.log10(SEC_RANGE[0]), np.log10(SEC_RANGE[1]), size=n_samples
-    )
-    ratio = 10 ** rng.uniform(
-        np.log10(KIN_HOM_RATIO_RANGE[0]),
-        np.log10(KIN_HOM_RATIO_RANGE[1]),
-        size=n_samples,
-    )
-    lambda_kin = derive_lambda_kin(lambda_hom, ratio)
-    lambda_eff = derive_lambda_eff(lambda_kin, rng)
 
     return np.column_stack([lambda_hom, lambda_sec, lambda_eff, lambda_kin, lambda_div])
 
@@ -137,13 +166,13 @@ if __name__ == "__main__":
     with open(f"{OUT_DIR}/weight_info.json", "w") as fp:
         json.dump(
             {
-                "homeostatic": HOM_RANGE,
+                "kin_range": KIN_RANGE,
+                "hom_kin_ratio_range": HOM_KIN_RATIO_RANGE,
+                "eff_kin_ratio_range": EFF_KIN_RATIO_RANGE,
+                "sec_kin_ratio_range": SEC_KIN_RATIO_RANGE,
+                "hom_eff_target_range": HOM_EFF_TARGET_RANGE,
+                "hom_sec_target_range": HOM_SEC_TARGET_RANGE,
                 "diversity": DIV_RANGE,
-                "kin_hom_ratio": KIN_HOM_RATIO_RANGE,
-                "eff_log_range": EFF_LOG_RANGE,
-                "eff_kin_log_slope": EFF_KIN_LOG_SLOPE,
-                "eff_kin_log_intercept": EFF_KIN_LOG_INTERCEPT,
-                "secretion_range_placeholder": SEC_RANGE,
             },
             fp,
         )
