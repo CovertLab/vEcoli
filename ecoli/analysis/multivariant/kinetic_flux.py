@@ -21,6 +21,15 @@ The line plot pulls per-timestep scalar data (``kinetics_term``,
 scales with variant x generation x timestep count. If a wide per-reaction
 listener is ever added to that query, raise ``analysis_options.memory_gb``
 in the config for high-volume multivariant runs.
+
+Before plotting, the time axis is binned to a fixed resolution (the
+"time_bin_min" key in the analysis params, defaults to 1 minute) so the
+line chart's ``mean(kinetics_term)`` aggregate has something to actually
+average over. Without this, every native simulation timestep (e.g. 1
+second) across every generation in a variant is its own point on an exact
+float time value, so the aggregate is a no-op and the full-resolution table
+gets embedded verbatim in the output HTML -- for sims with many variants
+and/or many generations, that can inflate the output to hundreds of MB.
 """
 
 from __future__ import annotations
@@ -55,6 +64,7 @@ LOG_EPS = 1e-8
 # Seconds per hour — converts mmol/(L·s) → mmol/(L·h)
 S_PER_HR = 3600.0
 FLUX_UNIT_STR = "mmol/(L·h)"
+DEFAULT_TIME_BIN_MIN = 1.0
 
 
 def plot(
@@ -97,6 +107,7 @@ def plot(
     per_variant_params: dict[int, Any] = (
         variant_metadata[experiment_id] if experiment_id else {}
     )
+    time_bin_min = float(params.get("time_bin_min", DEFAULT_TIME_BIN_MIN))
 
     # ── Metadata: reaction name lists ─────────────────────────────────────────
     kinetic_rxn_names: list[str] = field_metadata(
@@ -175,8 +186,17 @@ def plot(
     # Continuous relative time per lineage_seed
     min_t = raw.group_by(["lineage_seed"]).agg(pl.col("time").min().alias("t_min"))
     raw = raw.join(min_t, on=["lineage_seed"])
+    # Bin down from native simulation resolution (e.g. 1 sec) to a
+    # chart-appropriate resolution before plotting -- otherwise every raw
+    # timestep across every generation in a variant becomes its own point on
+    # an exact float time value, the "mean(kinetics_term)" aggregate below
+    # has nothing to collapse, and the full-resolution table gets embedded
+    # verbatim in the output HTML.
     raw = raw.with_columns(
-        ((pl.col("time") - pl.col("t_min")) / 60).alias("Time (min)")
+        (
+            ((pl.col("time") - pl.col("t_min")) / 60 / time_bin_min).floor()
+            * time_bin_min
+        ).alias("Time (min)")
     )
 
     # ── Variant label mapping ──────────────────────────────────────────────────
