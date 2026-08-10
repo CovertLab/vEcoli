@@ -7,6 +7,16 @@ One bar+line subplot per variant, stacked vertically.
 
 Configure the number of initial generations to exclude from the averages using
 the "skip_n_gens" key in the analysis params (defaults to 0).
+
+Timeseries points are binned to a fixed time resolution (the "time_bin_min"
+key in the analysis params, defaults to 1 minute) before averaging. Without
+this, every native simulation timestep (e.g. 1 second) across every
+generation/lineage in a variant is plotted as its own point, and since this
+is an interactive Vega chart the underlying data table is embedded verbatim
+in the HTML -- for sims with many variants and/or many generations, that can
+inflate the output to hundreds of MB. Binning also lets multiple cells that
+happen to share a variant genuinely average together instead of each
+contributing its own row.
 """
 
 from __future__ import annotations
@@ -31,6 +41,7 @@ alt.data_transformers.enable("vegafusion")
 
 DEFAULT_TOP_N = 8
 DEFAULT_SUBPLOT_WIDTH = 600
+DEFAULT_TIME_BIN_MIN = 1.0
 PASTEL = [
     "#8dd3c7",
     "#EECE9D",
@@ -85,6 +96,7 @@ def plot(
     top_n = params.get("top_n", DEFAULT_TOP_N)
     metabolites_of_interest = params.get("metabolites_of_interest")
     subplot_width = int(params.get("subplot_width", DEFAULT_SUBPLOT_WIDTH))
+    time_bin_min = float(params.get("time_bin_min", DEFAULT_TIME_BIN_MIN))
 
     # Number of initial generations to exclude before computing averages
     # (defaults to 0 if not provided in the config):
@@ -158,8 +170,16 @@ def plot(
         pl.col("time").min().alias("t_min")
     )
     raw = raw.join(t_min, on=["variant", "lineage_seed"])
+    # Bin down from native simulation resolution (e.g. 1 sec) to a
+    # chart-appropriate resolution before plotting -- otherwise every raw
+    # timestep across every generation/lineage in a variant becomes its own
+    # point, and since this is an interactive (not static) Vega chart, that
+    # full-resolution table gets embedded verbatim in the output HTML.
     raw = raw.with_columns(
-        ((pl.col("time") - pl.col("t_min")) / 60.0).alias("Time_min")
+        (
+            ((pl.col("time") - pl.col("t_min")) / 60.0 / time_bin_min).floor()
+            * time_bin_min
+        ).alias("Time_min")
     )
 
     value_vars = [f"unmet_{i}" for i in range(n_met)]
