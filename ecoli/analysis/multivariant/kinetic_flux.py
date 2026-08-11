@@ -16,20 +16,8 @@ scatter points for the kinetic reaction(s) associated with one or more
 catalysts (enzymes), labeling each point with its reaction ID and coloring
 it by catalyst.
 
-The line plot pulls per-timestep scalar data (``kinetics_term``,
-``counts_to_molar``, ``time``) at full time resolution, so its memory use
-scales with variant x generation x timestep count. If a wide per-reaction
-listener is ever added to that query, raise ``analysis_options.memory_gb``
-in the config for high-volume multivariant runs.
-
-Before plotting, the time axis is binned to a fixed resolution (the
-"time_bin_min" key in the analysis params, defaults to 1 minute) so the
-line chart's ``mean(kinetics_term)`` aggregate has something to actually
-average over. Without this, every native simulation timestep (e.g. 1
-second) across every generation in a variant is its own point on an exact
-float time value, so the aggregate is a no-op and the full-resolution table
-gets embedded verbatim in the output HTML -- for sims with many variants
-and/or many generations, that can inflate the output to hundreds of MB.
+To reduce emit and process memory, data is binned by time (default is 1 min)
+and averaged in SQL before being returned to Python for plotting
 """
 
 from __future__ import annotations
@@ -159,48 +147,82 @@ def plot(
             for rxn in matched_rxns:
                 rxn_to_catalyst_label[rxn] = label
 
-    # ── Load raw listener data ─────────────────────────────────────────────────
-    # estimated_fluxes is narrowed to just the kinetic reactions via list_select
-    # so DuckDB never materializes the full ~9,370-reaction-wide list column
-    # (avoids overflowing Arrow's 32-bit ListArray offset limit on large runs).
+    # ── Scatter: per-(variant, reaction) time-averaged target/estimated flux ──
+    # Averaged directly in SQL via UNNEST + GROUP BY (same pattern as
+    # average_monomer_counts.py)
     kinetic_indices_1based = (kinetic_indices + 1).tolist()
-    raw = pl.DataFrame(
-        read_stacked_columns(
-            history_sql,
-            [
-                "listeners__fba_results__target_kinetic_fluxes AS target_kinetic_fluxes",
-                f"list_select(listeners__fba_results__estimated_fluxes, {kinetic_indices_1based}) AS estimated_fluxes",
-                "listeners__fba_results__kinetics_term AS kinetics_term",
-                "listeners__enzyme_kinetics__counts_to_molar AS counts_to_molar",
-            ],
-            order_results=True,
-            conn=conn,
-            remove_first=True,
-        )
+    scatter_subquery = read_stacked_columns(
+        history_sql,
+        [
+            "listeners__fba_results__target_kinetic_fluxes AS target_kinetic_fluxes",
+            f"list_select(listeners__fba_results__estimated_fluxes, {kinetic_indices_1based}) AS estimated_fluxes",
+            "listeners__enzyme_kinetics__counts_to_molar AS counts_to_molar",
+        ],
+        order_results=False,
+        remove_first=True,
     )
+    # unnest() on two same-length lists in one SELECT aligns them
+    # positionally (like zip), not as a cross product
+    scatter_avg = conn.sql(f"""
+        WITH unnested AS (
+            SELECT
+                unnest(target_kinetic_fluxes) AS target_val,
+                unnest(estimated_fluxes) AS estimated_val,
+                generate_subscripts(target_kinetic_fluxes, 1) AS rxn_idx,
+                counts_to_molar,
+                variant
+            FROM ({scatter_subquery})
+        ),
+        averaged AS (
+            SELECT variant, rxn_idx,
+                avg(target_val * counts_to_molar) AS mean_target,
+                avg(estimated_val * counts_to_molar) AS mean_estimated
+            FROM unnested
+            GROUP BY variant, rxn_idx
+        )
+        SELECT variant,
+            list(mean_target ORDER BY rxn_idx) AS mean_target_list,
+            list(mean_estimated ORDER BY rxn_idx) AS mean_estimated_list
+        FROM averaged
+        GROUP BY variant
+        ORDER BY variant
+        """).pl()
 
-    if raw.is_empty():
+    # ── Line: time-binned average kinetics term, per (variant, generation) ────
+    # Binned and averaged directly in SQL (same "time_bin_min" resolution,
+    # defaults to 1 minute, as metabolite_unmet_need.py)
+    line_subquery = read_stacked_columns(
+        history_sql,
+        ["listeners__fba_results__kinetics_term AS kinetics_term"],
+        order_results=False,
+        remove_first=True,
+    )
+    line_avg = conn.sql(f"""
+        WITH t_min AS (
+            SELECT lineage_seed, min(time) AS t_min
+            FROM ({line_subquery})
+            GROUP BY lineage_seed
+        )
+        SELECT s.variant, s.generation,
+            floor((s.time - t.t_min) / 60.0 / {time_bin_min}) * {time_bin_min}
+                AS "Time (min)",
+            avg(s.kinetics_term) AS kinetics_term
+        FROM ({line_subquery}) s
+        JOIN t_min t USING (lineage_seed)
+        GROUP BY s.variant, s.generation,
+            floor((s.time - t.t_min) / 60.0 / {time_bin_min}) * {time_bin_min}
+        ORDER BY s.variant, s.generation, "Time (min)"
+        """).pl()
+
+    if scatter_avg.is_empty() or line_avg.is_empty():
         print("kinetic_flux_analysis: no rows returned; skipping.")
         return
 
-    # Continuous relative time per lineage_seed
-    min_t = raw.group_by(["lineage_seed"]).agg(pl.col("time").min().alias("t_min"))
-    raw = raw.join(min_t, on=["lineage_seed"])
-    # Bin down from native simulation resolution (e.g. 1 sec) to a
-    # chart-appropriate resolution before plotting -- otherwise every raw
-    # timestep across every generation in a variant becomes its own point on
-    # an exact float time value, the "mean(kinetics_term)" aggregate below
-    # has nothing to collapse, and the full-resolution table gets embedded
-    # verbatim in the output HTML.
-    raw = raw.with_columns(
-        (
-            ((pl.col("time") - pl.col("t_min")) / 60 / time_bin_min).floor()
-            * time_bin_min
-        ).alias("Time (min)")
-    )
+    # Sort by variant explicitly
+    scatter_avg = scatter_avg.sort("variant")
 
     # ── Variant label mapping ──────────────────────────────────────────────────
-    unique_variants: list[int] = sorted(raw["variant"].unique().to_list())
+    unique_variants: list[int] = scatter_avg["variant"].to_list()
 
     def _make_label(v: int) -> str:
         raw_label = create_variant_label(v, per_variant_params)
@@ -221,25 +243,20 @@ def plot(
     num_cols = grid_columns
 
     # ── Numpy arrays ──────────────────────────────────────────────────────────
-    target_arr = ndlist_to_ndarray(raw["target_kinetic_fluxes"])  # (T, n_kinetic)
-    # Already narrowed to kinetic reactions (in kinetic_rxn_names order) by the
-    # list_select in the query above.
-    kinetic_flux_arr = ndlist_to_ndarray(raw["estimated_fluxes"])  # (T, n_kinetic)
-    # counts_to_molar [mmol/L per count]; multiply by S_PER_HR to get mmol/(L·h)
-    counts_to_molar = raw["counts_to_molar"].to_numpy()[:, np.newaxis] * S_PER_HR
-    variants_col = np.array(raw["variant"].to_list())
+    # One row per variant. counts_to_molar [mmol/L per count] was
+    # already applied in SQL; multiply by S_PER_HR to get mmol/(L·h).
+    mean_target_arr = ndlist_to_ndarray(scatter_avg["mean_target_list"]) * S_PER_HR
+    mean_flux_arr = ndlist_to_ndarray(scatter_avg["mean_estimated_list"]) * S_PER_HR
 
     # ── Build scatter DataFrame ────────────────────────────────────────────────
     # Each data row is one (reaction, variant) pair averaged over all timesteps.
     # Two extra rows per variant encode the y=x reference line endpoints on the
     # log-transformed axes.
     scatter_rows: list[dict] = []
-    for v in unique_variants:
+    for i, v in enumerate(unique_variants):
         label = variant_label_map[v]
-        mask = variants_col == v
-        ctm = counts_to_molar[mask]  # (T_v, 1)
-        mean_target = (target_arr[mask] * ctm).mean(axis=0)  # mmol/(L·h)
-        mean_flux = (kinetic_flux_arr[mask] * ctm).mean(axis=0)
+        mean_target = mean_target_arr[i]  # mmol/(L·h)
+        mean_flux = mean_flux_arr[i]
 
         log_target = np.log10(mean_target + LOG_EPS)
         log_flux = np.log10(mean_flux + LOG_EPS)
@@ -414,9 +431,9 @@ def plot(
     )
 
     # ── Line-plot DataFrame ────────────────────────────────────────────────────
-    variant_label_col = [variant_label_map[v] for v in raw["variant"].to_list()]
+    variant_label_col = [variant_label_map[v] for v in line_avg["variant"].to_list()]
     line_df = (
-        raw.select(["Time (min)", "generation", "lineage_seed", "kinetics_term"])
+        line_avg.select(["Time (min)", "generation", "kinetics_term"])
         .with_columns(pl.Series("Variant", variant_label_col))
         .to_pandas()
     )
@@ -426,7 +443,7 @@ def plot(
         .mark_line(strokeWidth=1.3, opacity=0.85)
         .encode(
             x=alt.X("Time (min):Q", title="Time (min)"),
-            y=alt.Y("mean(kinetics_term):Q", title="Unweighted Kinetic Term"),
+            y=alt.Y("kinetics_term:Q", title="Unweighted Kinetic Term"),
             color=alt.Color("Variant:N", scale=color_scale, legend=None),
             detail=alt.Detail("generation:N"),
         )

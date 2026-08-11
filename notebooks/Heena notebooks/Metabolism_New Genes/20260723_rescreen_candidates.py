@@ -26,9 +26,9 @@ import plotly.graph_objects as go
 import polars as pl
 
 OUT_DIR = "notebooks/Heena notebooks/Metabolism_New Genes/pareto_results_relationship_v7_10000samples"
-TOYA_R2_MIN = 0.5
+TOYA_R2_MIN = 0.50
 OBJ_HOMEO_NOISE_FLOOR = (
-    1e-10  # empirically: obj_homeo deciles jump from ~1e-11 to ~2e-4
+    1e-11  # empirically: obj_homeo deciles jump from ~1e-11 to ~2e-4
 )
 N_CANDIDATES = 100
 
@@ -57,7 +57,7 @@ def rescreen() -> pl.DataFrame:
     shortlist = real_competition.sort("kin_hom_ratio", descending=True).head(
         N_CANDIDATES
     )
-    out_path = f"{OUT_DIR}/best_of_best_v2.csv"
+    out_path = f"{OUT_DIR}/best_of_best_low_toya.csv"
     shortlist.write_csv(out_path)
     print(f"Saved {shortlist.height}-candidate shortlist: {out_path}")
     print(
