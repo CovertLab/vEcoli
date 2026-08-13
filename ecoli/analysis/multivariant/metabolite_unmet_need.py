@@ -15,6 +15,7 @@ time binning (defaults to 1 minute), and averaging are all computed in SQL
 
 from __future__ import annotations
 
+import json
 import os
 from typing import Any, TYPE_CHECKING, cast
 
@@ -36,6 +37,7 @@ alt.data_transformers.enable("vegafusion")
 DEFAULT_TOP_N = 8
 DEFAULT_SUBPLOT_WIDTH = 600
 DEFAULT_TIME_BIN_MIN = 1.0
+DEFAULT_KD1_UNMET_NEED_THRESHOLD = 100.0
 PASTEL = [
     "#8dd3c7",
     "#EECE9D",
@@ -200,6 +202,7 @@ def plot(
     # Collect metabolites used across all variants for a shared color scale
     ordered_mets: list[str] = []
     data_by_variant: dict[int, tuple[pl.DataFrame, pl.DataFrame]] = {}
+    total_unmet_by_variant: dict[int, float] = {}
     for variant_val in variants:
         sub = agg.filter(pl.col("variant") == variant_val)
         if sub.is_empty():
@@ -209,6 +212,7 @@ def plot(
             .agg(pl.col("unmet_need").abs().mean().alias("mean_abs_unmet"))
             .sort("mean_abs_unmet", descending=True)
         )
+        total_unmet_by_variant[int(variant_val)] = met_score["mean_abs_unmet"].sum()
         top_mets = met_score.head(top_n)["metabolite"].to_list()
         line_mets = (
             metabolites_of_interest if metabolites_of_interest is not None else top_mets
@@ -227,87 +231,132 @@ def plot(
         print("metabolite_unmet_need: no per-variant data after aggregation; skipping.")
         return
 
+    # Split variants into weight-combo groups (first of the two sweep params;
+    # e.g. objective weights x fraction_kinetic_target -- see
+    # compute_variant_grid) and route a whole group to a separate "_high"
+    # plot if its KD=1.0 variant (the lowest variant id in the group) has
+    # total unmet need above the threshold, instead of bloating the main plot.
+    kd1_threshold = float(
+        params.get("kd1_unmet_need_threshold", DEFAULT_KD1_UNMET_NEED_THRESHOLD)
+    )
+    weight_groups: dict[str, list[int]] = {}
+    for vid, vparams in per_variant_params.items():
+        if not isinstance(vparams, dict) or len(vparams) != 2:
+            continue
+        first_key = next(iter(vparams))
+        weight_groups.setdefault(
+            json.dumps(vparams[first_key], sort_keys=True), []
+        ).append(vid)
+    excluded_variants: set[int] = set()
+    n_excluded_groups = 0
+    for group_ids in weight_groups.values():
+        kd1_variant = min(group_ids)
+        if total_unmet_by_variant.get(kd1_variant, 0.0) > kd1_threshold:
+            excluded_variants.update(group_ids)
+            n_excluded_groups += 1
+    if excluded_variants:
+        print(
+            f"metabolite_unmet_need: {n_excluded_groups} group(s) "
+            f"({len(excluded_variants)} variant(s)) moved to "
+            f"metabolite_unmet_need_high.html (KD=1.0 total unmet need > {kd1_threshold})."
+        )
+
     color_domain = ordered_mets
     color_range = [PASTEL[i % len(PASTEL)] for i in range(len(color_domain))]
     w = subplot_width
 
     _, columns, ordered_variant_ids = compute_variant_grid(per_variant_params)
 
-    subplot_charts: list[alt.VConcatChart] = []
-    for variant_val in ordered_variant_ids:
-        entry = data_by_variant.get(variant_val)
-        if entry is None:
-            continue
-        top_bar, agg_line = entry
-        label = create_variant_label(variant_val, per_variant_params)
-        seeds, gens = variant_coverage[int(variant_val)]
-        subtitle = (
-            f"seeds: {_format_int_list(seeds)}  |  "
-            f"generations: {_format_int_list(gens)} | unmet needs averaged over "
-            f"{len(seeds) * len(gens)} cells"
-        )
-        title = alt.TitleParams(text=label, subtitle=subtitle)
-        df_bar = top_bar.to_pandas()
-        df_line = agg_line.to_pandas()
+    def _build_and_save(
+        ids_to_plot: list[int], out_name: str, title_suffix: str
+    ) -> None:
+        subplot_charts: list[alt.VConcatChart] = []
+        for variant_val in ids_to_plot:
+            entry = data_by_variant.get(variant_val)
+            if entry is None:
+                continue
+            top_bar, agg_line = entry
+            label = create_variant_label(variant_val, per_variant_params)
+            seeds, gens = variant_coverage[int(variant_val)]
+            subtitle = (
+                f"seeds: {_format_int_list(seeds)}  |  "
+                f"generations: {_format_int_list(gens)} | unmet needs averaged over "
+                f"{len(seeds) * len(gens)} cells"
+            )
+            title = alt.TitleParams(text=label, subtitle=subtitle)
+            df_bar = top_bar.to_pandas()
+            df_line = agg_line.to_pandas()
 
-        bar_base = alt.Chart(df_bar).encode(
-            x=alt.X("metabolite:N", title="Metabolite", sort="-y"),
-            color=alt.Color(
-                "metabolite:N",
-                scale=alt.Scale(domain=color_domain, range=color_range),
-                legend=None,
-            ),
-            tooltip=["metabolite:N", "mean_abs_unmet:Q"],
-        )
-
-        bars = bar_base.mark_bar(cornerRadiusEnd=8, size=28).encode(
-            y=alt.Y(
-                "mean_abs_unmet:Q",
-                title="Unmet need (mean |L1 diff|)",
-                scale=alt.Scale(type="symlog"),
-            ),
-        )
-
-        bar_labels = bar_base.mark_text(
-            align="center",
-            baseline="bottom",
-            dy=-4,
-            fontSize=12,
-            fontWeight="bold",
-        ).encode(
-            y=alt.Y("mean_abs_unmet:Q", scale=alt.Scale(type="symlog")),
-            text=alt.Text("mean_abs_unmet:Q", format=".2e"),
-        )
-
-        bar_chart = (bars + bar_labels).properties(height=220, width=w)
-
-        line_chart = (
-            alt.Chart(df_line)
-            .mark_line(strokeWidth=2)
-            .encode(
-                x=alt.X("Time_min:Q", title="Time (min)"),
-                y=alt.Y("unmet_need:Q", title="L1 |Target - Estimate|"),
+            bar_base = alt.Chart(df_bar).encode(
+                x=alt.X("metabolite:N", title="Metabolite", sort="-y"),
                 color=alt.Color(
                     "metabolite:N",
                     scale=alt.Scale(domain=color_domain, range=color_range),
-                    legend=alt.Legend(title="Metabolite"),
+                    legend=None,
                 ),
-                tooltip=["Time_min:Q", "metabolite:N", "unmet_need:Q"],
+                tooltip=["metabolite:N", "mean_abs_unmet:Q"],
             )
-            .properties(height=300, width=w)
-        )
 
-        subplot_charts.append(
-            cast(
-                alt.VConcatChart,
-                alt.vconcat(bar_chart, line_chart, spacing=50).properties(title=title),
+            bars = bar_base.mark_bar(cornerRadiusEnd=8, size=28).encode(
+                y=alt.Y(
+                    "mean_abs_unmet:Q",
+                    title="Unmet need (mean |L1 diff|)",
+                    scale=alt.Scale(type="symlog"),
+                ),
             )
-        )
 
-    combined = alt.concat(*subplot_charts, columns=columns).properties(
-        title="Unmet homeostatic need by variant"
+            bar_labels = bar_base.mark_text(
+                align="center",
+                baseline="bottom",
+                dy=-4,
+                fontSize=12,
+                fontWeight="bold",
+            ).encode(
+                y=alt.Y("mean_abs_unmet:Q", scale=alt.Scale(type="symlog")),
+                text=alt.Text("mean_abs_unmet:Q", format=".2e"),
+            )
+
+            bar_chart = (bars + bar_labels).properties(height=220, width=w)
+
+            line_chart = (
+                alt.Chart(df_line)
+                .mark_line(strokeWidth=2)
+                .encode(
+                    x=alt.X("Time_min:Q", title="Time (min)"),
+                    y=alt.Y("unmet_need:Q", title="L1 |Target - Estimate|"),
+                    color=alt.Color(
+                        "metabolite:N",
+                        scale=alt.Scale(domain=color_domain, range=color_range),
+                        legend=alt.Legend(title="Metabolite"),
+                    ),
+                    tooltip=["Time_min:Q", "metabolite:N", "unmet_need:Q"],
+                )
+                .properties(height=300, width=w)
+            )
+
+            subplot_charts.append(
+                cast(
+                    alt.VConcatChart,
+                    alt.vconcat(bar_chart, line_chart, spacing=50).properties(
+                        title=title
+                    ),
+                )
+            )
+
+        if not subplot_charts:
+            return
+        combined = alt.concat(*subplot_charts, columns=columns).properties(
+            title=f"Unmet homeostatic need by variant{title_suffix}"
+        )
+        out_path = os.path.join(outdir, out_name)
+        combined.save(out_path)
+        print(f"Saved metabolite unmet need (multivariant) to {out_path}")
+
+    included_ids = [v for v in ordered_variant_ids if v not in excluded_variants]
+    excluded_ids = [v for v in ordered_variant_ids if v in excluded_variants]
+    _build_and_save(included_ids, "metabolite_unmet_need.html", "")
+    _build_and_save(
+        excluded_ids,
+        "metabolite_unmet_need_high.html",
+        f" (KD=1.0 total unmet need > {kd1_threshold})",
     )
-
-    out_path = os.path.join(outdir, "metabolite_unmet_need.html")
-    combined.save(out_path)
-    print(f"Saved metabolite unmet need (multivariant) to {out_path}")
