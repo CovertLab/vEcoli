@@ -35,27 +35,53 @@ IVP_METHODS = ["LSODA", "BDF"]
 # USE_NO_WATER_TEMPLATE = True
 
 # Also considered but NOT used: dropping WATER[c] from the rate law entirely
-# (rather than substituting a fixed reference value, below) for the ArcA
-# dephosphorylation reaction. That drives activation to ~100%, which pins
-# ParCa's promoter-bound-probability fit exactly at its p=1 box boundary and
-# crashes with NaN propagation (see git history/session notes). Using a
-# fixed, calibrated reference value instead gives a tunable, intermediate
-# reverse-rate reduction that avoids that boundary.
+# with NO compensation (i.e. using the raw, unmodified forward rate constant
+# k=0.01 with no water factor at all) for the ArcA dephosphorylation
+# reaction. That drives activation to ~100%, which pins ParCa's
+# promoter-bound-probability fit exactly at its p=1 box boundary and crashes
+# with NaN propagation (see git history/session notes; independently
+# reconfirmed 2026-08-11). Do not re-attempt this.
 #
-# Calibrated from the mechanistic steady-state balance
-# k1*[HK_free]*[ATP] = k3*[RR-P]*WATER_REF (k1=500, k3=0.01, the NEG-oriented
-# HK-phosphorylation/RR-dephosphorylation rate constants shared by both
-# systems), solved for a ~85% target activation fraction using real
+# What IS used instead (below, in _make_y_dy()): WATER[c] is dropped from the
+# rate *expression* (no live-concentration factor, matching the standard
+# biochemistry convention for a hydrolysis reaction in dilute aqueous
+# solution -- water is orders of magnitude more concentrated than any other
+# reactant, so its concentration is conventionally absorbed into the rate
+# constant rather than tracked as a fluctuating multiplicative factor), but
+# the forward rate constant for this one reaction is pre-multiplied by
+# ARCA_WATER_REF_CONC before use, making it an effective pseudo-first-order
+# constant. This is a pure algebraic rewrite of the previously-used
+# "substitute a fixed reference concentration for y[water_idx]" approach --
+# `k*[RR-P]*WATER_REF` and `(k*WATER_REF)*[RR-P]` are the same equation, so
+# this produces numerically IDENTICAL dynamics to that approach, not a new
+# calibration. It is chosen over the substitution form because it matches
+# the reference notebook's (notebooks/anaerobic/simple_kinetic_model.ipynb)
+# convention of never carrying a water/solvent term in the rate law at all,
+# and it removes the "substituting a fake concentration for a real,
+# fluctuating species" code smell. WATER[c] remains in the stoichiometry
+# matrix S (mass balance/molecule-count bookkeeping unaffected either way).
+#
+# ARCA_WATER_REF_CONC itself is calibrated from the mechanistic steady-state
+# balance k1*[HK_free]*[ATP] = k3*[RR-P]*WATER_REF (k1=500, k3=0.01, the
+# NEG-oriented HK-phosphorylation/RR-dephosphorylation rate constants shared
+# by both systems), solved for a ~85% target activation fraction using real
 # HK_free/ATP/RR_total values from a no_oxygen simulation trace (see
 # notebooks/anaerobic/calibrate_water_reference_counts.py for the full
-# derivation).
+# derivation). This number is still empirically fit to a target activation
+# fraction, not derived from ArcB-specific literature kinetics -- rewriting
+# it in pseudo-first-order form makes the rate law's *form* match the
+# notebook/textbook convention, it does not make the underlying *number*
+# any less empirically-fit. Sourcing real literature-derived ArcB
+# kinase/phosphatase rate constants (rather than the generic k1/k3 shared
+# with PhoQ/PhoR) is a separate, larger, explicitly out-of-scope follow-up.
 #
 # UNITS: the y-vector _make_y_dy() operates on is a CONCENTRATION (mM), not
 # a raw molecule count -- both callers (molecules_to_next_time_step,
 # molecules_to_ss) convert via y = moleculeCounts / (cellVolume[L] *
-# n_avogadro[1/mmol]) before integrating. WATER_REF is substituted directly
-# in place of y[water_idx], so it must be a concentration (mM) too. (An
-# earlier version of this calibration used raw molecule counts (~1e9),
+# n_avogadro[1/mmol]) before integrating. ARCA_WATER_REF_CONC must therefore
+# be a concentration (mM), since it's multiplied directly into the forward
+# rate constant that otherwise operates on mM-scale reactant concentrations.
+# (An earlier version of this calibration used raw molecule counts (~1e9),
 # which is off from the correct mM-scale value (~1e3-1e4) by the
 # cellVolume*n_avogadro factor -- a ~1e5x overshoot that drove RR-P activation
 # to ~0% instead of the intended ~85%, since it massively inflated rather
@@ -72,7 +98,9 @@ IVP_METHODS = ["LSODA", "BDF"]
 # PhoP-P active fraction from ~26% to ~86% under aerobic/basal conditions --
 # an unintended, condition-independent side effect that was implicated in a
 # multi-generation growth/division slowdown under basal. PhoP now uses the
-# live WATER[c] concentration again, matching pre-2026-07-13 behavior.
+# live WATER[c] concentration again, matching pre-2026-07-13 behavior. This
+# pseudo-first-order rewrite is scoped to ArcA only for the same reason --
+# it is not applied to PhoP's dephosphorylation reaction.
 ARCA_WATER_REF_CONC = 5.382e3  # mM
 
 
@@ -471,13 +499,18 @@ class TwoComponentSystem(object):
         # dephosphorylation chronically outpaces kinase-driven phosphorylation
         # and caps RR-P activation far below what ParCa's condition-fits
         # assume. For the ArcB/ArcA dephosphorylation reaction specifically,
-        # the live WATER[c] concentration (y[water_idx], in mM) is replaced
-        # with a fixed, calibrated reference concentration (ARCA_WATER_REF_CONC,
-        # see module-level comment above) rather than the live value or
-        # dropping it altogether — WATER[c] remains in the stoichiometry
-        # matrix S itself, so mass balance and molecule-count bookkeeping are
-        # unaffected. PhoQ/PhoP uses the live WATER[c] concentration
-        # unmodified (see module-level comment above for why).
+        # WATER[c] is dropped from the rate expression entirely (pseudo-
+        # first-order in [RR-P] alone, matching the reference notebook's
+        # convention -- see module-level comment above) and its fixed,
+        # calibrated reference concentration (ARCA_WATER_REF_CONC) is instead
+        # pre-multiplied into this reaction's forward rate constant below.
+        # This is algebraically identical to substituting ARCA_WATER_REF_CONC
+        # in place of y[water_idx] as a factor -- same numeric dynamics, just
+        # no live-or-fixed water term appears in the rate expression itself.
+        # WATER[c] remains in the stoichiometry matrix S itself, so mass
+        # balance and molecule-count bookkeeping are unaffected. PhoQ/PhoP
+        # uses the live WATER[c] concentration unmodified (see module-level
+        # comment above for why).
         #
         # Scoped to just this one system (the one implicated in the anaerobic
         # ArcA-P saturation analysis): applying a water-rate change to all 8
@@ -487,12 +520,12 @@ class TwoComponentSystem(object):
         # near-fully-saturated active/inactive TF fractions).
         water_idxs = np.where(self.molecule_names == "WATER[c]")[0]
         water_idx = water_idxs[0] if water_idxs.size else None
-        water_ref_by_rxn_name = {
+        pseudo_first_order_rate_mult_by_rxn_name = {
             "NEG-ARCA-MONOMER-DEPHOSPHORYLATION_RXN": ARCA_WATER_REF_CONC,
         }
-        water_ref_by_col_idx = {
-            self.rxn_ids.index(rxn_name): water_ref
-            for rxn_name, water_ref in water_ref_by_rxn_name.items()
+        pseudo_first_order_rate_mult_by_col_idx = {
+            self.rxn_ids.index(rxn_name): rate_mult
+            for rxn_name, rate_mult in pseudo_first_order_rate_mult_by_rxn_name.items()
             if rxn_name in self.rxn_ids
         }
 
@@ -501,10 +534,17 @@ class TwoComponentSystem(object):
             negIdxs = np.where(S[:, colIdx] < 0)[0]
             posIdxs = np.where(S[:, colIdx] > 0)[0]
 
-            reactantFlux = self.rates_fwd[colIdx]
+            reactantFlux = self.rates_fwd[colIdx] * (
+                pseudo_first_order_rate_mult_by_col_idx.get(colIdx, 1)
+            )
             for negIdx in negIdxs:
-                if negIdx == water_idx and colIdx in water_ref_by_col_idx:
-                    reactantFlux *= water_ref_by_col_idx[colIdx]
+                if (
+                    negIdx == water_idx
+                    and colIdx in pseudo_first_order_rate_mult_by_col_idx
+                ):
+                    # Water's concentration is already folded into
+                    # reactantFlux's rate constant above -- skip it here
+                    # rather than multiplying it in as a live factor.
                     continue
                 stoich = -S[negIdx, colIdx]
                 if stoich == 1:
