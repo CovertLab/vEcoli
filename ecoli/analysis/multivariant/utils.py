@@ -114,6 +114,6 @@ def compute_variant_grid(
             if vid is not None:
                 ordered_variant_ids.append(vid)
 
-    rows = len(row_order) + (1 if baseline_ids else 0)
-    columns = len(col_order)
+    rows = int(len(row_order) / 2) + (1 if baseline_ids else 0)
+    columns = int(len(col_order) * 2)
     return rows, columns, ordered_variant_ids

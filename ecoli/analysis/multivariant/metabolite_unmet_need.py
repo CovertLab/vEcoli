@@ -35,9 +35,9 @@ if TYPE_CHECKING:
 alt.data_transformers.enable("vegafusion")
 
 DEFAULT_TOP_N = 8
-DEFAULT_SUBPLOT_WIDTH = 600
+DEFAULT_SUBPLOT_WIDTH = 400
 DEFAULT_TIME_BIN_MIN = 1.0
-DEFAULT_KD1_UNMET_NEED_THRESHOLD = 100.0
+DEFAULT_KD1_UNMET_NEED_THRESHOLD = 50.0
 PASTEL = [
     "#8dd3c7",
     "#EECE9D",
@@ -231,11 +231,7 @@ def plot(
         print("metabolite_unmet_need: no per-variant data after aggregation; skipping.")
         return
 
-    # Split variants into weight-combo groups (first of the two sweep params;
-    # e.g. objective weights x fraction_kinetic_target -- see
-    # compute_variant_grid) and route a whole group to a separate "_high"
-    # plot if its KD=1.0 variant (the lowest variant id in the group) has
-    # total unmet need above the threshold, instead of bloating the main plot.
+    # Split variants into total unmet need above the threshold
     kd1_threshold = float(
         params.get("kd1_unmet_need_threshold", DEFAULT_KD1_UNMET_NEED_THRESHOLD)
     )
@@ -331,7 +327,7 @@ def plot(
                     ),
                     tooltip=["Time_min:Q", "metabolite:N", "unmet_need:Q"],
                 )
-                .properties(height=300, width=w)
+                .properties(height=200, width=w)
             )
 
             subplot_charts.append(
