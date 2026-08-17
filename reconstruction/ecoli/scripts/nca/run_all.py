@@ -82,34 +82,34 @@ def compile_output():
                 for line in log.readlines():
                     if line.startswith("Overall matches:"):
                         match, total = re.findall("([0-9]*)/([0-9]*)", line)[0]
-                        percent = re.findall("([0-9]*\.[0-9]*)%", line)[0]
+                        percent = re.findall(r"([0-9]*\.[0-9]*)%", line)[0]
                         data["Overall match"] = int(match)
                         data["Overall total"] = int(total)
                         data["Overall percent"] = float(percent)
                     elif line.startswith("Negative regulation matches:"):
                         match, total = re.findall("([0-9]*)/([0-9]*)", line)[0]
-                        percent = re.findall("([0-9]*\.[0-9]*)%", line)[0]
+                        percent = re.findall(r"([0-9]*\.[0-9]*)%", line)[0]
                         data["Negative match"] = int(match)
                         data["Negative total"] = int(total)
                         data["Negative percent"] = float(percent)
                     elif line.startswith("Positive regulation matches:"):
                         match, total = re.findall("([0-9]*)/([0-9]*)", line)[0]
-                        percent = re.findall("([0-9]*\.[0-9]*)%", line)[0]
+                        percent = re.findall(r"([0-9]*\.[0-9]*)%", line)[0]
                         data["Positive match"] = int(match)
                         data["Positive total"] = int(total)
                         data["Positive percent"] = float(percent)
                     elif line.startswith(
                         "Error fitting original data (excluding unpredicted samples):"
                     ):
-                        error = re.findall("([0-9]*\.[0-9]*)", line)[0]
+                        error = re.findall(r"([0-9]*\.[0-9]*)", line)[0]
                         data["Error"] = float(error)
                     elif line.startswith("All: r="):
-                        r = re.findall("r=([0-9]*\.[0-9]*)", line)[0]
+                        r = re.findall(r"r=([0-9]*\.[0-9]*)", line)[0]
                         n = re.findall("n=([0-9]*)", line)[0]
                         data["r, all"] = float(r)
                         data["n, all"] = float(n)
                     elif line.startswith("Only if WCM consistent: r="):
-                        r = re.findall("r=([0-9]*\.[0-9]*)", line)[0]
+                        r = re.findall(r"r=([0-9]*\.[0-9]*)", line)[0]
                         n = re.findall("n=([0-9]*)", line)[0]
                         data["r, consistent"] = float(r)
                         data["n, consistent"] = float(n)

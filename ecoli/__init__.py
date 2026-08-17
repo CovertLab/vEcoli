@@ -51,6 +51,7 @@ inverse_updater_registry.register(
 )
 inverse_updater_registry.register("bulk_numpy", inverse_update_bulk_numpy)
 inverse_updater_registry.register("unique_numpy", inverse_update_unique_numpy)
+updater_registry.register("bulk_numpy", bulk_numpy_updater)
 
 
 # register :term:`dividers`

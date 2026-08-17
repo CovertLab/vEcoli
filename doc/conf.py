@@ -137,6 +137,9 @@ autodoc_mock_imports = [
     "ecoli.library.parameters",
     # Needs to be run with kernprof
     "wholecell.tests.utils.profile_polymerize",
+    # Fails to import due to missing file
+    # (see ecoli/analysis/antibiotics_colony/__init__.py).
+    "ecoli.analysis.antibiotics_colony",
 ]
 # Move typehints from signature into description
 autodoc_typehints = "description"
@@ -179,7 +182,10 @@ def run_apidoc(_):
     exclude_paths = [
         (
             os.path.join(cur_dir, path)
-            for path in ("../ecoli/experiments/ecoli_master_sim_tests.py",)
+            for path in (
+                "../ecoli/experiments/ecoli_master_sim_tests.py",
+                "../ecoli/analysis/antibiotics_colony",
+            )
         ),
         (),
         (),

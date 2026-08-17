@@ -38,6 +38,7 @@ class ConcentrationsDeriver(Step):
                     "_updater": "set",
                 }
                 for variable in self.parameters["variables"]
+                + self.parameters["bulk_variables"]
             },
             "volume": {
                 "_default": 0 * units.fL,

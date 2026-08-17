@@ -2,7 +2,6 @@ name: Test Documentation
 
 permissions:
   contents: read
-  pull-requests: write
 
 on:
   push:
@@ -19,12 +18,14 @@ jobs:
   test-docs:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          persist-credentials: false
       - name: Install uv
-        uses: astral-sh/setup-uv@v7
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b
         with:
           enable-cache: true
-          version: "0.7.12"
+          version: "0.11.14"
       - name: Install Pandoc
         run: sudo apt-get install pandoc
       - name: Install model

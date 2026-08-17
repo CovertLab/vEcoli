@@ -1,0 +1,7 @@
+{
+    "sim_data_path": null,
+    "parca_options": {
+        "cpus": 4,
+        "outdir": "out/test_rnaseq_ingestion_defaults"
+    }
+}

@@ -13,6 +13,7 @@ out/
 /out
 .idea/
 *.iml
+api_integration/
 
 # User files #
 ################
@@ -67,3 +68,5 @@ trace-*
 #################
 test_sherlock/
 
+# SMS API #
+.hpc_env

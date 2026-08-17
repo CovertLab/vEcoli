@@ -173,7 +173,7 @@ class RibosomeData(Step):
         )
         # Calculate mapping from inverse indices back to mRNA_unique_indices
         reduced_to_normal_mRNA_indices = bulk_name_to_idx(
-            mRNA_unique_index, unique_mRNA_index_ribosomes
+            mRNA_unique_index, unique_mRNA_index_ribosomes, strict=False
         )
         # Many mRNAs in mRNA_unique_indices will have no bound ribosomes
         # Have them point to last zero of lengthened np.bincount output

@@ -105,7 +105,7 @@ PATHS_TO_LOAD = {
         "kinetic_parameters",
         "outer_tetracycline_permeability",
     ),
-    "Murein tetramer": ("bulk", "CPD-12261[p]"),
+    "Murein": ("bulk", "C6[p]"),
     "PBP1a complex": ("bulk", "CPLX0-7717[p]"),
     "PBP1a mRNA": ("mrna", "EG10748_RNA"),
     "PBP1b alpha complex": ("bulk", "CPLX0-3951[i]"),

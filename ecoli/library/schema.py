@@ -146,13 +146,22 @@ class MetadataArray(np.ndarray):
             return super(MetadataArray, self).__array_wrap__(out_arr, context)
 
     def __reduce__(self):
-        pickled_state = super().__reduce__()
+        """Ensure metadata is preserved during pickling."""
+        # Get the parent's __reduce__ tuple
+        pickled_state = super(MetadataArray, self).__reduce__()
+        # Get the current state and add metadata
         new_state = pickled_state[2] + (self.metadata,)
-        return pickled_state[0], pickled_state[1], new_state
+        # Return modified pickle tuple
+        return (pickled_state[0], pickled_state[1], new_state)
 
     def __setstate__(self, state):
-        self.metadata = state[-1]
-        super().__setstate__(state[:-1])
+        """Restore metadata after unpickling."""
+        # Last element is metadata
+        self.metadata = state[-1] if len(state) > 2 else 0
+        # Call parent's __setstate__ with everything except metadata
+        super(MetadataArray, self).__setstate__(
+            state[0:-1] if len(state) > 2 else state
+        )
 
 
 def array_from(d: dict) -> np.ndarray:
@@ -233,6 +242,7 @@ def counts(states: np.ndarray, idx: int | np.ndarray) -> np.ndarray:
 class get_bulk_counts(Serializer):
     """Serializer for bulk molecules that saves counts without IDs or masses."""
 
+    @staticmethod
     def serialize(bulk: np.ndarray) -> np.ndarray:
         """
         Args:
@@ -247,15 +257,31 @@ class get_bulk_counts(Serializer):
 class get_unique_fields(Serializer):
     """Serializer for unique molecules."""
 
-    def serialize(unique: np.ndarray) -> list[np.ndarray]:
+    @staticmethod
+    def serialize(unique: np.ndarray) -> dict[str, Any]:
         """
         Args:
             unique: Numpy structured array of attributes for one unique molecule
 
         Returns:
-            List of contiguous (required by orjson) arrays, one for each attribute
+            Mapping of attributes to contiguous (required by orjson) arrays.
+            Multi-dimensional attributes are returned as nested Python lists
+            because the Parquet emitter cannot serialize raw N-D arrays.
         """
-        return [np.ascontiguousarray(unique[field]) for field in unique.dtype.names]
+        serialized: dict[str, Any] = {}
+        for field in unique.dtype.names:
+            value = unique[field]
+            if value.ndim > 1:
+                # e.g. promoter ``bound_TF`` has shape (n_molecules, n_TFs).
+                # The Parquet emitter only serializes <=1-D arrays via its
+                # Polars fallback, so emit multi-dimensional attributes as
+                # nested lists (List(List(...))). The JSON emitter handles
+                # nested lists identically, and ``ndlist_to_ndarray`` restores
+                # the N-D array on read:
+                serialized[field] = value.tolist()
+            else:
+                serialized[field] = np.ascontiguousarray(value)
+        return serialized
 
 
 def numpy_schema(name: str, emit: bool = True) -> Dict[str, Any]:
@@ -279,7 +305,7 @@ def numpy_schema(name: str, emit: bool = True) -> Dict[str, Any]:
         # Since vivarium-core ensures that each store will only have a single
         # updater, it's OK to create new UniqueNumpyUpdater objects each time
         schema["_updater"] = UniqueNumpyUpdater().updater
-        # Convert to list of contiguous Numpy arrays for faster and more
+        # Convert to dictionary of contiguous Numpy arrays for faster and more
         # efficient serialization (still do not recommend emitting unique)
         schema["_serializer"] = get_unique_fields
         schema["_divider"] = UNIQUE_DIVIDERS[name]
@@ -287,7 +313,7 @@ def numpy_schema(name: str, emit: bool = True) -> Dict[str, Any]:
 
 
 def bulk_name_to_idx(
-    names: str | (List | np.ndarray), bulk_names: List | np.ndarray
+    names: str | (List | np.ndarray), bulk_names: List | np.ndarray, strict: bool = True
 ) -> int | np.ndarray:
     """Primarily used to retrieve indices for groups of bulk molecules (e.g. NTPs)
     in the first run of a process and cache for future runs
@@ -295,21 +321,32 @@ def bulk_name_to_idx(
     Args:
         names: List or array of things to find. Can also be single string.
         bulk_names: List of array of things to search
+        strict: If ``True``, raise ValueError if any name in ``names`` is not found
 
     Returns:
         Index or indices such that ``bulk_names[indices] == names``
+
+    Raises:
+        ValueError: If any name in names is not found in bulk_names and strict is True
     """
     # Convert from string names to indices in bulk array
     if isinstance(names, np.ndarray) or isinstance(names, list):
         # Big brain solution from https://stackoverflow.com/a/32191125
-        # One downside: all values in names MUST be in bulk_names
-        # Can mask missing values with bulk_names[return value] == names
-        sorter = np.argsort(bulk_names)
-        return np.take(
-            sorter, np.searchsorted(bulk_names, names, sorter=sorter), mode="clip"
+        bulk_names_array = np.array(bulk_names)
+        sorter = np.argsort(bulk_names_array)
+        indices = np.take(
+            sorter, np.searchsorted(bulk_names_array, names, sorter=sorter), mode="clip"
         )
+        # Verify that all names were found
+        if strict and not np.all(bulk_names_array[indices] == names):
+            missing = np.array(names)[bulk_names_array[indices] != names]
+            raise ValueError(f"Names not found in bulk_names: {missing.tolist()}")
+        return indices
     else:
-        return np.where(np.array(bulk_names) == names)[0][0]
+        result = np.where(np.array(bulk_names) == names)[0]
+        if len(result) == 0:
+            raise ValueError(f"Name not found in bulk_names: {names}")
+        return result[0]
 
 
 def bulk_numpy_updater(
@@ -333,7 +370,10 @@ def bulk_numpy_updater(
     # second value is array of updates to apply
     # Numpy arrays are read-only outside of updater. If we cannot make the
     # view writeable (eg. shared memory), operate on a local copy instead.
-    result = current
+    if not current.flags.owndata:
+        result = current.copy()
+    else:
+        result = current
     try:
         result.flags.writeable = True
     except ValueError:
@@ -533,7 +573,10 @@ class UniqueNumpyUpdater:
         if not update.get("update", False):
             return current
 
-        result = current
+        if not current.flags.owndata:
+            result = current.copy()
+        else:
+            result = current
         # Numpy arrays are read-only outside of updater. If we cannot make the
         # view writeable (eg. shared memory), operate on a local copy instead.
         try:

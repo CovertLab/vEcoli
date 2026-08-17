@@ -1,6 +1,14 @@
 {
     "experiment_id" : "metabolism_redux",
     "max_duration" : 10,
+    "fail_at_max_duration": false,
+    "progress_bar": true,
+    "n_init_sims": 1,
+    "emitter": "parquet",
+    "emitter_arg": {"out_dir": "out/"},
+    "fixed_media": "minimal",
+    "condition": "basal",
+
     "swap_processes" : {
         "ecoli-metabolism" : "ecoli-metabolism-redux-classic"
     },

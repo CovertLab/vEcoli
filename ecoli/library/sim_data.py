@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 import pickle
 import os
+from fsspec import open as fsspec_open
 from typing import Any, Optional, TYPE_CHECKING
 from vivarium.library.units import units as vivunits
 from wholecell.utils import units
@@ -168,7 +169,7 @@ class LoadSimData:
         self.degrade_misc = False
 
         # load sim_data
-        with open(sim_data_path, "rb") as sim_data_file:
+        with fsspec_open(sim_data_path, "rb") as sim_data_file:
             self.sim_data: "SimulationDataEcoli" = pickle.load(sim_data_file)
 
         if condition is not None:
@@ -1473,7 +1474,7 @@ class LoadSimData:
             ].tolist(),
             # Get IDs of complexed molecules monomers involved in two component system
             "two_component_system_molecule_ids": list(
-                self.sim_data.process.two_component_system.molecule_names
+                self.sim_data.process.two_component_system.modified_molecules
             ),
             "two_component_system_complex_ids": list(
                 self.sim_data.process.two_component_system.complex_to_monomer.keys()
@@ -1492,6 +1493,11 @@ class LoadSimData:
             # Get IDs of replisome subunits
             "replisome_trimer_subunits": self.sim_data.molecule_groups.replisome_trimer_subunits,
             "replisome_monomer_subunits": self.sim_data.molecule_groups.replisome_monomer_subunits,
+            # Get the IDs of transcription factors:
+            "tf_ids": [
+                tf_id + f"[{self.sim_data.getter.get_compartment(tf_id)[0]}]"
+                for tf_id in self.sim_data.process.transcription_regulation.tf_ids
+            ],
             # Get stoichiometric matrices for complexation, equilibrium, two component system and the
             # assembly of unique molecules
             "complexation_stoich": self.sim_data.process.complexation.stoich_matrix_monomers(),
@@ -1585,13 +1591,11 @@ class LoadSimData:
         return rna_interference_config
 
     def get_tetracycline_ribosome_equilibrium_config(self, time_step=1):
-        rna_ids = self.sim_data.process.transcription.rna_data["id"]
-        is_trna = self.sim_data.process.transcription.rna_data["is_tRNA"].astype(
-            np.bool_
-        )
+        transcription = self.sim_data.process.transcription
         tetracycline_ribosome_equilibrium_config = {
             "time_step": time_step,
-            "trna_ids": rna_ids[is_trna],
+            "trna_ids": transcription.charged_trna_names
+            + transcription.uncharged_trna_names,
             # Ensure that a new seed is set upon division
             "seed": self.random_state.randint(RAND_MAX),
             "emit_unique": self.emit_unique,

@@ -2,7 +2,7 @@
 #
 # Use runscripts/container/build-image.sh to build.
 
-FROM ghcr.io/astral-sh/uv@sha256:cda8422643a3d47dd5d457639dce8f5fbd130ef158ff4af9c6636391f87646af
+FROM ghcr.io/astral-sh/uv@sha256:2702577da32d9c3d55c8073e07d4476cd7402c085efbf71921104548c851d96a
 
 LABEL application="Whole Cell Model of Escherichia coli" \
     email="wholecellteam@lists.stanford.edu" \
@@ -18,7 +18,25 @@ RUN echo "alias ls='ls --color=auto'" >> ~/.bashrc \
 # procps necessary for `ps` command used by Nextflow to track processes.
 # nano is a text editor for convenience.
 # curl is necessary for authentication on Google Cloud VMs
-RUN apt-get update && apt-get install -y gcc procps nano curl
+# g++ greatly improves performance of GillesPy2
+# ca-certificates and unzip necessary for AWS CLI installation
+# AWS CLI installation necessary for Nextflow's AWS Batch executor
+RUN apt-get update && apt-get install -y gcc procps nano curl g++ ca-certificates unzip \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Install AWS CLI v2 for S3 access in AWS Batch (supports both x86_64 and ARM64)
+RUN ARCH=$(uname -m) \
+    && if [ "$ARCH" = "x86_64" ]; then \
+         AWS_CLI_URL="https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip"; \
+       elif [ "$ARCH" = "aarch64" ]; then \
+         AWS_CLI_URL="https://awscli.amazonaws.com/awscli-exe-linux-aarch64.zip"; \
+       else \
+         echo "Unsupported architecture: $ARCH" && exit 1; \
+       fi \
+    && curl "$AWS_CLI_URL" -o "awscliv2.zip" \
+    && unzip -q awscliv2.zip \
+    && ./aws/install \
+    && rm -rf awscliv2.zip aws
 
 # Install the project into `/vEcoli`
 WORKDIR /vEcoli

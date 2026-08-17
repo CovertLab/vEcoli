@@ -426,12 +426,9 @@ def make_figure_s1(data, metadata):
     # Convert glucose uptake to units of mmol / g DCW / hr
     exchange_data = data.loc[:, ["Dry mass", "Exchanges"]]
     glc_flux = exchange_data.apply(
-        lambda x: x["Exchanges"]["GLC[p]"]
-        / N_A
-        * 1000
-        / (x["Dry mass"] * 1e-15)
-        / 2
-        * 3600,
+        lambda x: (
+            x["Exchanges"]["GLC[p]"] / N_A * 1000 / (x["Dry mass"] * 1e-15) / 2 * 3600
+        ),
         axis=1,
     )
     data["Glucose intake"] = -glc_flux

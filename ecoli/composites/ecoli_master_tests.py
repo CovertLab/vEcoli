@@ -8,6 +8,9 @@ import os
 from itertools import product
 
 import numpy as np
+import polars as pl
+import json
+import tempfile
 import pytest
 import warnings
 
@@ -25,6 +28,15 @@ from configs import (
     ECOLI_DEFAULT_TOPOLOGY,
 )
 from ecoli.experiments.ecoli_master_sim import EcoliSim, CONFIG_DIR_PATH
+from ecoli.library.parquet_emitter import dataset_sql, create_duckdb_conn
+
+
+@pytest.fixture
+def parquet_out_dir():
+    """Temporary directory for Parquet emitter output."""
+    with tempfile.TemporaryDirectory() as out_dir:
+        yield out_dir
+
 
 TRANSLATION_SUPPLY_FLAGS = [
     "mechanistic_translation_supply",
@@ -59,6 +71,95 @@ def run_two_second_simulation(flag_overrides):
         sim.config[flag_key] = flag_value
     sim.build_ecoli()
     sim.run()
+
+
+def test_daughter_state_includes_non_agent_state():
+    """
+    Test that daughter states include all non-agent state
+    """
+    # Use actual daughter_outdir to match where files are saved
+    outdir = "out"
+    os.makedirs(outdir, exist_ok=True)
+
+    # Create temporary config file that inherits from spatial.json
+    temp_config = {
+        "inherit_from": ["spatial.json"],
+        "initial_state_file": "vivecoli_t2526",
+        "generations": 1,
+        "divide": True,
+        "agent_id": "0",
+        "max_duration": 4,
+    }
+
+    with tempfile.NamedTemporaryFile(
+        mode="w", suffix=".json", delete=False, dir="configs"
+    ) as f:
+        temp_config_file = f.name
+        json.dump(temp_config, f)
+
+    temp_config_basename = os.path.basename(temp_config_file).replace(".json", "")
+
+    try:
+        sim = EcoliSim.from_file(f"configs/{temp_config_basename}.json")
+        sim.build_ecoli()
+
+        try:
+            sim.run()
+        except SystemExit:
+            # Expected to exit after division
+            pass
+
+        # Check that daughter state files were created in the expected location
+        daughter_outdir = sim.config.get("daughter_outdir", "out")
+        daughter_files = [
+            os.path.join(daughter_outdir, f"daughter_state_{i}.json") for i in range(2)
+        ]
+
+        try:
+            daughter_agent_ids = []
+            for daughter_file in daughter_files:
+                assert os.path.exists(daughter_file), (
+                    f"Daughter state file {daughter_file} was not created"
+                )
+
+                # Load daughter state and verify structure
+                with open(daughter_file, "r") as f:
+                    daughter_state = json.load(f)
+
+                # Should have "agents" key with exactly one agent
+                assert "agents" in daughter_state, (
+                    "Daughter state missing 'agents' key - bug not fixed!"
+                )
+                assert len(daughter_state["agents"]) == 1, (
+                    "Daughter state should have exactly one agent"
+                )
+
+                # Extract agent_id and agent state
+                agent_id = list(daughter_state["agents"].keys())[0]
+                daughter_agent_ids.append(agent_id)
+                # Agent IDs should be different from parent
+                assert agent_id != sim.config["agent_id"]
+                agent_state = daughter_state["agents"][agent_id]
+
+                # Agent state should have expected keys
+                assert "bulk" in agent_state
+
+                # Environment state should be preserved (from spatial.json)
+                assert "fields" in daughter_state, (
+                    "Daughter state missing environment 'fields' - non-agent state not preserved!"
+                )
+            assert len(set(daughter_agent_ids)) == 2, (
+                "Daughter cells should have unique agent IDs"
+            )
+        finally:
+            # Clean up daughter files
+            for daughter_file in daughter_files:
+                if os.path.exists(daughter_file):
+                    os.remove(daughter_file)
+    finally:
+        # Clean up temp config file
+        if os.path.exists(temp_config_file):
+            os.remove(temp_config_file)
 
 
 @pytest.mark.slow
@@ -136,12 +237,8 @@ def test_division(agent_id="0", max_duration=4):
     for name, mols in mother_state["unique"].items():
         d1_state = daughter_states[0]["unique"][name]
         d2_state = daughter_states[1]["unique"][name]
-        mol_keys = sim.ecoli_experiment.state["agents"]["00"]["unique"][
-            name
-        ].value.dtype.names
-        entryState_col = np.where(np.array(mol_keys) == "_entryState")[0][0]
-        n_mother = sum(mols[entryState_col])
-        n_daughter = sum(d1_state[entryState_col]) + sum(d2_state[entryState_col])
+        n_mother = sum(mols["_entryState"])
+        n_daughter = sum(d1_state["_entryState"]) + sum(d2_state["_entryState"])
         if name == "chromosome_domain":
             # Chromosome domain 0 is lost after division because
             # it has been fully split into child domains 1 and 2
@@ -150,8 +247,7 @@ def test_division(agent_id="0", max_duration=4):
             f"{name}: mother has {n_mother}, daughters have {n_daughter}"
         )
         # Assert that no unique mol is in both daughters
-        unique_idx_col = np.where(np.array(mol_keys) == "unique_index")[0][0]
-        assert not (set(d1_state[unique_idx_col]) & set(d2_state[unique_idx_col]))
+        assert not (set(d1_state["unique_index"]) & set(d2_state["unique_index"]))
 
     # asserts
     final_agents = output[max_duration]["agents"].keys()
@@ -324,31 +420,37 @@ def plot_spatial_snapshots(data, sim, experiment_dir="ecoli_test"):
     )
 
 
-def test_emit_unique():
+def test_emit_unique(parquet_out_dir):
     """
-    Test that the ``emit_unique`` configuration option works. This can be broken
+    Verifies that unique molecule data is written to Parquet output when ``emit_unique``
+    is True. Make sure that every unique molecule type has at least one corresponding
+    column, including an integer unique index list. This can be broken
     if a new process is added whose ports schema connects to a unique molecule
     without setting the ``_emit`` property to ``config['emit_unique']``.
     """
     sim = EcoliSim.from_file()
+    sim.config["experiment_id"] = "test_emit_unique_parquet"
     sim.config["emit_unique"] = True
     sim.config["max_duration"] = 1
+    sim.config["emitter"] = "parquet"
+    sim.config["emitter_arg"] = {"out_dir": parquet_out_dir}
     sim.build_ecoli()
     sim.run()
+    sim.ecoli_experiment.emitter.finalize()
+
     unique_molecules = sim.ecoli_experiment.state["agents"]["0"]["unique"].inner.keys()
-    data = sim.query(
-        [
-            (
-                "agents",
-                "0",
-                "unique",
-            )
-        ]
-    )
-    for val in data.values():
-        for unique_mol in unique_molecules:
-            assert unique_mol in val["agents"]["0"]["unique"]
-            assert isinstance(val["agents"]["0"]["unique"][unique_mol], list)
+    history_sql, _, _ = dataset_sql(parquet_out_dir, [sim.experiment_id])
+    conn = create_duckdb_conn()
+    t = conn.sql(f"SELECT * FROM ({history_sql})").pl()
+
+    for unique_mol in unique_molecules:
+        assert any(
+            c == f"unique__{unique_mol}" or c.startswith(f"unique__{unique_mol}__")
+            for c in t.columns
+        ), f"Missing unique molecule '{unique_mol}' in Parquet output"
+        assert t.schema[f"unique__{unique_mol}__unique_index"] == pl.List(pl.Int64), (
+            f"Expected column 'unique__{unique_mol}__unique_index' to have dtype list[int]"
+        )
 
 
 @pytest.mark.slow
@@ -363,6 +465,37 @@ def test_translation_flag_harness(flag_overrides):
     run_two_second_simulation(flag_overrides)
 
 
+def test_emit_paths(parquet_out_dir):
+    """
+    Verifies that only the columns derived from ``emit_paths`` (plus Hive
+    partition ID columns) are written to the Parquet dataset.
+
+    Uses ``configs/test_emit_paths.json``.
+    """
+    sim = EcoliSim.from_file(CONFIG_DIR_PATH + "test_emit_paths.json")
+    sim.config["emitter_arg"] = {"out_dir": parquet_out_dir}
+    sim.build_ecoli()
+    sim.run()
+    sim.ecoli_experiment.emitter.finalize()
+
+    history_sql, _, _ = dataset_sql(parquet_out_dir, [sim.experiment_id])
+    conn = create_duckdb_conn()
+    t = conn.sql(f"SELECT * FROM ({history_sql})").pl()
+
+    id_cols = {
+        "time",
+        "agent_id",
+        "experiment_id",
+        "generation",
+        "lineage_seed",
+        "variant",
+    }
+    emit_paths = {"__".join(col) for col in sim.config["emit_paths"]} | id_cols
+    assert set(t.columns) == emit_paths, (
+        f"Expected columns {emit_paths} but got {set(t.columns)}"
+    )
+
+
 test_library = {
     "1": test_division,
     "2": test_division_topology,
@@ -370,6 +503,8 @@ test_library = {
     "4": test_lattice_lysis,
     "5": test_emit_unique,
     "6": test_translation_flag_harness,
+    "7": test_daughter_state_includes_non_agent_state,
+    "8": test_emit_paths,
 }
 
 # run experiments in test_library from the command line with:

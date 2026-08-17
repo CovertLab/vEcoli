@@ -1,0 +1,6 @@
+dataset_id	dataset_description	file_path	data_source	data_source_experiment_id	data_source_date	strain	condition
+ref_0001	reference data (reconstruction/flat/rna_seq_data/rnaseq_rsem_tpm_mean.tsv), M9 Glucose minus AAs	ref_0001.tsv	reconstruction/flat/rna_seq_data/rnaseq_rsem_tpm_mean.tsv				M9, Glucose, Aerobic, 37C
+ref_0002	reference data (reconstruction/flat/rna_seq_data/rnaseq_rsem_tpm_mean.tsv), M9 Glucose plus AAs	ref_0002.tsv	reconstruction/flat/rna_seq_data/rnaseq_rsem_tpm_mean.tsv				M9, Glucose+AAs, Aerobic, 37C
+gbw_0001	MG1655 rph+_Modified_M9_N_Fe, average of 3h and 4h timepoints	gbw_0001.tsv	Ginkgo Bioworks	exp96546	2025-11-24	MG1655 rph+	Modified_M9_N_Fe, Glucose, Aerobic, 37C
+gbw_0002	MG1655 rph+, EZ_Rich, average of 3h and 4h timepoints	gbw_0002.tsv	Ginkgo Bioworks	exp96546	2025-11-24	MG1655 rph+	Modified_M9_N_Fe, EZ Rich media, Aerobic, 37C
+gbw_0001_v2	gbw_0001 with ssrA removed and renormalized	gbw_0001_v2.tsv	Ginkgo Bioworks	exp96546	2025-11-24	MG1655 rph+	Modified_M9_N_Fe, Glucose, Aerobic, 37C

@@ -1367,29 +1367,6 @@ class TestParquetEmitterEdgeCases:
         ):
             emitter.emit(sim_data6)
 
-        # Try list of NumPy arrays
-        sim_data7 = {
-            "table": "simulation",
-            "data": {
-                "time": 3.0,
-                "agents": {
-                    "agent1": {
-                        "mixed_nested": [
-                            np.array([1, 2, 3]),
-                            np.array([4, 5]),
-                            [6],
-                            None,
-                        ],
-                    }
-                },
-            },
-        }
-        with pytest.raises(
-            TypeError,
-            match=re.escape("failed to determine supertype of object and list[i64]"),
-        ):
-            emitter.emit(sim_data7)
-
         # Try shape-varying 3D NumPy array
         # Polars can gracefully handle nested Python lists wihout explicit type
         # information, but not NumPy arrays. For example:
@@ -1401,7 +1378,7 @@ class TestParquetEmitterEdgeCases:
         # shape anyways as it would still be constrained to a data cube.
         # Nested Python lists would let you deviate from a strict data cube
         # and even have null values, if desired.
-        sim_data8 = {
+        sim_data7 = {
             "table": "simulation",
             "data": {
                 "time": 3.0,
@@ -1414,9 +1391,9 @@ class TestParquetEmitterEdgeCases:
         }
         with pytest.raises(
             ValueError,
-            match=re.escape("cannot parse numpy data type dtype('O')"),
+            match=re.escape("more than 1 dimension"),
         ):
-            emitter.emit(sim_data8)
+            emitter.emit(sim_data7)
 
     def test_nested_nullable(self, temp_dir):
         """Test handling nullable nested types that increase in depth."""
@@ -1554,3 +1531,223 @@ class TestParquetEmitterEdgeCases:
         )
         assert t["nullable_nested"].to_list() == [None] * 4
         assert t["nullable_nested"].dtype == pl.List(pl.List(pl.List(pl.String)))
+
+
+class TestEmitPaths:
+    """Tests for the emit_paths filtering feature."""
+
+    @pytest.fixture
+    def temp_dir(self):
+        tmp = tempfile.mkdtemp()
+        yield tmp
+        shutil.rmtree(tmp)
+
+    def _config_emit(self):
+        return {
+            "table": "configuration",
+            "data": {
+                "experiment_id": "test_exp",
+                "variant": 1,
+                "lineage_seed": 1,
+                "agent_id": "1",
+            },
+        }
+
+    def _sim_emit(self, time=1.0, **agent_fields):
+        return {
+            "table": "simulation",
+            "data": {
+                "time": time,
+                "agents": {"agent1": agent_fields},
+            },
+        }
+
+    def test_no_emit_paths_keeps_all_fields(self, temp_dir):
+        """Without emit_paths, all fields are emitted (existing behavior)."""
+        emitter = ParquetEmitter({"out_dir": temp_dir, "batch_size": 2})
+        assert emitter.emit_prefixes is None
+
+        emitter.emit(self._config_emit())
+        emitter.emit(
+            self._sim_emit(
+                listeners__mass__cell_mass=1.0,
+                listeners__growth__rate=0.5,
+                bulk=np.array([1, 2, 3]),
+            )
+        )
+        emitter.emit(
+            self._sim_emit(
+                listeners__mass__cell_mass=2.0,
+                listeners__growth__rate=0.6,
+                bulk=np.array([4, 5, 6]),
+            )
+        )
+        emitter.last_batch_future.result()
+
+        t = pl.read_parquet(
+            os.path.join(temp_dir, "test_exp", "history", "**", "*.pq"),
+            hive_partitioning=True,
+        )
+        assert "listeners__mass__cell_mass" in t.columns
+        assert "listeners__growth__rate" in t.columns
+        assert "bulk" in t.columns
+
+    def test_emit_paths_filters_fields(self, temp_dir):
+        """With emit_paths, only matching fields (plus time) are buffered."""
+        emitter = ParquetEmitter(
+            {
+                "out_dir": temp_dir,
+                "batch_size": 2,
+                "emit_paths": [("listeners", "mass")],
+            }
+        )
+        assert emitter.emit_prefixes == {"listeners__mass"}
+
+        emitter.emit(self._config_emit())
+        emitter.emit(
+            self._sim_emit(
+                listeners__mass__cell_mass=1.0,
+                listeners__growth__rate=0.5,
+                bulk=np.array([1, 2, 3]),
+            )
+        )
+        emitter.emit(
+            self._sim_emit(
+                listeners__mass__cell_mass=2.0,
+                listeners__growth__rate=0.6,
+                bulk=np.array([4, 5, 6]),
+            )
+        )
+        emitter.last_batch_future.result()
+
+        t = pl.read_parquet(
+            os.path.join(temp_dir, "test_exp", "history", "**", "*.pq"),
+            hive_partitioning=True,
+        )
+        assert "listeners__mass__cell_mass" in t.columns
+        assert "time" in t.columns
+        assert "listeners__growth__rate" not in t.columns
+        assert "bulk" not in t.columns
+
+    def test_emit_paths_exact_key_match(self, temp_dir):
+        """emit_paths should include fields whose flat key exactly equals a prefix."""
+        emitter = ParquetEmitter(
+            {
+                "out_dir": temp_dir,
+                "batch_size": 2,
+                "emit_paths": [("bulk",)],
+            }
+        )
+        assert emitter.emit_prefixes == {"bulk"}
+
+        emitter.emit(self._config_emit())
+        for _ in range(2):
+            emitter.emit(
+                self._sim_emit(
+                    bulk=np.array([1, 2]),
+                    listeners__mass__cell_mass=1.0,
+                )
+            )
+        emitter.last_batch_future.result()
+
+        t = pl.read_parquet(
+            os.path.join(temp_dir, "test_exp", "history", "**", "*.pq"),
+            hive_partitioning=True,
+        )
+        assert "bulk" in t.columns
+        assert "listeners__mass__cell_mass" not in t.columns
+
+    def test_emit_paths_multiple_paths(self, temp_dir):
+        """Multiple paths in emit_paths each filter correctly."""
+        emitter = ParquetEmitter(
+            {
+                "out_dir": temp_dir,
+                "batch_size": 2,
+                "emit_paths": [
+                    ("listeners", "mass"),
+                    ("bulk",),
+                ],
+            }
+        )
+        assert emitter.emit_prefixes == {"listeners__mass", "bulk"}
+
+        emitter.emit(self._config_emit())
+        for _ in range(2):
+            emitter.emit(
+                self._sim_emit(
+                    bulk=np.array([1, 2]),
+                    listeners__mass__cell_mass=1.0,
+                    listeners__growth__rate=0.5,
+                )
+            )
+        emitter.last_batch_future.result()
+
+        t = pl.read_parquet(
+            os.path.join(temp_dir, "test_exp", "history", "**", "*.pq"),
+            hive_partitioning=True,
+        )
+        assert "bulk" in t.columns
+        assert "listeners__mass__cell_mass" in t.columns
+        assert "listeners__growth__rate" not in t.columns
+
+    def test_emit_paths_time_always_included(self, temp_dir):
+        """The 'time' field is always included regardless of emit_paths."""
+        emitter = ParquetEmitter(
+            {
+                "out_dir": temp_dir,
+                "batch_size": 2,
+                "emit_paths": [("bulk",)],
+            }
+        )
+
+        emitter.emit(self._config_emit())
+        for _ in range(2):
+            emitter.emit(self._sim_emit(time=1.5, bulk=np.array([7, 8])))
+        emitter.last_batch_future.result()
+
+        t = pl.read_parquet(
+            os.path.join(temp_dir, "test_exp", "history", "**", "*.pq"),
+            hive_partitioning=True,
+        )
+        assert "time" in t.columns
+        assert t["time"].to_list() == [1.5, 1.5]
+
+    def test_emit_paths_prefix_does_not_match_sibling(self, temp_dir):
+        """A prefix like 'listeners__mass' must not match 'listeners__mass_extra'."""
+        emitter = ParquetEmitter(
+            {
+                "out_dir": temp_dir,
+                "batch_size": 2,
+                "emit_paths": [("listeners", "mass")],
+            }
+        )
+
+        emitter.emit(self._config_emit())
+        for _ in range(2):
+            emitter.emit(
+                self._sim_emit(
+                    listeners__mass__cell_mass=1.0,
+                    listeners__mass_extra__value=99.0,
+                )
+            )
+        emitter.last_batch_future.result()
+
+        t = pl.read_parquet(
+            os.path.join(temp_dir, "test_exp", "history", "**", "*.pq"),
+            hive_partitioning=True,
+        )
+        assert "listeners__mass__cell_mass" in t.columns
+        assert "listeners__mass_extra__value" not in t.columns
+
+    def test_emit_paths_stores_prefixes_correctly(self, temp_dir):
+        """emit_prefixes are stored as double-underscore joined strings."""
+        emitter = ParquetEmitter(
+            {
+                "out_dir": temp_dir,
+                "emit_paths": [
+                    ("a", "b", "c"),
+                    ("x",),
+                ],
+            }
+        )
+        assert emitter.emit_prefixes == {"a__b__c", "x"}

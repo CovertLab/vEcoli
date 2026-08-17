@@ -7,7 +7,7 @@
     "emitter": "parquet",
     "sim_data_path": null,
     "emitter_arg": {
-        "out_dir": "/scratch/groups/mcovert/vecoli",
+        "out_dir": "/scratch/groups/mcovert/vecoli/jenkins_optional",
         "threaded": false
     },
     "analysis_options": {
@@ -15,12 +15,13 @@
         "multiseed": {"protein_counts_validation": {}},
         "multivariant": {"doubling_time_hist": {"skip_n_gens": 0}, "doubling_time_line": {}}
     },
-    "sherlock": {
-        "container_image": "container-image",
-        "hyperqueue": false,
-        "jenkins": true
-    },
     "parca_options": {
         "cpus": 4
-    }
+    },
+    "carina": {
+        "build_image": false,
+        "container_image": "vecoli",
+        "jenkins": true
+    },
+    "HYPERQUEUE": false
 }

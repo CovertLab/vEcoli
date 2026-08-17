@@ -19,6 +19,22 @@
         "save_intermediates": false,
         "intermediates_directory": "",
         "variable_elongation_transcription": true,
-        "variable_elongation_translation": false
+        "variable_elongation_translation": false,
+
+        # RNA-seq input options (optional; omit or set to null for legacy behavior)
+        # rnaseq_manifest_path: path to manifest TSV listing available RNA-seq datasets
+        # rnaseq_basal_dataset_id: dataset_id from manifest to use as basal transcriptome
+        # If both are null/omitted, ParCa uses the legacy raw_data.rna_seq_data tables.
+        "rnaseq_manifest_path": null,
+        "rnaseq_basal_dataset_id": null,
+
+        # basal_expression_condition: modeled condition name (must match a defined condition)
+        # This is used throughout ParCa for the baseline growth state.
+        "basal_expression_condition": "M9 Glucose minus AAs",
+
+        # rnaseq_fill_missing_genes_from_ref: when true (default), genes missing
+        # from the experimental RNA-seq dataset are filled from the reference
+        # table (rnaseq_rsem_tpm_mean.tsv) using basal_expression_condition.
+        "rnaseq_fill_missing_genes_from_ref": true
     }
 }

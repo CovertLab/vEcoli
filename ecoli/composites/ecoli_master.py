@@ -10,7 +10,6 @@ steps, topology, and initial state of the E. coli whole cell model.
 
 from copy import deepcopy
 from typing import Any, Optional
-import warnings
 
 # vivarium-core
 from vivarium.core.composer import Composer
@@ -21,6 +20,9 @@ from vivarium.core.engine import _StepGraph
 
 # sim data
 from ecoli.library.sim_data import LoadSimData, RAND_MAX
+
+# cloud URI detection
+from wholecell.utils.filepath import is_cloud_uri
 
 # logging
 from ecoli.library.logging_tools import make_logging_process
@@ -157,24 +159,29 @@ class Ecoli(Composer):
         config = config or self.config
         # Allow initial state to be directly supplied instead of a file name
         # (e.g. when loading individual cells in a colony save file)
-        initial_state = config.get("initial_state", None)
-        if not initial_state:
+        full_initial_state = config.get("initial_state", None)
+        if not full_initial_state:
             initial_state_file = config.get("initial_state_file", None)
             # Generate initial state from sim_data if no file specified
             if not initial_state_file:
-                initial_state = self.load_sim_data.generate_initial_state()
+                full_initial_state = self.load_sim_data.generate_initial_state()
             else:
-                initial_state = get_state_from_file(
-                    path=f"data/{initial_state_file}.json"
-                )
+                # Support cloud URIs, absolute paths, and local filenames
+                if is_cloud_uri(initial_state_file) or initial_state_file.startswith(
+                    "/"
+                ):
+                    state_path = initial_state_file
+                else:
+                    state_path = f"data/{initial_state_file}.json"
+                full_initial_state = get_state_from_file(path=state_path)
 
-        # Load first agent state in a division-enabled save state by default
-        if "agents" in initial_state.keys():
-            warnings.warn(
-                "Trying to load a multi-agent simulation state into "
-                "a single-cell simulation. Loading the state of arbitrary agent."
-            )
-            initial_state = list(initial_state["agents"].values())[0]
+        # Modify state for configured agent_id
+        if "agents" in full_initial_state.keys():
+            agent_initial_state = full_initial_state["agents"][
+                config.get("agent_id", "0")
+            ]
+        else:
+            agent_initial_state = full_initial_state
 
         initial_state_overrides = config.get("initial_state_overrides", [])
         # Create mapping of bulk molecule names to row indices, allowing users to
@@ -182,27 +189,27 @@ class Ecoli(Composer):
         if initial_state_overrides:
             bulk_map = {
                 bulk_id: row_id
-                for row_id, bulk_id in enumerate(initial_state["bulk"]["id"])
+                for row_id, bulk_id in enumerate(agent_initial_state["bulk"]["id"])
             }
         for override_file in initial_state_overrides:
             override = get_state_from_file(path=f"data/{override_file}.json")
             # Apply bulk overrides of the form {molecule: count} to Numpy array
             bulk_overrides = override.pop("bulk", {})
-            initial_state["bulk"].flags.writeable = True
+            agent_initial_state["bulk"].flags.writeable = True
             for molecule, count in bulk_overrides.items():
-                initial_state["bulk"]["count"][bulk_map[molecule]] = count
-            initial_state["bulk"].flags.writeable = False
+                agent_initial_state["bulk"]["count"][bulk_map[molecule]] = count
+            agent_initial_state["bulk"].flags.writeable = False
             # All other overrides directly update initial state
-            deep_merge(initial_state, override)
+            deep_merge(agent_initial_state, override)
 
         # Put shared process instances for partitioned steps into state
         _, steps, _ = self.processes_and_steps
-        initial_state["process"] = {
+        agent_initial_state["process"] = {
             step.parameters["process"].name: (step.parameters["process"],)
             for step in steps.values()
             if "process" in step.parameters
         }
-        return initial_state
+        return full_initial_state
 
     def generate_processes_and_steps(
         self, config: dict[str, Any]
@@ -482,10 +489,9 @@ class Ecoli(Composer):
             else:
                 flow["division"] = [(f"unique_update_{unique_update_counter - 1}",)]
 
-            # Add Step to raise catchable exception upon division
+            # Add process to raise catchable exception upon division
             if config["generations"] is not None:
-                steps["stop-after-division"] = StopAfterDivision()
-                flow["stop-after-division"] = [("division",)]
+                processes["stop-after-division"] = StopAfterDivision()
 
         # update schema overrides for evolvers and requesters
         update_override = {}

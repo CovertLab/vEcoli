@@ -8,6 +8,7 @@ import errno
 import json
 import io
 import os
+import posixpath
 import subprocess
 from typing import Any, Optional, Generator
 
@@ -25,6 +26,16 @@ MATPLOTLIBRC_FILE = os.path.join(ROOT_PATH, "matplotlibrc")
 
 # Regex for current and previous timestamp() formats: 'YYYYMMDD.HHMMSS[.uuuuuu]'.
 TIMESTAMP_PATTERN = r"\d{8}\.\d{6}(?:\.\d{6})?"
+
+
+def is_cloud_uri(path: str) -> bool:
+    """Check if path is a cloud storage URI (s3://, gs://, gcs://)."""
+    return path.startswith(("s3://", "gs://", "gcs://"))
+
+
+def cloud_path_join(*parts: str) -> str:
+    """Join path components for cloud URIs, preserving forward slashes."""
+    return posixpath.join(*parts)
 
 
 def makedirs(path: str, *paths: str) -> str:

@@ -190,14 +190,15 @@ class TestBuildDuckdbFilter:
         """Test building filter with single string value"""
         config = {"experiment_id": ["test_exp"]}
         result = build_duckdb_filter(config)
-        expected = "experiment_id = 'test_exp'"
-        assert result == expected
+        assert result == [("experiment_id", "experiment_id = 'test_exp'")]
 
     def test_multiple_string_filters(self):
         """Test building filter with multiple string values"""
         config = {"experiment_id": ["exp1", "exp2", "exp3"]}
         result = build_duckdb_filter(config)
-        assert "experiment_id IN ('exp1', 'exp2', 'exp3')" == result
+        assert result == [
+            ("experiment_id", "experiment_id IN ('exp1', 'exp2', 'exp3')")
+        ]
 
     def test_single_int_filter(self):
         """Test building filter with single int value"""
@@ -205,7 +206,7 @@ class TestBuildDuckdbFilter:
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
             result = build_duckdb_filter(config)
-            assert result == "variant = 5"
+            assert result == [("variant", "variant = 5")]
             assert len(w) == 1
             assert "applicable data for the skipped" in str(w[0].message).lower()
 
@@ -215,7 +216,7 @@ class TestBuildDuckdbFilter:
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
             result = build_duckdb_filter(config)
-            assert "variant IN (0, 1, 2)" == result
+            assert result == [("variant", "variant IN (0, 1, 2)")]
             assert len(w) == 1
             assert "applicable data for the skipped" in str(w[0].message).lower()
 
@@ -227,10 +228,10 @@ class TestBuildDuckdbFilter:
             "lineage_seed": [42],
         }
         result = build_duckdb_filter(config)
-        assert "experiment_id = 'test_exp'" in result
-        assert "variant IN (0, 1)" in result
-        assert "lineage_seed = 42" in result
-        assert " AND " in result
+        assert ("experiment_id", "experiment_id = 'test_exp'") in result
+        assert ("variant", "variant IN (0, 1)") in result
+        assert ("lineage_seed", "lineage_seed = 42") in result
+        assert len(result) == 3
 
     def test_range_filter(self):
         """Test that range filters are converted to lists"""
@@ -238,7 +239,7 @@ class TestBuildDuckdbFilter:
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
             result = build_duckdb_filter(config)
-            assert "variant IN (0, 1, 2, 3, 4)" == result
+            assert result == [("variant", "variant IN (0, 1, 2, 3, 4)")]
             # Check that variant list was created in config
             assert config["variant"] == [0, 1, 2, 3, 4]
             assert len(w) == 1
@@ -258,7 +259,7 @@ class TestBuildDuckdbFilter:
                 "Range takes precedence" in str(warning.message) for warning in w
             )
 
-        assert "variant IN (0, 1, 2)" == result
+        assert result == [("variant", "variant IN (0, 1, 2)")]
         assert config["variant"] == [0, 1, 2]
 
     def test_skipped_filter_warning(self):
@@ -277,7 +278,7 @@ class TestBuildDuckdbFilter:
         """Test with no filters specified"""
         config = {}
         result = build_duckdb_filter(config)
-        assert result == ""
+        assert result == []
 
     def test_agent_id_string_filter(self):
         """Test agent_id string filtering"""
@@ -287,7 +288,7 @@ class TestBuildDuckdbFilter:
             result = build_duckdb_filter(config)
             assert len(w) == 1
             assert "applicable data for the skipped" in str(w[0].message).lower()
-            assert "agent_id IN ('agent_001', 'agent_002')" == result
+            assert result == [("agent_id", "agent_id IN ('agent_001', 'agent_002')")]
 
 
 class TestLoadVariantMetadata:
@@ -538,7 +539,7 @@ class TestBuildQueryStrings:
         # Create a mock connection that returns test data
         conn = MockConnection([("exp1", 0), ("exp1", 1)])
         analysis_type = "multiseed"  # Has id_cols = ["experiment_id", "variant"]
-        duckdb_filter = "experiment_id = 'exp1'"
+        duckdb_filter = [("experiment_id", "experiment_id = 'exp1'")]
         config_sql = "SELECT * FROM config"
         history_sql = "SELECT * FROM history"
         success_sql = "SELECT * FROM success"
@@ -562,7 +563,7 @@ class TestBuildQueryStrings:
 
         conn = MockConnection([("exp1", 0), ("exp1", 1)])
         analysis_type = "multiexperiment"  # Has id_cols = []
-        duckdb_filter = "experiment_id = 'exp1'"
+        duckdb_filter = [("experiment_id", "experiment_id = 'exp1'")]
         config_sql = "SELECT * FROM config"
         history_sql = "SELECT * FROM history"
         success_sql = "SELECT * FROM success"
@@ -578,16 +579,16 @@ class TestBuildQueryStrings:
             conn,
         )
 
-        # Should have single entry with the base filter
+        # Should have single entry with the joined filter string as key
         assert len(query_strings) == 1
-        assert duckdb_filter in query_strings
+        assert "experiment_id = 'exp1'" in query_strings
 
     def test_query_string_structure(self):
         """Test that query strings have correct structure"""
 
         conn = MockConnection([("exp1", 0)])
         analysis_type = "multiseed"
-        duckdb_filter = "experiment_id = 'exp1'"
+        duckdb_filter = [("experiment_id", "experiment_id = 'exp1'")]
         config_sql = "SELECT * FROM config"
         history_sql = "SELECT * FROM history"
         success_sql = "SELECT * FROM success"
@@ -616,6 +617,132 @@ class TestBuildQueryStrings:
         assert curr_outdir == f"{outdir}/experiment_id=exp1/variant=0"
         assert isinstance(variant_set, set)
         assert ("exp1", 0) in variant_set
+
+    def test_lower_level_filter_included_in_sql(self, tmp_path):
+        """Lower-level filters (columns below id_cols) must appear in the SQL
+        strings passed to analysis scripts, not just in the discovery query."""
+        # multigeneration id_cols = ["experiment_id", "variant", "lineage_seed"]
+        # generation is one level below and must survive into the per-subset SQL.
+        conn = MockConnection([("exp1", 0, 42)])
+        analysis_type = "multigeneration"
+        duckdb_filter = [
+            ("experiment_id", "experiment_id = 'exp1'"),
+            ("variant", "variant = 0"),
+            ("lineage_seed", "lineage_seed = 42"),
+            ("generation", "generation = 5"),
+        ]
+
+        query_strings = build_query_strings(
+            analysis_type,
+            duckdb_filter,
+            "SELECT * FROM config",
+            "SELECT * FROM history",
+            "SELECT * FROM success",
+            str(tmp_path),
+            conn,
+        )
+
+        assert len(query_strings) == 1
+        history_q, config_q, success_q, _, _ = next(iter(query_strings.values()))
+        assert "generation = 5" in history_q
+        assert "generation = 5" in config_q
+        assert "generation = 5" in success_q
+
+    def test_no_lower_level_filters_leaves_sql_unchanged(self, tmp_path):
+        """When all duckdb_filter conditions are for id_cols, the per-subset SQL
+        must not gain any extra filter clauses."""
+        conn = MockConnection([("exp1", 0, 42)])
+        analysis_type = "multigeneration"
+        # All conditions are for id_cols — nothing lower-level.
+        duckdb_filter = [
+            ("experiment_id", "experiment_id = 'exp1'"),
+            ("variant", "variant = 0"),
+            ("lineage_seed", "lineage_seed = 42"),
+        ]
+
+        query_strings = build_query_strings(
+            analysis_type,
+            duckdb_filter,
+            "SELECT * FROM config",
+            "SELECT * FROM history",
+            "SELECT * FROM success",
+            str(tmp_path),
+            conn,
+        )
+
+        history_q, config_q, success_q, _, _ = next(iter(query_strings.values()))
+        # id_col specific values must be present
+        assert "experiment_id='exp1'" in history_q
+        assert "variant=0" in history_q
+        assert "lineage_seed=42" in history_q
+        # No unexpected lower-level columns
+        assert "generation" not in history_q
+        assert "agent_id" not in history_q
+
+    def test_multiple_lower_level_filters_all_included(self, tmp_path):
+        """All lower-level filter conditions must appear in every SQL string."""
+        # multiseed id_cols = ["experiment_id", "variant"]
+        # generation and agent_id are both lower-level for this analysis type.
+        conn = MockConnection([("exp1", 0)])
+        analysis_type = "multiseed"
+        duckdb_filter = [
+            ("experiment_id", "experiment_id = 'exp1'"),
+            ("variant", "variant = 0"),
+            ("generation", "generation = 5"),
+            ("agent_id", "agent_id = 'agent_001'"),
+        ]
+
+        query_strings = build_query_strings(
+            analysis_type,
+            duckdb_filter,
+            "SELECT * FROM config",
+            "SELECT * FROM history",
+            "SELECT * FROM success",
+            str(tmp_path),
+            conn,
+        )
+
+        assert len(query_strings) == 1
+        history_q, config_q, success_q, _, _ = next(iter(query_strings.values()))
+        for sql in (history_q, config_q, success_q):
+            assert "generation = 5" in sql
+            assert "agent_id = 'agent_001'" in sql
+            # id_col values must still be pinned
+            assert "experiment_id='exp1'" in sql
+            assert "variant=0" in sql
+
+    def test_and_in_string_value_does_not_corrupt_lower_level_filter(self, tmp_path):
+        """A string filter value containing ' AND ' must not be mistaken for a
+        condition separator, which would corrupt lower-level filter extraction."""
+        # multiseed id_cols = ["experiment_id", "variant"]
+        # generation is lower-level; the experiment_id value itself contains ' AND '
+        conn = MockConnection([("treat AND control", 0)])
+        analysis_type = "multiseed"
+        duckdb_filter = [
+            ("experiment_id", "experiment_id = 'treat AND control'"),
+            ("variant", "variant = 0"),
+            ("generation", "generation = 5"),
+        ]
+
+        query_strings = build_query_strings(
+            analysis_type,
+            duckdb_filter,
+            "SELECT * FROM config",
+            "SELECT * FROM history",
+            "SELECT * FROM success",
+            str(tmp_path),
+            conn,
+        )
+
+        assert len(query_strings) == 1
+        history_q, config_q, success_q, _, _ = next(iter(query_strings.values()))
+        for sql in (history_q, config_q, success_q):
+            # The lower-level filter must be exactly the generation condition
+            assert "generation = 5" in sql
+            # The experiment_id value must be preserved intact
+            assert "experiment_id='treat AND control'" in sql
+            # The 'AND control' fragment must NOT appear as a spurious bare condition
+            assert sql.count("control") == 1
 
 
 class TestIntegration:
@@ -649,7 +776,10 @@ class TestIntegration:
 
         # Build filter
         duckdb_filter = build_duckdb_filter(config)
-        assert "experiment_id = 'test_exp' AND variant IN (0, 1)" == duckdb_filter
+        assert duckdb_filter == [
+            ("experiment_id", "experiment_id = 'test_exp'"),
+            ("variant", "variant IN (0, 1)"),
+        ]
 
         # Load metadata
         v_metadata, sim_data_dict, v_names = load_variant_metadata(config)
@@ -707,13 +837,13 @@ class TestRunAnalysisLoop:
         variant_names = {"test_exp": "test_variant"}
 
         # Run analysis loop
-        stats = run_analysis_loop(
+        stats, last_exit_code = run_analysis_loop(
             config,
             conn,
             "SELECT * FROM history",
             "SELECT * FROM config",
             "SELECT * FROM success",
-            "experiment_id = 'test_exp'",
+            [("experiment_id", "experiment_id = 'test_exp'")],
             variant_metadata,
             sim_data_dict,
             variant_names,
@@ -723,6 +853,7 @@ class TestRunAnalysisLoop:
         assert stats["total_runs"] == 1
         assert stats["skipped"] == 0
         assert stats["errors"] == 0
+        assert last_exit_code is None
 
         # Check that plot was called
         assert len(mock_analysis.plot_calls) == 1
@@ -739,13 +870,13 @@ class TestRunAnalysisLoop:
             "multiseed": {},  # Empty
         }
 
-        stats = run_analysis_loop(
+        stats, last_exit_code = run_analysis_loop(
             config,
             conn,
             "SELECT * FROM history",
             "SELECT * FROM config",
             "SELECT * FROM success",
-            "",
+            [],
             {},
             {},
             {},
@@ -753,6 +884,7 @@ class TestRunAnalysisLoop:
 
         assert stats["skipped"] == 1
         assert stats["total_runs"] == 0
+        assert last_exit_code is None
 
     def test_run_with_missing_analysis_type(self, tmp_path):
         """Test that missing analysis type raises KeyError"""
@@ -773,7 +905,7 @@ class TestRunAnalysisLoop:
                 "SELECT * FROM history",
                 "SELECT * FROM config",
                 "SELECT * FROM success",
-                "",
+                [],
                 {},
                 {},
                 {},
@@ -797,13 +929,13 @@ class TestRunAnalysisLoop:
             "multiseed": {"test_analysis": {}},
         }
 
-        stats = run_analysis_loop(
+        stats, last_exit_code = run_analysis_loop(
             config,
             conn,
             "SELECT * FROM history",
             "SELECT * FROM config",
             "SELECT * FROM success",
-            "",
+            [],
             {},
             {},
             {},
@@ -811,6 +943,7 @@ class TestRunAnalysisLoop:
 
         assert stats["errors"] == 1
         assert stats["total_runs"] == 0
+        assert last_exit_code is None
 
     def test_run_auto_detects_analysis_types(self, tmp_path, monkeypatch):
         """Test that analysis types are auto-detected when not specified"""
@@ -838,13 +971,13 @@ class TestRunAnalysisLoop:
             "multivariant": {"another_analysis": {}},
         }
 
-        stats = run_analysis_loop(
+        stats, last_exit_code = run_analysis_loop(
             config,
             conn,
             "SELECT * FROM history",
             "SELECT * FROM config",
             "SELECT * FROM success",
-            "",
+            [],
             {},
             {},
             {},
@@ -855,6 +988,7 @@ class TestRunAnalysisLoop:
         assert "analysis_types" in config
         assert "multiseed" in config["analysis_types"]
         assert "multivariant" in config["analysis_types"]
+        assert last_exit_code is None
 
     def test_run_filters_variants_correctly(self, tmp_path, monkeypatch):
         """Test that variants are filtered correctly for each analysis"""
@@ -915,25 +1049,64 @@ class TestRunAnalysisLoop:
         }
         variant_names = {"test_exp": "test_variant"}
 
-        stats = run_analysis_loop(
+        stats, last_exit_code = run_analysis_loop(
             config,
             conn,
             "SELECT * FROM history",
             "SELECT * FROM config",
             "SELECT * FROM success",
-            "",
+            [],
             variant_metadata,
             sim_data_dict,
             variant_names,
         )
 
         assert stats["total_runs"] == 2  # One for variant 0, one for variant 1
+        assert last_exit_code is None
 
         # Check that filtered data was passed to plot
         for call in mock_analysis.plot_calls:
             # Should only have variants 0 or 1, not 2
             assert 2 not in call["variant_metadata"].get("test_exp", {})
             assert 2 not in call["sim_data_dict"].get("test_exp", {})
+
+
+def test_exit_code_propagation(monkeypatch, tmp_path):
+    """Ensure a non-zero return code on exceptions is captured and returned."""
+
+    class MockErr(Exception):
+        def __init__(self, msg, returncode):
+            super().__init__(msg)
+            self.returncode = returncode
+
+    def mock_import(name):
+        raise MockErr("mock failure", 42)
+
+    monkeypatch.setattr(importlib, "import_module", mock_import)
+
+    outdir = tmp_path / "out"
+    outdir.mkdir()
+
+    config = {
+        "outdir": str(outdir),
+        "analysis_types": ["multiseed"],
+        "multiseed": {"test_analysis": {}},
+    }
+
+    stats, last_exit_code = run_analysis_loop(
+        config,
+        MockConnection([("test_exp", 0)]),
+        "SELECT * FROM history",
+        "SELECT * FROM config",
+        "SELECT * FROM success",
+        [("experiment_id", "experiment_id = 'test_exp'")],
+        {},
+        {},
+        {},
+    )
+
+    assert stats["errors"] == 1
+    assert last_exit_code == 42
 
 
 if __name__ == "__main__":

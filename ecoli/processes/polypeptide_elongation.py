@@ -548,7 +548,7 @@ class PolypeptideElongation(PartitionedProcess):
 
         # Begin wcEcoli evolveState()
         # Set values for metabolism in case of early return
-        update["polypeptide_elongation"]["gtp_to_hydrolyze"] = 0
+        update["polypeptide_elongation"]["gtp_to_hydrolyze"] = 0.0
         update["polypeptide_elongation"]["aa_count_diff"] = np.zeros(
             len(self.amino_acids), dtype=np.float64
         )

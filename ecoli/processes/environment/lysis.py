@@ -355,6 +355,7 @@ def test_lysis(
             "boundary": {"angle": agent_angle},
             "internal": np.array(
                 [
+                    ("GLC", 0),
                     ("beta-lactam", 0),
                     ("hydrolyzed-beta-lactam", 0),
                     ("EG10040-MONOMER[p]", 0),

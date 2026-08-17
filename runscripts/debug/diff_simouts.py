@@ -25,10 +25,10 @@ if __name__ == "__main__":
     ordered_sql = f"SELECT * FROM ({{sql_query}}) WHERE experiment_id = '{{exp_id}}' ORDER BY {id_cols}"
     data_1 = duckdb.sql(
         ordered_sql.format(sql_query=history_sql, exp_id=exp_id_1)
-    ).arrow()
+    ).to_arrow_table()
     data_2 = duckdb.sql(
         ordered_sql.format(sql_query=history_sql, exp_id=exp_id_2)
-    ).arrow()
+    ).to_arrow_table()
     assert data_1.column_names == data_2.column_names, "Different columns."
     for i, (col_1, col_2) in enumerate(zip(data_1, data_2)):
         if col_1 != col_2 and data_1.column_names[i] not in [

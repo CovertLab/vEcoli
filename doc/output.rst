@@ -180,6 +180,12 @@ of integers where some entries are empty lists).
   The Parquet emitter is poorly suited for storing large listeners that have more
   than a single dimension per time step. We recommend splitting these listeners up
   if possible, especially if you plan to read specific indices along those dimensions.
+  If you choose to emit multi-dimensional listeners, they must have a default value
+  defined through a ports schema that is the same shape as the emitted values at
+  all time steps. For example, if emitted values are 2-D arrays of shape (3, 4),
+  the default value must also be a 2-D array of shape (3, 4). This is because
+  the Parquet emitter pre-allocates its NumPy buffer from the default's shape
+  and any later mismatch falls to the Polars path, which doesn't handle N-D arrays.
 
 The Parquet emitter saves the serialized tabular data to two Hive-partitioned
 directories in the output folder (``out_dir`` or ``out_uri`` option under
@@ -331,6 +337,15 @@ accomplished in one of two ways:
         )
         SELECT avg(*) FROM cell_avgs
 
+.. warning::
+  DuckDB will automatically materialize (i.e. load into memory) CTEs if any of the
+  inlining conditions in `this section <https://duckdb.org/docs/stable/sql/query_syntax/with#cte-materialization>`_
+  of the DuckDB documentation are not met. This can lead to unexpectedly high
+  memory usage if the CTE being materialized is very large (e.g. the entire
+  ``history`` dataset). To avoid this, you can explicitly specify
+  ``NOT MATERIALIZED`` when defining the CTE (see
+  :py:mod:`~ecoli.analysis.single.ptools_rna` for an example).
+
 .. tip::
   DuckDB will efficiently read only the rows and columns necessary to complete your query.
   However, if you are reading a column of lists (e.g. bulk molecule counts every time step)
@@ -362,7 +377,6 @@ workflow output.
   in analysis scripts. Accepts the ``sim_data_paths`` dictionary given as input to
   analysis scripts by :py:mod:`runscripts.analysis` and picks a single arbitrary
   path in that dictionary to read and unpickle.
-- :py:func:`~ecoli.library.parquet_emitter.open_output_file`: When opening any
-  workflow output file in a Python script, use this function instead of the built-in
-  ``open`` (e.g. ``with open_output_file({path}, "r") as f:``). This is mainly
-  intended to future-proof analysis scripts for Google Cloud support.
+- :py:func:`fsspec.open`: When opening any workflow output file in a Python script,
+  use this function instead of the built-in ``open``. This is allows code to work with
+  both local file paths and cloud storage URIs (e.g. ``gs://`` or ``s3://``).

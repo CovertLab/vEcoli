@@ -51,8 +51,9 @@ class TfBinding(Step):
         "n_avogadro": 6.02214076e23 / units.mol,
         "cell_density": 1100 * units.g / units.L,
         # Calculate promoter binding probability when not 0CS TF
-        "p_promoter_bound_tf": lambda active, inactive: float(active)
-        / (float(active) + float(inactive)),
+        "p_promoter_bound_tf": lambda active, inactive: (
+            float(active) / (float(active) + float(inactive))
+        ),
         "tf_to_tf_type": {},
         "active_to_bound": {},
         "get_unbound": lambda tf: "",
