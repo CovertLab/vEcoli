@@ -9,39 +9,32 @@ the internal state in Xarray and Zarr where necessary.
 
 from __future__ import annotations
 
-from asyncio import Semaphore, create_task, as_completed, gather
-from collections.abc import AsyncGenerator, Coroutine
-from collections import deque
+from asyncio import TaskGroup
+from collections.abc import Coroutine, Mapping
 from dataclasses import replace
-from html import escape as html_escape
-from typing import Any, Literal, Mapping, final, cast
-import sys
-import warnings
-
-from xarray import DataTree
-from xarray.core.datatree import NodePath
-from xarray.backends import ZarrStore
-from xarray.backends.writers import dump_to_store
+from typing import Any, Literal, final
 
 import zarr
-from zarr.abc.codec import Codec
-from zarr.abc.numcodec import Numcodec
-from zarr.core.metadata import v2, v3
-from zarr.core.dtype import parse_dtype
-from zarr.core._tree import TreeRepr
-from zarr.types import AnyAsyncArray
-from zarr.core.array import (
-    Array, AsyncArray,
-    _parse_chunk_encoding_v2, default_filters_v3, default_compressors_v3)
+from numpy import dtype
+from xarray import DataTree
+from xarray.backends import ZarrStore
+from xarray.backends.writers import dump_to_store
+from xarray.core.datatree import NodePath
+from zarr.core.array import Array
+from zarr.core.group import AsyncGroup, Group
 from zarr.core.sync import sync
-from zarr.core.group import (
-    Group, AsyncGroup, GroupMetadata, ConsolidatedMetadata, _getitem_semaphore)
-from zarr.errors import ZarrUserWarning, UnstableSpecificationWarning
 
-from .utils import  WarningFilter, filter_warnings, emitter_arg_error
+from .storage import VariableEncoding, VariableSpec
+from .utils import WarningFilter, emitter_arg_error, filter_warnings
 from .writer import AsyncArrayWriter, AsyncBufferWriter
-from .storage import VariableSpec, VariableEncoding
-
+from .zarr_utils import (
+    _replace_consolidated_metadata,
+    consolidate_metadata,
+    get_group,
+    parse_codecs,
+    reconsolidate_metadata,
+    zarr_warnings,
+)
 
 # ==============================================================================
 # constants
@@ -52,26 +45,6 @@ ZARR_ASYNC_CONCURRENCY: int = 4
 """ Default bound on the number of Zarr's concurrent operations. """
 ZARR_MAX_WORKERS: int = 4
 """ Default bound on the size of Zarr's internal thread pool. """
-
-ZARR_FILTERS: dict[int, list[dict[str, Any]]] = {
-    2: [{"id": "delta", "dtype": None}],
-    3: [{"name": "numcodecs.delta", "configuration": {"dtype": None}}]
-}
-"""
-Default filter codecs for :py:meth:`.AsyncZarrBufferWriter.var_codecs`, as a
-function of the Zarr format.
-"""
-ZARR_COMPRESSORS: dict[int, list[dict[str, Any]]] = {
-    2: [{"id": "blosc", "cname": "zstd", "clevel": 6,
-         "shuffle": -1, "blocksize": 0}],
-    3: [{"name": "blosc", "configuration": {
-        "cname": "zstd", "clevel": 6,
-        "typesize": None, "shuffle": None, "blocksize": 0}}]
-}
-"""
-Default compression codecs for :py:meth:`.AsyncZarrBufferWriter.var_codecs`, as
-a function of the Zarr format.
-"""
 
 
 # ==============================================================================
@@ -101,7 +74,7 @@ def _datatree_to_zarr(
     """
     if encoding is None:
         encoding = {}
-    if absolute := [p for p in encoding.keys() if p.startswith("/")]:
+    if absolute := [p for p in encoding if p.startswith("/")]:
         raise ValueError(f"unexpected absolute paths in `encoding`: {absolute}")
     # TODO: fix in `_datatree_to_zarr()` (xarray==2026.04)
     encoding = {f"/{p}": e for (p, e) in encoding.items()}
@@ -138,293 +111,6 @@ def _datatree_to_zarr(
 
 
 # ==============================================================================
-# Zarr internals
-# ==============================================================================
-
-
-async def consolidate_metadata(
-    group: AsyncGroup,
-) -> AsyncGroup:
-    """
-    Consolidate the metadata of all nodes in a hierarchy, including the root
-    node.
-
-    Adapted from: :py:func:`zarr.api.asynchronous.consolidate_metadata`.
-    """
-    # check store properties
-    assert isinstance(group, AsyncGroup)
-    assert group.store.supports_listing
-    assert group.store.supports_consolidated_metadata
-    group.store._check_writable()
-    assert group.metadata.consolidated_metadata is None
-
-    # traverse store and read all metadata
-    members_metadata = {
-        k: v.metadata
-        async for (k, v) in
-        group.members(max_depth=None, use_consolidated_for_children=False)}
-    # TODO: fix in `consolidate_metadata()` (zarr==3.2.1)
-    members_metadata |= {"": group.metadata}
-
-    # combine and write consolidated metadata
-    for k, v in members_metadata.items():
-        if isinstance(v, GroupMetadata) and v.consolidated_metadata is None:
-            members_metadata[k] = _replace_consolidated_metadata(
-                v, ConsolidatedMetadata(metadata={}))
-    ConsolidatedMetadata._flat_to_nested(members_metadata)
-    group = _replace_consolidated_metadata(
-        group, ConsolidatedMetadata(metadata=members_metadata))
-    await group._save_metadata()
-    return group
-
-
-async def reconsolidate_metadata(
-    group: AsyncGroup, modified_keys: set[str], added_keys: set[str], /
-) -> AsyncGroup:
-    """
-    Incrementally update consolidated metadata. Rather than recursing through
-    the entire store tree and recomputing the consolidated metadata afresh, load
-    the existing consolidated metadata, and update it with the current metadata
-    from a known list of modified and added paths.
-
-    Adapted from: :py:func:`zarr.api.asynchronous.consolidate_metadata`.
-    """
-    # check paths
-    assert isinstance(modified_keys, set)
-    assert isinstance(added_keys, set)
-    assert all(isinstance(k, str) for k in modified_keys)
-    assert all(isinstance(k, str) for k in added_keys)
-    assert modified_keys.isdisjoint(added_keys)
-
-    # check store properties
-    assert isinstance(group, AsyncGroup)
-    assert group.store.supports_listing
-    assert group.store.supports_consolidated_metadata
-    group.store._check_writable()
-    assert group.metadata.consolidated_metadata is not None
-
-    # read existing consolidated metadata
-    members_metadata = {
-        k: n.metadata
-        async for (k, n) in
-        group.members(max_depth=None, use_consolidated_for_children=True)}
-    for (_, v) in members_metadata.items():
-        if isinstance(v, GroupMetadata):
-            assert v.consolidated_metadata is not None
-
-    # read metadata at updated paths
-    group = _replace_consolidated_metadata(group, None)
-    mod_members_metadata, add_members_metadata = [
-        {k: n.metadata async for (k, n) in _iter_from_keys(group, keys)}
-        for keys in [modified_keys, added_keys]]
-
-    # check assumptions about metadata updates
-    old_keys = set(members_metadata.keys()) | {""}
-    assert set(mod_members_metadata.keys()).issubset(old_keys)
-    assert set(add_members_metadata.keys()).isdisjoint(old_keys)
-
-    # combine and write consolidated metadata
-    for metadata in [mod_members_metadata, add_members_metadata]:
-        for (k, v) in metadata.items():
-            if isinstance(v, GroupMetadata):
-                assert v.consolidated_metadata is None
-                metadata[k] = _replace_consolidated_metadata(
-                    v, ConsolidatedMetadata(metadata={}))
-    members_metadata |= mod_members_metadata | add_members_metadata
-    del old_keys, mod_members_metadata, add_members_metadata
-    # TODO: fix in `ConsolidatedMetadata._flat_to_nested()` (zarr==3.2.1)
-    members_metadata = dict(sorted(members_metadata.items(),
-                                   key=lambda kv: bfs_key(kv[0])))
-    ConsolidatedMetadata._flat_to_nested(members_metadata)
-    group = _replace_consolidated_metadata(
-        group, ConsolidatedMetadata(metadata=members_metadata))
-    await group._save_metadata()
-    return group
-
-
-def _replace_consolidated_metadata[NodeT: (AsyncGroup, GroupMetadata)](
-    node: NodeT, consolidated: ConsolidatedMetadata | None
-) -> NodeT:
-    match node:
-        case AsyncGroup():
-            _metadata = _replace_consolidated_metadata(node.metadata, consolidated)
-            return replace(node, metadata=_metadata)
-        case GroupMetadata():
-            assert isinstance(consolidated, ConsolidatedMetadata | None)
-            return replace(node, consolidated_metadata=consolidated)
-        case _:
-            raise ValueError(node)
-
-
-# ------------------------------------------------------------------------------
-
-
-async def _iter_from_keys(
-    node: AsyncGroup, keys: set[str], /
-) -> AsyncGenerator[tuple[str, AnyAsyncArray | AsyncGroup], None]:
-    """
-    Iterate over a known list of arrays and groups contained within a group,
-    returning relative paths and node objects.
-
-    Called by: :py:func:`.reconsolidate_metadata`.
-
-    Adapted from: :py:func:`!zarr.core.group._iter_members`.
-    """
-    semaphore = Semaphore(zarr.config.get("async.concurrency"))
-    node_tasks = tuple(
-        create_task(_getitem_semaphore(node, key, semaphore), name=key)
-        for key in keys)
-    for fetched_node_coro in as_completed(node_tasks):
-        try:
-            fetched_node = await fetched_node_coro
-        except KeyError as e:
-            warnings.warn(
-                f"Object at {e.args[0]} is not recognized as a component of a Zarr hierarchy.",
-                ZarrUserWarning, stacklevel=1)
-            continue
-        match fetched_node:
-            case AsyncArray() | AsyncGroup():
-                # remove prefix path, accommodating normalised root path
-                rel_path = fetched_node.name.removeprefix(node.name).removeprefix("/")
-                yield (rel_path, fetched_node)
-            case _:
-                raise ValueError(f"Unexpected type: {type(fetched_node)}")
-
-
-def bfs_key(path: str) -> tuple:
-    """
-    Corrected sorting key for the pre-processing step in
-    :py:meth:`!zarr.core.group.ConsolidatedMetadata._flat_to_nested`.
-
-    Called by: :py:func:`.reconsolidate_metadata`.
-    """
-    segments = path.split("/")
-    return (len(segments), *segments)
-
-
-# ------------------------------------------------------------------------------
-
-
-def group_tree(
-    group: Group,
-    level: int | None = None,
-    *,
-    max_nodes: int = 500,
-    plain: bool = False,
-) -> TreeRepr:
-    """
-    Adapted from: :py:meth:`!zarr.Group.tree`.
-
-    Calls: :py:func:`.group_tree_async`.
-    """
-    return sync(group_tree_async(
-        group._async_group,
-        max_depth=level, max_nodes=max_nodes, plain=plain))
-
-
-async def group_tree_async(
-    group: AsyncGroup,
-    max_depth: int | None = None,
-    *,
-    max_nodes: int = 500,
-    plain: bool = False,
-) -> TreeRepr:
-    """
-    Fix edge case with infinite recursion in
-    :py:func:`!zarr.core._tree.group_tree_async`.
-
-    Called by: :py:func:`.group_tree`.
-    """
-    members: list[tuple[str, Any]] = []
-    truncated = False
-    async for item in group.members(max_depth=max_depth):
-        if len(members) == max_nodes:
-            truncated = True
-            break
-        members.append(item)
-    members.sort(key=lambda key_node: key_node[0])
-
-    # Set up styling tokens: ANSI bold for terminals, HTML <b> for Jupyter,
-    # or empty strings when plain=True (useful for LLMs, logging, files).
-    if plain:
-        ansi_open = ansi_close = html_open = html_close = ""
-    else:
-        # Avoid emitting ANSI escape codes when output is piped or in CI.
-        use_ansi = sys.stdout.isatty()
-        ansi_open = "\x1b[1m" if use_ansi else ""
-        ansi_close = "\x1b[0m" if use_ansi else ""
-        html_open = "<b>"
-        html_close = "</b>"
-
-    # Group members by parent key so we can render the tree level by level.
-    nodes: dict[str, list[tuple[str, Any]]] = {}
-    for key, node in members:
-        # TODO: fix in `group_tree_async()` (zarr==3.2.1)
-        if key == "":
-            # avoid self-loop at root node
-            continue
-        elif key.count("/") == 0:
-            parent_key = ""
-        else:
-            parent_key = key.rsplit("/", 1)[0]
-        nodes.setdefault(parent_key, []).append((key, node))
-
-    # Render the tree iteratively (not recursively) to avoid hitting
-    # Python's recursion limit on deeply nested hierarchies.
-    # Each stack frame is (prefix_string, remaining_children_at_this_level).
-    text_lines = [f"{ansi_open}{group.name}{ansi_close}"]
-    html_lines = [f"{html_open}{html_escape(group.name)}{html_close}"]
-    stack = [("", deque(nodes.get("", [])))]
-    while stack:
-        prefix, remaining = stack[-1]
-        if not remaining:
-            stack.pop()
-            continue
-        key, node = remaining.popleft()
-        name = key.rsplit("/")[-1]
-        escaped_name = html_escape(name)
-        # if we popped the last item then remaining will
-        # now be empty - that's how we got past the if not remaining
-        # above, but this can still be true.
-        is_last = not remaining
-        connector = "└── " if is_last else "├── "
-        if isinstance(node, AsyncGroup):
-            text_lines.append(f"{prefix}{connector}{ansi_open}{name}{ansi_close}")
-            html_lines.append(f"{prefix}{connector}{html_open}{escaped_name}{html_close}")
-        else:
-            text_lines.append(
-                f"{prefix}{connector}{ansi_open}{name}{ansi_close} {node.shape} {node.dtype}"
-            )
-            html_lines.append(
-                f"{prefix}{connector}{html_open}{escaped_name}{html_close}"
-                f" {html_escape(str(node.shape))} {html_escape(str(node.dtype))}"
-            )
-        # Descend into children with an accumulated prefix:
-        # Example showing how prefix accumulates:
-        #   /
-        #   ├── a              prefix = ""
-        #   │   ├── b          prefix = "" + "│   "
-        #   │   │   └── x      prefix = "" + "│   " + "│   "
-        #   │   └── c          prefix = "" + "│   "
-        #   └── d              prefix = ""
-        #       └── e          prefix = "" + "    "
-        if children := nodes.get(key, []):
-            if is_last:
-                child_prefix = prefix + "    "
-            else:
-                child_prefix = prefix + "│   "
-            stack.append((child_prefix, deque(children)))
-    text = "\n".join(text_lines) + "\n"
-    html = "\n".join(html_lines) + "\n"
-    note = (
-        f"Truncated at max_nodes={max_nodes}, some nodes and their children may be missing\n"
-        if truncated
-        else ""
-    )
-    return TreeRepr(text, html, truncated=note)
-
-
-# ==============================================================================
 # array writer
 # ==============================================================================
 
@@ -452,11 +138,11 @@ class AsyncZarrArrayWriter(AsyncArrayWriter[Array]):
         API.
         """
         # wait for all write operations to finish
-        await gather(*(
-            # acceess the async array API
-            t.async_array.setitem(r, s)
+        async with TaskGroup() as tg:
             # iterate over write operations
-            for (s, t, r) in zip(self.sources, self.targets, self.regions)))
+            for (s, t, r) in zip(self.sources, self.targets, self.regions):
+                # acceess the async array API
+                tg.create_task(t.async_array.setitem(r, s))
 
 
 # ==============================================================================
@@ -615,12 +301,13 @@ class AsyncZarrBufferWriter(AsyncBufferWriter[ZarrStore]):
         Calls: :py:meth:`._open_group`, :py:meth:`._check_group`,
         :py:meth:`._cache_consolidated_metadata`.
         """
+        # configure Zarr
         zarr_config = self.config["backend_config"]
         zarr.config.update({
-            "async.concurrency": zarr_config.get(
-                "async.concurrency", ZARR_ASYNC_CONCURRENCY),
-            "threading.max_workers": zarr_config.get(
-                "threading.max_workers", ZARR_MAX_WORKERS),
+            "async": {"concurrency": zarr_config.get(
+                "async.concurrency", ZARR_ASYNC_CONCURRENCY)},
+            "threading": {"max_workers": zarr_config.get(
+                "threading.max_workers", ZARR_MAX_WORKERS)},
             # skip overhead of fill value checks
             "array.write_empty_chunks": True,
             "codec_pipeline": {
@@ -637,6 +324,12 @@ class AsyncZarrBufferWriter(AsyncBufferWriter[ZarrStore]):
                 "direct_io": False,
             }
         })
+        assert zarr.config.get("async.concurrency") == zarr_config.get(
+            "async.concurrency", ZARR_ASYNC_CONCURRENCY)
+        assert zarr.config.get("threading.max_workers") == zarr_config.get(
+            "threading.max_workers", ZARR_MAX_WORKERS)
+
+        # open Zarr store
         group = self._cache_consolidated_metadata(
             self._check_group(
                 self._open_group()))
@@ -666,8 +359,8 @@ class AsyncZarrBufferWriter(AsyncBufferWriter[ZarrStore]):
     def var_codecs(self, var: VariableSpec, /) -> VariableEncoding:
         """
         Parse the Zarr codecs for a data array, if they are specified in the
-        JSON config, and otherwise, apply :py:const:`ZARR_FILTERS` and
-        :py:const:`ZARR_COMPRESSORS`.
+        JSON config, and otherwise, apply :py:data:`.ZARR_FILTERS` and
+        :py:data:`.ZARR_COMPRESSORS`.
         """
         return self._var_codecs(self.group.metadata.zarr_format, var)
 
@@ -675,18 +368,8 @@ class AsyncZarrBufferWriter(AsyncBufferWriter[ZarrStore]):
     def _coo_codecs(
         cls, zarr_format: Literal[2, 3], var: VariableSpec, /
     ) -> VariableEncoding:
-        dtype = parse_dtype(var.dtype, zarr_format=zarr_format)
-        # parse default config
-        filters: tuple[Codec | Numcodec, ...] | None
-        compressors: tuple[Codec | Numcodec | None, ...]
-        if zarr_format == 2:
-            filters, compressor = _parse_chunk_encoding_v2(
-                filters="auto", compressor="auto", dtype=dtype)
-            compressors = (compressor,)
-        else:
-            filters = default_filters_v3(dtype)
-            compressors = default_compressors_v3(dtype)
-        return {"filters": filters, "compressors": compressors}
+        # use Zarr default
+        return parse_codecs(zarr_format, dtype=var.dtype)
 
     @classmethod
     def _var_codecs(
@@ -694,67 +377,33 @@ class AsyncZarrBufferWriter(AsyncBufferWriter[ZarrStore]):
     ) -> VariableEncoding:
         z = zarr_format
         if var.codecs:
-            # fetch variable-specific JSON config
-            _filters = var.codecs.get(f"filters_v{z}", [])
-            _compressors = var.codecs.get(f"compressors_v{z}", [])
-            if not (_filters or _compressors):
-                raise ValueError(emitter_arg_error(
+            # use variable-specific JSON config
+            try:
+                return parse_codecs(z, codecs=var.codecs)
+            except KeyError:
+                raise KeyError(emitter_arg_error(
                     cls, "Missing arguments",
                     f"...: {{\"codecs\": "
                     f"{{\"filters_v{z}\": ..., \"compressors_v{z}\": ...}}}}"))
+        elif var.is_time:
+            # use `vEcoli` preset for monotonic arrays
+            return parse_codecs(z, category="delta", dtype=var.dtype)
+        elif dtype(var.dtype).kind in ["i", "f"]:
+            # use `vEcoli` preset for numeric arrays
+            return parse_codecs(z, category="num", dtype=var.dtype)
         else:
-            # fetch default config and supply variable-specific information
-            _filters = ZARR_FILTERS[z]
-            _compressors = ZARR_COMPRESSORS[z]
-            for f in _filters:
-                if z == 2:
-                    f["dtype"] = var.dtype
-                else:
-                    f["configuration"]["dtype"] = var.dtype
-        # parse codec config
-        filters: tuple[Codec | Numcodec, ...] | None
-        compressors: tuple[Codec | Numcodec | None, ...]
-        with filter_warnings(cls.warnings_make_effect()):
-            if z == 2:
-                filters = v2.parse_filters(_filters)
-                compressors = tuple(map(v2.parse_compressor, _compressors))
-            else:
-                filters = v3.parse_codecs(_filters)
-                compressors = v3.parse_codecs(_compressors)
-        return {"filters": filters, "compressors": compressors}
+            # use Zarr default
+            return parse_codecs(z, dtype=var.dtype)
 
     # ~~~~~~~~~~~~~~~~~ #
 
-    _zarr_warnings: dict[str, WarningFilter] = {
-        "consolidated_metadata": WarningFilter(
-            module="zarr.api.asynchronous",
-            category=ZarrUserWarning,
-            message="Consolidated metadata.*Zarr format 3",
-            action="ignore"),
-        "string": WarningFilter(
-            module="zarr.core.dtype.npy.string",
-            category=UnstableSpecificationWarning,
-            message=".*data type.*Zarr V3",
-            action="ignore"),
-        "numcodecs": WarningFilter(
-            module="zarr.codecs.numcodecs",
-            category=ZarrUserWarning,
-            message=".*Numcodecs codecs.*Zarr version 3 specification",
-            action="ignore"),
-        "zarrs": WarningFilter(
-            module="zarrs.pipeline",
-            category=UserWarning,
-            message="Array is unsupported by ZarrsCodecPipeline",
-            action="ignore")
-    }
+    @staticmethod
+    def warnings_make_effect() -> list[WarningFilter]:
+        return list(zarr_warnings.values())
 
-    @classmethod
-    def warnings_make_effect(cls) -> list[WarningFilter]:
-        return list(cls._zarr_warnings.values())
-
-    @classmethod
-    def warnings_eval_effect(cls) -> list[WarningFilter]:
-        return [cls._zarr_warnings[w] for w in ["numcodecs", "zarrs"]]
+    @staticmethod
+    def warnings_eval_effect() -> list[WarningFilter]:
+        return [zarr_warnings[w] for w in ["numcodecs", "zarrs"]]
 
     # ~~~~~~~~~~~~~~~~~ #
 
@@ -765,7 +414,7 @@ class AsyncZarrBufferWriter(AsyncBufferWriter[ZarrStore]):
     def get_zarr_path(self, path: NodePath) -> Group:
         assert isinstance(path, NodePath)
         return (self.group if path == NodePath()
-                else cast(Group, self.group[self.to_zarr_path(path)]))
+                else get_group(self.group, self.to_zarr_path(path)))
 
     # ~~~~~~~~~~~~~~~~~ #
 

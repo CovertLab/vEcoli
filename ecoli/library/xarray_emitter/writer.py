@@ -1,17 +1,16 @@
 
 """
 Abstract base classes that determine the transport and session layers of
-:py:mod:`.xarray_emitter`.
+:py:mod:`~ecoli.library.xarray_emitter`.
 
 Backend-specific code should be placed into subclasses in a separate module.
 """
-
 
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Coroutine
-from concurrent.futures import Future, Executor, ThreadPoolExecutor
+from concurrent.futures import Executor, Future, ThreadPoolExecutor
 from functools import cached_property
 from inspect import ismethod
 from typing import Any
@@ -19,14 +18,13 @@ from weakref import finalize
 
 import numpy as np
 from xarray import DataTree
-from xarray.core.datatree import NodePath
 from xarray.backends.common import ArrayWriter
+from xarray.core.datatree import NodePath
 
 from ..parquet_emitter import BlockingExecutor
-from .utils import WarningFilter, filter_warnings, emitter_arg_error
-from .storage import XarrayStoragePartition, VariableSpec, VariableEncoding
+from .storage import VariableEncoding, VariableSpec, XarrayStoragePartition
 from .transducer import XarrayBuffer, XarrayTransducer
-
+from .utils import WarningFilter, emitter_arg_error, filter_warnings
 
 # ==============================================================================
 

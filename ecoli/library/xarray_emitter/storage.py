@@ -1,30 +1,48 @@
 
 """
-Constants and parameters defining the output :ref:`storage <storage_layout>` and
-:ref:`variable <variable_layout>` layouts.
+Constants, parameters and iterators defining the output :ref:`storage
+<storage_layout>` and :ref:`variable <variable_layout>` layouts.
 """
-
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field, fields
+import json
+import pathlib
+from collections.abc import Generator, Mapping
+from dataclasses import astuple, dataclass, field, fields
 from functools import cached_property
+from glob import glob
+from os.path import join
 from pathlib import Path
-from typing import Any, Self, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
+import numpy
 import numpy as np
+from fsspec import get_fs_token_paths
 from xarray import Dataset
-from xarray.core.datatree import NodePath
 
 from ..emitter import StoragePartition
 
 if TYPE_CHECKING:
-    from .writer import AsyncBufferWriter
 
+    from typing import Any, Self
+
+    from .writer import AsyncBufferWriter
 
 # ==============================================================================
 # constants
 # ==============================================================================
+
+
+EXPERIMENT_PREFIX = "experiment_id="
+""" Prefix for a part of :py:attr:`.XarrayStoragePartition.independent_path`. """
+VARIANT_PREFIX = "variant="
+""" Prefix for a part of :py:attr:`.XarrayStoragePartition.independent_path`. """
+LINEAGE_PREFIX = "lineage_seed="
+""" Prefix for a part of :py:attr:`.XarrayStoragePartition.independent_path`. """
+
+
+# ------------------------------------------------------------------------------
 
 
 TIME_COO_PREFIX = "emitstep_"
@@ -45,7 +63,212 @@ TIME_VAR_DTYPE = np.dtype(np.float32)
 
 
 # ==============================================================================
-# Xarray storage layout
+# workflow configuration
+# ==============================================================================
+
+
+@dataclass(kw_only=True, frozen=True)
+class WorkflowConfig:
+    """
+    Simulation and analysis workflow configuration, parsed directly from JSON.
+
+    This object is intended for use by analysis pipelines.
+    """
+
+    #: Full workflow configuration.
+    sim: dict[str, Any]
+    #: Indicates whether the workflow store is remote or local.
+    is_uri: bool
+    #: Variant parameters, parsed from :py:attr:`.sim`.
+    variants: list[dict[str, Any]]
+
+    @classmethod
+    def load(cls, path: str | pathlib.Path) -> Self:
+        """
+        Calls: :py:meth:`.build`.
+        """
+        with open(path, "r") as f:
+            return cls.build(json.load(f))
+
+    @classmethod
+    def build(cls, config: dict[str, Any]) -> Self:
+        """
+        Parse and validate high-level information about the simulation workflow.
+
+        Called by: :py:meth:`.load`.
+        """
+        assert config["experiment_id"]
+        assert config["emitter"] == "xarray"
+        assert any(map(config["emitter_arg"].__contains__, ["out_dir", "out_uri"]))
+
+        from runscripts.create_variants import parse_variants
+        variants = config["variants"]
+        assert isinstance(variants, dict)
+        assert len(variants) <= 1
+        variants = (parse_variants(next(iter(variants.values())))
+                    if variants else
+                    [])
+        return cls(is_uri="out_uri" in config["emitter_arg"],
+                   sim=config, variants=variants)
+
+    # ~~~~~~~~~~~~~~~~~ #
+
+    def variant_params(self, variant: str) -> dict[str, Any]:
+        """
+        Translate a variant string into variant parameters.
+
+        Calls: :py:meth:`.variant_index`.
+        """
+        ix = self.variant_index(variant)
+        ix -= int(not self.sim.get("skip_baseline", False))
+        return self.variants[ix] if ix >= 0 else {}
+
+    @staticmethod
+    def variant_index(variant: str) -> int:
+        """
+        Interpret a variant string as a pointer into :py:attr:`.variants`.
+
+        Called by: :py:meth:`.variant_params`.
+        """
+        ix = int(variant.lstrip(VARIANT_PREFIX))
+        assert variant == f"{VARIANT_PREFIX}{ix}"
+        return ix
+
+
+# ==============================================================================
+# workflow storage layout
+# ==============================================================================
+
+
+@dataclass(slots=True, kw_only=True, frozen=True)
+class WorkflowPaths:
+    """
+    Efficiently locate all independent substore paths within a simulation
+    workflow that was emitted using the :py:class:`.XarrayStoragePartition` path
+    scheme.
+
+    This object is intended for use by analysis pipelines.
+    """
+
+    #: Root path to the persistent store of a simulation workflow.
+    root: str
+    #: Tree of located :py:attr:`.XarrayStoragePartition.independent_path`\ s.
+    substores: dict[str, list[str]]
+
+    def __post_init__(self) -> None:
+        assert self.root.rsplit(sep="/", maxsplit=1)[-1].startswith(EXPERIMENT_PREFIX)
+        for (variant, lineages) in self.substores.items():
+            assert variant.startswith(VARIANT_PREFIX)
+            assert all(lin.startswith(LINEAGE_PREFIX) for lin in lineages)
+
+    # ~~~~~~~~~~~~~~~~~ #
+
+    def __len__(self) -> int:
+        """
+        Number of independent substores.
+        """
+        return sum(map(len, self.substores.values()))
+
+    def __iter__(self) -> Generator[Substore]:
+        """
+        Iterator over :py:attr:`.substores`.
+        """
+        for (variant, lineages) in self.substores.items():
+            for lineage in lineages:
+                yield Substore(variant, lineage)
+
+    # ~~~~~~~~~~~~~~~~~ #
+
+    @classmethod
+    def locate(cls, config: WorkflowConfig) -> Self:
+        """
+        Find all substore paths using a single ``glob()`` call to the file
+        system.
+        """
+        # load config
+        assert isinstance(config, WorkflowConfig)
+        experiment_id = config.sim["experiment_id"]
+        emitter = config.sim["emitter_arg"]
+        num_variants = len(config.variants)
+        num_variants += int(not config.sim.get("skip_baseline", False))
+        num_lineages = config.sim["n_init_sims"]
+
+        # find workflow store
+        if config.is_uri:
+            store_path = join(emitter["out_uri"], experiment_id, "store")
+            fs, _, store_path = get_fs_token_paths(store_path)
+        else:
+            store_path = join(emitter["out_dir"], experiment_id, "store")
+            assert Path(store_path).exists()
+
+        # find independent substore paths
+        substore_glob = XarrayStoragePartition.independent_path_glob(experiment_id)
+        substores = cls.group(
+            fs.glob(join(store_path, substore_glob))
+            if config.is_uri else
+            glob(substore_glob, root_dir=store_path))
+
+        # check consistency with workflow config
+        assert set(substores.keys()) == {f"{VARIANT_PREFIX}{v}"
+                                         for v in range(num_variants)}
+        for lineages in substores.values():
+            assert len(lineages) == num_lineages
+
+        return cls(root=join(store_path, f"{EXPERIMENT_PREFIX}{experiment_id}"),
+                   substores=substores)
+
+    @staticmethod
+    def group(paths: list[str]) -> dict[str, list[str]]:
+        """
+        Reassemble a partition hierarchy from a flat list of substore paths.
+        """
+        substores: dict[str, list[str]] = {}
+        for path in paths:
+            substores.setdefault(
+                XarrayStoragePartition.get_variant(path), []
+            ).append(XarrayStoragePartition.get_lineage(path))
+        return substores
+
+
+# ------------------------------------------------------------------------------
+
+
+@dataclass(slots=True, frozen=True)
+class Substore:
+    """
+    Hashable identifier of an independent substore.
+    """
+
+    variant: str
+    lineage: str
+
+    def __post_init__(self) -> None:
+        assert self.variant.startswith(VARIANT_PREFIX)
+        assert self.lineage.startswith(LINEAGE_PREFIX)
+
+    def __str__(self) -> str:
+        return join(*astuple(self))
+
+    @classmethod
+    def identity(cls, path: Self) -> Self:
+        return path
+
+    @staticmethod
+    def groupby_variant[ResultT](
+        results: Mapping[Substore, ResultT]
+    ) -> Mapping[str, Mapping[str, ResultT]]:
+        """
+        Group a hash map over substore identifiers into ``variant``/``lineage``
+        levels.
+        """
+        grouped: dict[str, dict[str, ResultT]] = {}
+        for (s, res) in results.items():
+            grouped.setdefault(s.variant, {})[s.lineage] = res
+        return grouped
+
+
+# ==============================================================================
+# substore storage layout
 # ==============================================================================
 
 
@@ -64,6 +287,22 @@ class XarrayStoragePartition(StoragePartition):
         assert isinstance(partition, StoragePartition)
         return cls(**{f.name: getattr(partition, f.name)
                       for f in fields(partition) if f.init})
+
+    @classmethod
+    def from_substore(
+        cls, config: WorkflowConfig, substore: Substore, generation: int
+    ) -> Self:
+        assert isinstance(config, WorkflowConfig)
+        assert isinstance(substore, Substore)
+        assert isinstance(generation, int)
+        return cls(
+            experiment_id=config.sim["experiment_id"],
+            variant=int(substore.variant.removeprefix(VARIANT_PREFIX)),
+            lineage_seed=int(substore.lineage.removeprefix(LINEAGE_PREFIX)),
+            agent_id="0" * generation)
+
+    def __hash__(self):
+        return hash(tuple(getattr(self, f.name) for f in fields(self)))
 
     # ~~~~~~~~~~~~~~~~~ #
 
@@ -85,8 +324,24 @@ class XarrayStoragePartition(StoragePartition):
         does not rely on any external synchronisation mechanism for maintaining
         the consistency of its storage layout metadata.
         """
-        return Path(*(f"{k}={getattr(self, k)}" for k in
-                      ["experiment_id", "variant", "lineage_seed"]))
+        path_segments = {EXPERIMENT_PREFIX: self.experiment_id,
+                         VARIANT_PREFIX: self.variant,
+                         LINEAGE_PREFIX: self.lineage_seed}
+        return Path(*(f"{pfx}{val}" for (pfx, val) in path_segments.items()))
+
+    @staticmethod
+    def independent_path_glob(experiment_id: str) -> str:
+        return join(f"{EXPERIMENT_PREFIX}{experiment_id}",
+                    f"{VARIANT_PREFIX}[0-9]*",
+                    f"{LINEAGE_PREFIX}[0-9]*")
+
+    @staticmethod
+    def get_variant(path: str) -> str:
+        return path.split(sep="/")[1]
+
+    @staticmethod
+    def get_lineage(path: str) -> str:
+        return path.split(sep="/")[2]
 
     # ~~~~~~~~~~~~~~~~~ #
 
@@ -96,8 +351,7 @@ class XarrayStoragePartition(StoragePartition):
         Uniquely identifying suffix path for variables which occur in multiple
         realisations within an independent substore.
         """
-        return str(NodePath(*(f"{k}={getattr(self, k)}" for k in
-                              ["generation"])))
+        return f"generation={self.generation}"
 
     @cached_property
     def sim_id(self) -> str:
@@ -122,10 +376,17 @@ class XarrayStoragePartition(StoragePartition):
         """
         return f"{TIME_COO_PREFIX}{self.sim_id}"
 
+    @staticmethod
+    def is_time_coo_name(key: str) -> bool:
+        return key.startswith(TIME_COO_PREFIX)
+
+    # ~~~~~~~~~~~~~~~~~ #
+
     @cached_property
     def time_var_name(self) -> str:
         """
-        Name of the real-valued `Xarray data variable`_ holding simulation timestamps.
+        Name of the real-valued `Xarray data variable`_ holding simulation
+        timestamps.
         """
         return f"{TIME_VAR_PREFIX}{self.sim_id}"
 
@@ -151,10 +412,28 @@ class XarrayStoragePartition(StoragePartition):
 # ==============================================================================
 
 
+type VariablePath = str
 type VariableEncoding = dict[str, Any]
 
 
-# ==============================================================================
+# ------------------------------------------------------------------------------
+
+
+def var_name(path: VariablePath) -> VariablePath:
+    """
+    Extract the variable name from a full variable path.
+    """
+    return path.rsplit("/", maxsplit=1)[-1]
+
+
+def coo_path(path: VariablePath) -> VariablePath:
+    """
+    Compute the coordinate path associated with a variable path.
+    """
+    return join(path, VariableSpec.var_coo_name(var_name(path)))
+
+
+# ------------------------------------------------------------------------------
 
 
 @dataclass(kw_only=True, slots=True, frozen=True)
@@ -189,7 +468,7 @@ class VariableSpec:
     #: Unit annotation.
     unit: str | None
     #: Coordinate array.
-    coord: np.ndarray | None
+    coord: numpy.ndarray | None
     #: Backend-specific configuration of compression codecs.
     codecs: dict[str, Any] = field(default_factory=dict)
     #: Flag for time variables.

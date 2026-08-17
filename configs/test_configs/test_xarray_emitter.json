@@ -7,16 +7,14 @@
   "generations": 1,
   "n_init_sims": 1,
   "log_updates": true,
+  "variants": {},
   "emitter": "xarray",
   "emitter_arg": {
     "out_dir": "out/tests",
     "debug": false,
     "transducer": {
       "predicate": [
-        [
-          {"subsample": {"interval": 1}},
-          {"fixed": {"steps": [0]}}
-        ]
+        [{"subsample": {"interval": 1}}]
       ],
       "buffer": {
         "size": 3
@@ -43,14 +41,13 @@
               "filters_v2": [],
               "filters_v3": [],
               "compressors_v2": [{
-                "id": "lzma", "format": 3, "check": -1, "preset": null,
-                "filters": [{"id": 3, "dist": 8}, {"id": 33, "preset": 5}]
+                "id": "lzma", "check": -1, "preset": null,
+                "format": 3, "filters": [{"id": 33, "preset": 6}]
               }],
               "compressors_v3": [{
                 "name": "numcodecs.lzma",
                 "configuration": {
-                  "format": 3,
-                  "filters": [{"id": 3, "dist": 8}, {"id": 33, "preset": 5}]
+                  "format": 3, "filters": [{"id": 33, "preset": 6}]
                 }
               }]
             }
@@ -125,5 +122,22 @@
         }
       }
     ]
+  },
+  "analysis_options": {
+    "zarr_mapreduce": {
+      "moving_avg": {
+        "paths": {
+          "result": "moving_avg.zip",
+          "figure": "moving_avg.svg"
+        },
+        "variables": {
+          "bulk/bulk_molecule": "FUM",
+          "metabolism/fluxes/internal/rxn": "FUM"
+        },
+        "parameters": {
+          "window": 3
+        }
+      }
+    }
   }
 }

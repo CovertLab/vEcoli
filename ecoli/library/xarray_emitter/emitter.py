@@ -1,27 +1,25 @@
 
 """
-See :py:mod:`.xarray_emitter`.
+See :py:mod:`~ecoli.library.xarray_emitter`.
 """
-
 
 from __future__ import annotations
 
 from datetime import datetime
-from pathlib import Path
 from os.path import abspath, join
+from pathlib import Path
 from pprint import pp
-from typing import Any, final
+from typing import Any, ClassVar, final
 
-from vivarium.core.types import HierarchyPath
 from vivarium.core.engine import Engine
 from vivarium.core.store import Store
+from vivarium.core.types import HierarchyPath
 
 from ..emitter import BufferedEmitter
-from .transducer import XarrayTransducer
 from .storage import XarrayStoragePartition
-from .writer import AsyncBufferWriter
+from .transducer import XarrayTransducer
 from .utils import emitter_arg_error
-
+from .writer import AsyncBufferWriter
 
 # ==============================================================================
 
@@ -29,7 +27,7 @@ from .utils import emitter_arg_error
 @final
 class XarrayEmitter(BufferedEmitter):
     """
-    Entry point for :py:mod:`.xarray_emitter`.
+    Entry point for :py:mod:`ecoli.library.xarray_emitter`.
 
     This is a wrapper around :py:class:`.XarrayTransducer`, and is mainly
     responsible for:
@@ -66,13 +64,18 @@ class XarrayEmitter(BufferedEmitter):
 
       - ``test_xarray_emitter.json`` (CLI invocation via
         :py:func:`ecoli.experiments.ecoli_master_sim.main`)
-      - ``test_xarray_workflow.json`` (Nextflow invocation via
+      - ``moving_avg_analysis.json`` (Nextflow invocation via
         :py:func:`runscripts.workflow.main`).
     """
 
-    __slots__ = ("transducer", "writer", "finalized", "debug")
+    __slots__ = (
+        "debug",
+        "finalized",
+        "transducer",
+        "writer",
+    )
 
-    metadata_keys = [
+    metadata_keys: ClassVar[list] = [
         'experiment_id', 'description', 'sim_data_path', 'time',
         'suffix_time', 'time_step', 'initial_global_time',
         'max_duration', 'fail_at_max_duration',
@@ -232,9 +235,9 @@ class XarrayEmitter(BufferedEmitter):
                 "  {\"emitter_arg\": {\"view\": ...}}\n"
                 "  instead of\n"
                 "  {\"emit_paths\": ...}")
-        engine.state.set_emit_value(
-            emit=False, path=tuple())
-        assert isinstance(agent_state := engine.state.get_path(agent), Store)
+        engine.state.set_emit_value(emit=False, path=())
+        agent_state = engine.state.get_path(agent)
+        assert isinstance(agent_state, Store)
         agent_state.set_emit_values(
             emit=True, paths=self.transducer.buffer.view.emitting_paths)
 

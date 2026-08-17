@@ -95,7 +95,7 @@ to visualize these updates.
 .. warning::
     This feature should only be turned on for debugging purposes, and only when
     using the :ref:`in-memory emitter <ram_emitter>` or the
-    :py:mod:`.xarray_emitter`.
+    :py:mod:`ecoli.library.xarray_emitter`.
 
 
 -------------

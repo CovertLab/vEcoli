@@ -8,15 +8,14 @@ parametrized by the JSON configuration.
 .. _conjunctive normal form: https://en.wikipedia.org/wiki/Conjunctive_normal_form
 """
 
-
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from collections.abc import Iterator
 from dataclasses import dataclass
 from typing import Any, Self, final
 
 from .utils import emitter_arg_error
-
 
 # ==============================================================================
 # abstract atomic predicate
@@ -101,6 +100,18 @@ class DisjunctiveEmitPredicate:
                 cls, "Invalid argument", f"\"predicate\": [{config}]"))
         return cls(list(map(AtomicEmitPredicate.build, config)))
 
+    def __len__(self) -> int:
+        """
+        Number of atomic predicates.
+        """
+        return len(self.atoms)
+
+    def __iter__(self) -> Iterator[AtomicEmitPredicate]:
+        """
+        Iterator over atomic predicates.
+        """
+        return iter(self.atoms)
+
     def __call__(self, sim_tix: int, t: float, data: dict[str, Any], /) -> bool:
         """
         Evaluate the predicate for a simulation step.
@@ -143,6 +154,18 @@ class ConjunctiveEmitPredicate:
             raise TypeError(emitter_arg_error(
                 cls, "Invalid argument", f"\"predicate\": {config}"))
         return cls(list(map(DisjunctiveEmitPredicate.build, config)))
+
+    def __len__(self) -> int:
+        """
+        Number of disjunctive clauses.
+        """
+        return len(self.clauses)
+
+    def __iter__(self) -> Iterator[DisjunctiveEmitPredicate]:
+        """
+        Iterator over disjunctive clauses.
+        """
+        return iter(self.clauses)
 
     def __call__(self, sim_tix: int, t: float, data: dict[str, Any], /) -> bool:
         """

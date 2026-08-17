@@ -9,14 +9,12 @@ emitted variables.
   :py:class:`.EmitPath` and :py:class:`.TreeView`.
 """
 
-
 from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import Flag, auto
 
 from vivarium.core.types import HierarchyPath
-
 
 # ==============================================================================
 # emit paths

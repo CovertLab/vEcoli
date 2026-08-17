@@ -1,5 +1,5 @@
 {
-  "experiment_id": "test_xarray_workflow",
+  "experiment_id": "moving_avg",
   "sim_data_path": "out/kb/simData.cPickle",
   "suffix_time": false,
   "fail_at_max_duration": true,
@@ -7,8 +7,7 @@
   "n_init_sims": 10,
   "skip_baseline": false,
   "variants": {
-    "condition": {"condition": {"value": ["with_aa", "acetate"]}
-    }
+    "condition": {"condition": {"value": ["with_aa", "acetate"]}}
   },
   "emitter": "xarray",
   "emitter_arg": {
@@ -43,5 +42,22 @@
         }
       }
     ]
+  },
+  "analysis_options": {
+    "zarr_mapreduce": {
+      "moving_avg": {
+        "paths": {
+          "result": "moving_avg.zip",
+          "figure": "moving_avg.svg"
+        },
+        "variables": {
+          "metabolic_fluxes": "FUM"
+        },
+        "parameters": {
+          "window": 21,
+          "min_window": 9
+        }
+      }
+    }
   }
 }

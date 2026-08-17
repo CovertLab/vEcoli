@@ -1,15 +1,16 @@
 
 """
-Unit and integration tests for :py:mod:`.xarray_emitter` and its submodules.
+Unit and integration tests for :py:mod:`~ecoli.library.xarray_emitter` and its
+submodules.
 """
 
-
+from collections.abc import Callable, Generator
 from contextlib import ContextDecorator
 from dataclasses import dataclass, field
 from functools import partial
 from pathlib import Path
 from random import randint
-from typing import Any, Literal, Self, Callable, final, cast
+from typing import Any, Literal, Self, cast, final
 
 import numpy as np
 from pytest import MonkeyPatch, mark, param, raises
@@ -19,20 +20,28 @@ from zarr import Array, Group, open_consolidated
 
 from ecoli.library.test_utils import PatchConfig, filter_warnings
 from ecoli.library.xarray_emitter.emit_path import EmitPath, EmitPathType
-from ecoli.library.xarray_emitter.view import LeafView, ForestView
-from ecoli.library.xarray_emitter.storage import (
-    XarrayStoragePartition, VariableSpec, VariableEncoding)
-from ecoli.library.xarray_emitter.zarr_writer import (
-    AsyncZarrBufferWriter, group_tree)
 from ecoli.library.xarray_emitter.emitter import XarrayEmitter
+from ecoli.library.xarray_emitter.storage import (
+    VARIANT_PREFIX,
+    VariableEncoding,
+    VariableSpec,
+    WorkflowConfig,
+    XarrayStoragePartition,
+)
 from ecoli.library.xarray_emitter.utils import WarningFilter
+from ecoli.library.xarray_emitter.view import ForestView, LeafView
+from ecoli.library.xarray_emitter.zarr_utils import get_array, group_tree
+from ecoli.library.xarray_emitter.zarr_writer import AsyncZarrBufferWriter
 from ecoli.processes.metabolism import TIME_UNITS
-
 from runscripts.test_workflow import MockEcoliSimWorkflow
-
+from runscripts.zarr_mapreduce.moving_avg import (
+    MovingAvgConfig,
+    MovingAvgPipeline,
+    MovingAvgPlotConfig,
+    MovingAvgResult,
+)
 
 # mypy: disable-error-code="attr-defined"
-
 
 # ==============================================================================
 # unit tests
@@ -63,24 +72,12 @@ class TestEmitPath:
         assert EmitPath(listener).metadata_path == listener
         assert EmitPath(("log_update", "baz") + listener).metadata_path == listener
         with raises(AssertionError):
-            EmitPath(("agents", "13")).metadata_path
+            EmitPath(("agents", "13")).metadata_path  # noqa: B018
 
 
 # ==============================================================================
 # integration tests
 # ==============================================================================
-
-
-ecolisim_warnings = [
-    WarningFilter(
-        module="scipy.integrate._ivp.bdf",
-        category=RuntimeWarning,
-        message="invalid value encountered",
-        action="ignore"),
-]
-
-
-# ------------------------------------------------------------------------------
 
 
 @final
@@ -116,10 +113,7 @@ class XarrayEmitterConfig(PatchConfig):
                 },
                 "transducer": {
                     "predicate": [
-                        [
-                            {"subsample": {"interval": self.interval}},
-                            {"fixed": {"steps": [0]}}
-                        ]
+                        [{"subsample": {"interval": self.interval}}]
                     ]
                 },
                 "debug": self.debug
@@ -166,44 +160,89 @@ class StoreResult(ContextDecorator):
         self.zarr.store.close()
         self.xarray.close()
 
+    def zarr_array(self, path: str | NodePath) -> Array:
+        return get_array(self.zarr, str(path))
+
 
 # ------------------------------------------------------------------------------
 
 
+ecolisim_warnings = [
+    WarningFilter(
+        module="scipy.integrate._ivp.bdf",
+        category=RuntimeWarning,
+        message="invalid value encountered",
+        action="ignore"),
+]
+
+
+def parametrize_workflow(params: list[tuple]):
+    return mark.parametrize(
+        "num_generations, last_success, interval, buffers_per_chunk, "
+        "zarr_format, threaded, debug",
+        [param(*args, **kwargs, id=("gen:{}_succ:{}_intvl:{}_buf:{}_"
+                                    "zarr:{}_thrd:{}_dbg:{}").format(*args))
+         for (args, kwargs) in params])
+
+
+# ------------------------------------------------------------------------------
+
+
+@filter_warnings(ecolisim_warnings)
+@filter_warnings(AsyncZarrBufferWriter.warnings_all())
 class TestEcoliSim:
     """
-    Complete integration test for :py:class:`.XarrayEmitter`, running an
-    abridged multi-generation simulation workflow using
-    :py:class:`.MockEcoliSimWorkflow`, and validating the full round-tripped
-    data structure from the output Zarr store.
+    Complete integration tests for :py:class:`.XarrayEmitter`, running abridged
+    multi-generation simulation workflows using
+    :py:class:`.MockEcoliSimWorkflow`.
     """
 
     @classmethod
-    @filter_warnings(ecolisim_warnings)
-    @filter_warnings(AsyncZarrBufferWriter.warnings_all())
-    @mark.parametrize(
-        "num_generations, last_success, interval, "
-        "buffers_per_chunk, zarr_format, threaded, debug",
-        [
-            param(*args, **kwargs, id=(
-                "gen:{}_succ:{}_intvl:{}_buf:{}_zarr:{}_thrd:{}_dbg:{}"
-            ).format(*args))
-            for (args, kwargs) in [
-                ((1, False, 1, 1, 2, False, True ), {}),
-                ((2, True,  3, 2, 2, True,  False), {}),
-                ((2, True,  2, 1, 3, True,  True), {"marks": mark.basic_workflow}),
-                ((3, False, 1, 3, 3, True,  False), {})
-            ]
-        ]
-    )
+    @parametrize_workflow([
+        ((1, False, 1, 1, 2, False, True ), {}),
+        ((2, True, 3, 2, 3, True, False), {}),
+        ((2, True,  2, 2, 3, True,  False), {"marks": mark.basic_workflow}),
+        ((3, False, 3, 3, 3, True,  False), {})
+    ])
     def test_workflow(
         cls, monkeypatch: MonkeyPatch, tmp_path: Path,
         num_generations: int, last_success: bool, interval: int,
         buffers_per_chunk: int, zarr_format: Literal[2, 3],
         threaded: bool, debug: bool
-    ):
+    ) -> None:
         """
-        Driver for the integration test.
+        After each generation, validate the full round-tripped data structure
+        from the output Zarr store, and at the end, execute an example
+        :py:class:`.ZarrMapReduce` analysis.
+        """
+        generations = cls.run_workflow(
+            monkeypatch, tmp_path, num_generations, last_success, interval,
+            buffers_per_chunk, zarr_format, threaded, debug)
+        for (config, store, partition, success) in generations:
+            # read emitted data
+            view = ForestView.from_dict(config["emitter_arg"]["view"])
+            with StoreResult(store, partition, zarr_format) as result:
+                # validate emitted data
+                cls.check_tree_shape(result, view)
+                cls.check_log(result, success)
+                cls.check_time(result, interval)
+                cls.check_chunks(result, view, interval, buffers_per_chunk, config)
+                cls.check_codecs(result, view, zarr_format, config)
+            if partition.generation == num_generations:
+                # run example analysis
+                cls.check_mapreduce(config, num_generations, threaded, store)
+
+    # ~~~~~~~~~~~~~~~~~ #
+
+    @classmethod
+    def run_workflow(
+        cls, monkeypatch: MonkeyPatch, tmp_path: Path,
+        num_generations: int, last_success: bool, interval: int,
+        buffers_per_chunk: int, zarr_format: Literal[2, 3],
+        threaded: bool, debug: bool
+    ) -> Generator[tuple[dict, Path, XarrayStoragePartition, bool]]:
+        """
+        Driver for integration tests.
         """
         # set repository paths
         sim_data_path = Path.cwd() / "out" / "kb" / "simData.cPickle"
@@ -235,15 +274,8 @@ class TestEcoliSim:
             success = (g < num_generations) or last_success
             (partition, config) = wf.sim_gen(success)
             assert isinstance(partition, XarrayStoragePartition)
-            # read emitted data
-            view = ForestView.from_dict(config["emitter_arg"]["view"])
-            with StoreResult(store, partition, zarr_format) as result:
-                # validate emitted data
-                cls.check_tree_shape(result, view)
-                cls.check_log(result, success)
-                cls.check_time(result, interval)
-                cls.check_chunks(result, view, interval, buffers_per_chunk, config)
-                cls.check_codecs(result, view, zarr_format, config)
+            # execute test assertions
+            yield (config, store, partition, success)
 
     # ~~~~~~~~~~~~~~~~~ #
 
@@ -281,7 +313,8 @@ class TestEcoliSim:
     @staticmethod
     def check_root_node_shape(p: XarrayStoragePartition, n: DataTree) -> None:
         """
-        Look for expected fields in the root node of the output store.
+        Look for expected fields in the root node of the output store, and check
+        that they don't contain NaNs.
 
         Called by: :py:meth:`.check_tree_shape`.
         """
@@ -297,13 +330,16 @@ class TestEcoliSim:
         ti = n._node_coord_variables[p.time_coo_name]
         t = n._data_variables[p.time_var_name]
         assert ti.shape == t.shape
+        assert not np.isnan(np.dot(ti, ti))
+        assert not np.isnan(np.dot(t, t))
 
     @staticmethod
     def check_child_node_shape(
         p: XarrayStoragePartition, t_size: int, leaf: LeafView, n: DataTree
     ) -> None:
         """
-        Look for expected fields in a child node of the output store.
+        Look for expected fields in a child node of the output store, and check
+        that they don't contain NaNs.
 
         Called by: :py:meth:`.check_tree_shape`.
         """
@@ -317,6 +353,7 @@ class TestEcoliSim:
 
         # coordinate & data variables
         assert (d := m.data_vars[p.dynamic_suffix]).shape[0] == t_size
+        assert not np.isnan(np.sum(d))
         if c := m._node_coord_variables:
             assert set(c.keys()) == {o := VariableSpec.var_coo_name(v)}
             assert d.shape[1:] == c[o].shape
@@ -405,17 +442,14 @@ class TestEcoliSim:
         c: int = config["emitter_arg"]["writer"]["buffers_per_chunk"]
         assert buffers_per_chunk == c
 
-        # store accessor
-        def z(path: str | NodePath) -> Array:
-            return cast(Array, res.zarr[str(path)])
-
         # traverse the store tree
         t_size = 1 + int(T / dt) // interval
         c_size = b * c
-        cls.check_root_node_chunks(p, t_size, c_size, z)
+        cls.check_root_node_chunks(p, t_size, c_size, res.zarr_array)
         for tree in view.forest:
             for leaf in tree.leaves:
-                cls.check_child_node_chunks(p, t_size, c_size, leaf, z)
+                cls.check_child_node_chunks(
+                    p, t_size, c_size, leaf, res.zarr_array)
 
     @staticmethod
     def check_root_node_chunks(
@@ -485,15 +519,12 @@ class TestEcoliSim:
         # transport backend
         writer = AsyncZarrBufferWriter(config["emitter_arg"]["writer"])
 
-        # store accessor
-        def z(path: str | NodePath) -> Array:
-            return cast(Array, res.zarr[str(path)])
-
         # traverse the store tree
-        cls.check_root_node_codecs(p, writer, zarr_format, b, z)
+        cls.check_root_node_codecs(p, writer, zarr_format, b, res.zarr_array)
         for tree in view.forest:
             for leaf in tree.leaves:
-                cls.check_child_node_codecs(p, writer, zarr_format, leaf, z)
+                cls.check_child_node_codecs(
+                    p, writer, zarr_format, leaf, res.zarr_array)
 
     @classmethod
     def check_root_node_codecs(
@@ -604,3 +635,35 @@ class TestEcoliSim:
                     raise NotImplementedError
         else:
             return ()
+
+    # ~~~~~~~~~~~~~~~~~ #
+
+    @staticmethod
+    def check_mapreduce(
+        config: dict[str, Any], num_generations: int, threaded: bool, store: Path
+    ) -> None:
+        """
+        Execute an example :py:class:`.ZarrMapReduce` analysis.
+        """
+        hline, sep = "=" * 79, "-" * 79
+        print(f"\n{hline}\nAnalysis\n{hline}")
+
+        # define analysis pipeline
+        sim_cfg = WorkflowConfig.build(config)
+        sim_cfg.sim["generations"] = num_generations
+        analysis_cfg = MovingAvgConfig(
+            save_data=True, debug=True,
+            n_procs=1, n_threads=3 if threaded else 1)
+        plot_cfg = MovingAvgPlotConfig()
+        analysis = MovingAvgPipeline(sim_cfg, analysis_cfg, plot_cfg)
+
+        # run analysis pipeline and store result
+        assert not analysis_cfg.result_file.exists()
+        analysis.compute()
+        assert analysis_cfg.result_file.exists()
+
+        # load analysis result
+        print(f"\n{sep}\n")
+        result = MovingAvgResult.from_zarr(analysis_cfg)
+        assert result.variants == [f"{VARIANT_PREFIX}0"]
+        assert result.generations == list(range(1, 1 + num_generations))

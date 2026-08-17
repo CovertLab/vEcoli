@@ -1,34 +1,32 @@
 
 """
-Core data structures and logic of :py:mod:`.xarray_emitter`.
+Core data structures and logic of :py:mod:`~ecoli.library.xarray_emitter`.
 
-All other submodules of :py:mod:`.xarray_emitter` are either interfacing with
-upstream (:py:class:`~vivarium.core.engine.Engine`) or downstream
-(:py:class:`.AsyncBufferWriter`) APIs, or configuring those interfaces.
+All other submodules of :py:mod:`~ecoli.library.xarray_emitter` are either
+interfacing with upstream (:py:class:`~vivarium.core.engine.Engine`) or
+downstream (:py:class:`.AsyncBufferWriter`) APIs, or configuring those
+interfaces.
 """
-
 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
 from functools import cached_property
-from typing import Any, cast, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, cast
 
 import xarray
+from vivarium.core.types import HierarchyPath
+from vivarium.library.topology import dict_to_paths, get_in
 from xarray import Dataset, DataTree
 from xarray.core.datatree import NodePath
 
-from vivarium.core.types import HierarchyPath
-from vivarium.library.topology import get_in, dict_to_paths
-
 from .emit_predicate import ConjunctiveEmitPredicate
-from .view import ForestView
-from .storage import XarrayStoragePartition, VariableSpec, VariableEncoding
+from .storage import VariableEncoding, VariableSpec, XarrayStoragePartition
 from .utils import emitter_arg_error, indent
+from .view import ForestView
 
 if TYPE_CHECKING:
     from .writer import AsyncBufferWriter
-
 
 # ==============================================================================
 
@@ -133,9 +131,9 @@ class XarrayBuffer:
         Possibly called by: :py:meth:`.AsyncBufferWriter.consolidate`.
         """
         root_paths = set(map(NodePath, self.root._variables.keys()))
-        child_var_paths = set(path / cast(str, var)
-                              for (path, node) in self.child_vars.items()
-                              for var in node._variables.keys())
+        child_var_paths = {path / cast(str, var)
+                           for (path, node) in self.child_vars.items()
+                           for var in node._variables}
         return child_var_paths | root_paths
 
     # ~~~~~~~~~~~~~~~~~ #
@@ -343,9 +341,10 @@ class XarrayBuffer:
         buf = DataTree.from_dict(cast(dict[str, Dataset], root | children))
 
         # check consistency between composition logic and update logic
-        assert set(str(NodePath("/") / p.parent)
-                   for p in (self.added_paths | self.modified_paths)
-                   ).issubset(buf.groups)
+        assert {
+            str(NodePath("/") / p.parent)
+            for p in (self.added_paths | self.modified_paths)
+        }.issubset(buf.groups)
         return buf
 
     # ~~~~~~~~~~~~~~~~~ #
@@ -428,9 +427,15 @@ class XarrayTransducer:
     """
 
     __slots__ = (
-        "__dict__", "predicate", "buffer",
-        "buf_size", "buf_tix", "sim_tix", "emitted_sim_tix", "buf_shifts",
-        "debug"
+        "__dict__",
+        "buf_shifts",
+        "buf_size",
+        "buf_tix",
+        "buffer",
+        "debug",
+        "emitted_sim_tix",
+        "predicate",
+        "sim_tix",
     )
 
     def __init__(self, config: dict[str, Any], /) -> None:
@@ -546,18 +551,20 @@ class XarrayTransducer:
           ``False`` if the buffer is full and the operation cannot be performed
           without first :py:meth:`.flush`\ ing, otherwise ``True``.
         """
-        if len(data["agents"]) == 1:
-            if self.predicate(self.sim_tix, t := data["time"], data):
-                if self.buf_tix < self.buf_size:
-                    # fill current emit step
-                    self.buffer.write(self.buf_tix, self.sim_tix, t, data)
-                    # increment emit step
-                    self.buf_tix += 1
-                    # record latest emitted simulation step
-                    self.emitted_sim_tix = self.sim_tix
-                else:
-                    # writing now would result in an `IndexError`
-                    return False
+        if (
+            len(data["agents"]) == 1 and
+            self.predicate(self.sim_tix, t := data["time"], data)
+        ):
+            if self.buf_tix < self.buf_size:
+                # fill current emit step
+                self.buffer.write(self.buf_tix, self.sim_tix, t, data)
+                # increment emit step
+                self.buf_tix += 1
+                # record latest emitted simulation step
+                self.emitted_sim_tix = self.sim_tix
+            else:
+                # writing now would result in an `IndexError`
+                return False
         # increment simulation step
         self.sim_tix += 1
         return True

@@ -75,11 +75,15 @@ nitpick_ignore = [
     ("py:class", "numpy.int64"),
     ("py:class", "numpy.int32"),
     ("py:class", "numpy.bool_"),
+    ("py:class", "numpy._typing._array_like._ScalarType_co"),
     ("py:class", "duckdb.duckdb.DuckDBPyConnection"),
+    ("py:class", "pandas.core.series.Series"),
     ("py:class", "pandas.core.frame.DataFrame"),
     ("py:class", "polars.series.series.Series"),
     ("py:class", "polars.dataframe.frame.DataFrame"),
     ("py:class", "polars.datatypes.classes.DataTypeClass"),
+    ("py:class", "altair.vegalite.v5.api.LayerChart"),
+    ("py:class", "altair.vegalite.v5.api.VConcatChart"),
     # No docs for fsspec
     ("py:class", "fsspec.spec.AbstractFileSystem"),
     ("py:class", "fsspec.core.OpenFile"),
@@ -87,6 +91,8 @@ nitpick_ignore = [
     ("py:class", "vivarium.processes.timeline.TimelineProcess"),
     ("py:class", "concurrent.futures._base.Future"),
     # Type annotations using library internals
+    ("py:class", "_asyncio.Future"),
+    ("py:class", "asyncio.taskgroups.TaskGroup"),
     ("py:class", "concurrent.futures._base.Executor"),
     ("py:class", "unittest.mock._patch"),
     ("py:class", "xarray.backends.common.ArrayWriter"),
@@ -94,13 +100,18 @@ nitpick_ignore = [
     ("py:class", "zarr.core.group.ConsolidatedMetadata"),
     ("py:class", "zarr.core._tree.TreeRepr"),
     # Sphinx does not recognize type parameters in generic classes
-    ("py:class", "ArrT"),
-    ("py:class", "NodeT"),
-    ("py:class", "StoreT"),
+    ("py:class", "ArrT"), ("py:class", "NodeT"), ("py:class", "StoreT"),
+    ("py:class", "ElemT"),
+    ("py:class", "KeyT"), ("py:class", "KeyT1"), ("py:class", "KeyT2"),
+    ("py:class", "InputT"), ("py:class", "ResultT"),
+    ("py:class", "AnalysisConfigT"), ("py:class", "PlotConfigT"),
     # Sphinx does not recognize type aliases
-    ("py:type", "VariableEncoding"),
-    ("py:class", "VariableEncoding"),
-    ("py:class", "AnyAsyncArray"),
+    ("py:type", "VariableEncoding"), ("py:class", "VariableEncoding"),
+    ("py:type", "VariablePath"), ("py:class", "VariablePath"),
+    ("py:type", "AnyAsyncArray"), ("py:class", "AnyAsyncArray"),
+    ("py:type", "AnyGenerator"), ("py:class", "AnyGenerator"),
+    ("py:type", "Selector"), ("py:class", "Selector"),
+    ("py:type", "NDArrayLikeOrScalar"), ("py:class", "NDArrayLikeOrScalar"),
 ]
 
 

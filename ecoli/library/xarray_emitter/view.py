@@ -7,28 +7,24 @@ construct the in-memory representation of :py:class:`.XarrayBuffer`.
 See :ref:`variable_layout` for an overview.
 """
 
-
 from __future__ import annotations
 
 from collections.abc import Iterator
 from dataclasses import dataclass, field
-from operator import itemgetter
-from itertools import chain
 from functools import cached_property
+from itertools import chain
+from operator import itemgetter
 from typing import Any, Self
 
 import numpy as np
+import pint
+import unum
+from vivarium.core.types import HierarchyPath
+from vivarium.library.topology import dict_to_paths, get_in
 from xarray.core.datatree import NodePath
 
-import unum
-import pint
-
-from vivarium.core.types import HierarchyPath
-from vivarium.library.topology import get_in, dict_to_paths
-
-from .utils import emitter_arg_error
 from .emit_path import EmitPath
-
+from .utils import emitter_arg_error
 
 # ==============================================================================
 

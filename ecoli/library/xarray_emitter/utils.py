@@ -3,14 +3,12 @@
 Debugging, warnings & errors.
 """
 
-
 from collections.abc import Iterator
 from contextlib import contextmanager
-from dataclasses import dataclass, astuple
+from dataclasses import astuple, dataclass
 from itertools import starmap
 from typing import Literal
-from warnings import filterwarnings, catch_warnings
-
+from warnings import catch_warnings, filterwarnings
 
 # ==============================================================================
 

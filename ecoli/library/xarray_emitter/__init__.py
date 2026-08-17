@@ -80,7 +80,7 @@ Differences in usage
 
   - ``test_xarray_emitter.json`` (CLI invocation via
     :py:func:`ecoli.experiments.ecoli_master_sim.main`)
-  - ``test_xarray_workflow.json`` (Nextflow invocation via
+  - ``moving_avg_analysis.json`` (Nextflow invocation via
     :py:func:`runscripts.workflow.main`).
 
 .. hint::
@@ -168,18 +168,19 @@ This design is motivated by the following considerations:
 
 .. note::
   In order to fully benefit from consolidated metadata, downstream applications
-  should open independent substores directly, i.e., based on their known
-  relative file system paths, rather than by first loading all metadata for the
-  global store. This can be achieved, e.g., by calling
-  :py:func:`xarray.open_datatree` only on substores, or by using lower-level
-  APIs such as :py:func:`zarr.open_group`.
+  should open independent substores *directly* and *in parallel*, i.e., based on
+  their known relative file system paths, rather than by first loading all
+  metadata for the global store. For an analysis framework which fully leverages
+  the lower-level Zarr API in this fashion, see :py:class:`.ZarrMapReduce`, and
+  its example application in :py:class:`.MovingAvgPipeline`.
 
-  An alternative would be to perform metadata consolidation on the global store
-  at the end of an entire workflow, e.g., by calling
-  :py:func:`zarr.consolidate_metadata` for the Zarr storage backend. However,
-  this may be an expensive operation accessing a large number of files, and
-  would, for the `zarr-python`_ implementation at the time of writing, ignore
-  the already incrementally consolidated metadata in independent substores.
+  An alternative strategy at emission time would be to perform metadata
+  consolidation on the global store at the end of an entire workflow, e.g., by
+  calling :py:func:`zarr.consolidate_metadata` for the Zarr storage backend.
+  However, this may be an expensive operation accessing a large number of files,
+  and would, for the `zarr-python`_ implementation at the time of writing,
+  ignore the already incrementally consolidated metadata in independent
+  substores.
 
 .. _inheritance: https://docs.xarray.dev/en/stable/user-guide/hierarchical-data.html#alignment-and-coordinate-inheritance
 .. _zarr-python: https://github.com/zarr-developers/zarr-python

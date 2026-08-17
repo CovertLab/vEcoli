@@ -28,6 +28,7 @@ dependencies = [
     "line-profiler",
     "altair",
     "numba",
+    "bottleneck",
     "orjson",
     # Constraint can be removed once cvxpy supports newer ortools
     # than 9.12, need 9.11 to support newer protobuf (see gh-326)
@@ -40,8 +41,6 @@ dependencies = [
     # https://github.com/zarr-developers/zarr-python/pull/3547
     "zarr==3.2.*",
     "zarrs>=0.2",
-    # future consumers of `xarray_emitter`
-    # "cubed>=0.26",
     "pymunk",
     "scikit-image",
     "scikit-learn",
@@ -83,6 +82,10 @@ dev = [
     "google-cloud-compute",
     "boto3>=1.41.5",
     "botocore[crt]>=1.41.5",
+]
+prof = [
+    "memray",
+    "snakeviz",
 ]
 docs = [
     "Sphinx",
