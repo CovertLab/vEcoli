@@ -3,10 +3,10 @@
     "out_dir": "out/objective_weights_jul/"
   },
   "analysis_options": {
-    "experiment_id": ["check_hom_obj_threshold_20260724-124052"],
-    "variant_data_dir": ["out/objective_weights_jul/check_hom_obj_threshold_20260724-124052/variant_sim_data"],
-    "validation_data_path": ["out/objective_weights_jul/check_hom_obj_threshold_20260724-124052/parca/kb/validationData.cPickle"],
-    "outdir": "out/objective_weights_jul/analysis/check_hom_obj_threshold_20260724-124052/",
+    "experiment_id": ["bobv2_397_generic_kd_20260724-150447"],
+    "variant_data_dir": ["out/objective_weights_jul/bobv2_397_generic_kd_20260724-150447/variant_sim_data"],
+    "validation_data_path": ["out/objective_weights_jul/bobv2_397_generic_kd_20260724-150447/parca/kb/validationData.cPickle"],
+    "outdir": "out/objective_weights_jul/analysis/bobv2_397_generic_kd_20260724-150447/",
     "cpus": 1,
     "multivariant": {
       "cell_mass": {},

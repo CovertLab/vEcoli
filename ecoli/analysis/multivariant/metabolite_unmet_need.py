@@ -182,7 +182,7 @@ def plot(
         return
 
     met_df = pl.DataFrame(
-        {"met_idx": list(range(n_met)), "metabolite": homeostatic_ids}
+        {"met_idx": list(range(1, n_met + 1)), "metabolite": homeostatic_ids}
     )
     agg = agg.join(met_df, on="met_idx").drop("met_idx")
 
