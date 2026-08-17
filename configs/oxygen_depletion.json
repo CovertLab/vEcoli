@@ -1,0 +1,69 @@
+{
+    "experiment_id": "test_oxygen_depletion",
+    "sim_data_path": null,
+    "swap_processes" : {
+        "ecoli-metabolism" : "ecoli-metabolism-redux"
+    },
+    "add_processes": ["oxygen-ramp"],
+    "flow": {
+        "oxygen-ramp": [["post-division-mass-listener"]],
+        "media_update": [["oxygen-ramp"]],
+        "ecoli-metabolism-redux": [["ecoli-chromosome-structure"]],
+        "ecoli-mass-listener": [["ecoli-metabolism-redux"]],
+        "RNA_counts_listener": [["ecoli-metabolism-redux"]],
+        "rna_synth_prob_listener": [["ecoli-metabolism-redux"]],
+        "monomer_counts_listener": [["ecoli-metabolism-redux"]],
+        "dna_supercoiling_listener": [["ecoli-metabolism-redux"]],
+        "replication_data_listener": [["ecoli-metabolism-redux"]],
+        "rnap_data_listener": [["ecoli-metabolism-redux"]],
+        "unique_molecule_counts": [["ecoli-metabolism-redux"]],
+        "ribosome_data_listener": [["ecoli-metabolism-redux"]]
+    },
+    "suffix_time": true,
+    "parca_options": {
+        "cpus": 10
+    },
+    "generations": 6,
+    "n_init_sims": 1,
+    "single_daughters": true,
+    "emitter": "parquet",
+    "emitter_arg": {
+        "out_dir": "out"
+    },
+    "skip_baseline": true,
+    "variants": {
+        "oxygen_depletion": {
+            "condition": {"value": ["basal"]},
+            "ramp": {
+                "value": [
+                    {
+                        "start_time": 3600.0,
+                        "end_time": 10800.0,
+                        "initial_o2_conc": 0.25,
+                        "final_o2_conc": 0.0,
+                        "shape": "exponential",
+                        "tau": 1800.0
+                    }
+                ]
+            },
+            "oxygen_scaling_mode": {"value": ["continuous"]},
+            "op": "zip"
+        }
+    },
+    "analysis_options": {
+        "multidaughter": {},
+        "multigeneration": {
+            "ribosome_components": {},
+            "ribosome_production": {},
+            "ribosome_usage": {},
+            "replication": {}
+        },
+        "multiseed": {},
+        "multivariant": {
+            "doubling_time_line": {},
+            "metabolite_unmet_need": {},
+            "oxygen_transition": {}
+        },
+        "single": {}
+    }
+}

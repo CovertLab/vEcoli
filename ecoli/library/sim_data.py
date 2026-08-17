@@ -609,6 +609,7 @@ class LoadSimData:
             "exchange_data": self.get_exchange_data_config,
             "media_update": self.get_media_update_config,
             "bulk-timeline": self.get_bulk_timeline_config,
+            "oxygen-ramp": self.get_oxygen_ramp_config,
         }
 
         try:
@@ -1786,6 +1787,24 @@ class LoadSimData:
                 time: {("media_id",): media_id} for time, media_id in current_timeline
             },
         }
+
+    def get_oxygen_ramp_config(self, time_step=1):
+        # If the oxygen_depletion variant hasn't set sim_data.external_state
+        # .oxygen_ramp, default to a no-op ramp (held at 0 mM); this process
+        # is only intended to be added alongside that variant.
+        ramp = getattr(self.sim_data.external_state, "oxygen_ramp", None) or {}
+        config = {"time_step": time_step}
+        for key in (
+            "start_time",
+            "end_time",
+            "initial_o2_conc",
+            "final_o2_conc",
+            "shape",
+            "tau",
+        ):
+            if key in ramp:
+                config[key] = ramp[key]
+        return config
 
     def generate_initial_state(self):
         """

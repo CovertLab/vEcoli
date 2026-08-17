@@ -38,10 +38,7 @@ TOPOLOGY = topology_registry.access("ecoli-metabolism")
 # TOPOLOGY['kinetic_flux_targets'] = ('rates', 'fluxes')
 topology_registry.register(NAME, TOPOLOGY)
 
-# Uncatalyzed WATER[p] <-> WATER[c] diffusion reaction. Unlike enzyme-catalyzed
-# reactions, passive membrane diffusion of water is not turnover-rate-limited,
-# so this reaction (and the WATER[p] environmental exchange) are exempted from
-# the standard upper_flux_bound in NetworkFlowModel.solve() via HIGH_FLUX_BOUND.
+
 WATER_DIFFUSION_RXN_ID = "TRANS-RXN0-547[CCO-PM-BAC-NEG]-WATER//WATER.29."
 HIGH_FLUX_BOUND = 1e5
 WATER_ID = "WATER[c]"
@@ -379,13 +376,6 @@ class MetabolismRedux(Step):
 
         # Network flow initialization
         if WATER_CORRECTION_MODE == "diffusion":
-            # WATER[c] is excluded entirely from the LP's homeostatic set --
-            # it becomes a "free" metabolite (see NetworkFlowModel's
-            # free_metabolites), so ordinary metabolism's byproduct flux is
-            # never steered toward hitting its target. self.homeostatic_metabolites
-            # (the process-level list used for listeners/target-tracking
-            # elsewhere) is left untouched; only the list handed to
-            # NetworkFlowModel excludes WATER[c].
             network_flow_homeostatic_metabolites = [
                 met for met in self.homeostatic_metabolites if met != WATER_ID
             ]
@@ -621,6 +611,22 @@ class MetabolismRedux(Step):
             self.exchange_molecules = new_exchange_molecules
             self.allowed_exchange_uptake = new_allowed_exchange_uptake
 
+        # for concentration-dependent oxygen import bound
+        oxygen_id = "OXYGEN-MOLECULE[p]"
+        custom_bound_exch_idx = None
+        custom_bound_values = None
+        if oxygen_id in constrained:
+            oxygen_exchange_idx = np.array(
+                [
+                    self.network_flow_model.exchanges.index(name)
+                    for name in (f"{oxygen_id} exchange",)
+                    if name in self.network_flow_model.exchanges
+                ],
+                dtype=int,
+            )
+            if oxygen_exchange_idx.size:
+                custom_bound_exch_idx = oxygen_exchange_idx
+
         # extract the states from the ports
         homeostatic_metabolite_counts = counts(
             states["bulk"], self.homeostatic_metabolite_idx
@@ -650,6 +656,12 @@ class MetabolismRedux(Step):
             dry_mass / self.cell_mass * self.cell_density * self.timestep * units.s
         )
         self.counts_to_molar = (1 / (self.n_avogadro * cell_volume)).asUnit(CONC_UNITS)
+
+        # unit conversion
+        if custom_bound_exch_idx is not None:
+            custom_bound_values = np.array(
+                [(constrained[oxygen_id] * conversion_coeff).asNumber(CONC_UNITS)]
+            )
 
         # maintenance target
         flux_ngam = self.ngam * conversion_coeff
@@ -812,6 +824,8 @@ class MetabolismRedux(Step):
             binary_kinetic_idx=binary_kinetic_idx,
             objective_weights=objective_weights,
             aa_uptake_package=aa_uptake_package,
+            custom_bound_exch_idx=custom_bound_exch_idx,
+            custom_bound_values=custom_bound_values,
             **water_solve_kwargs,
         )
 
@@ -1111,6 +1125,8 @@ class NetworkFlowModel:
         hard_target_dmdt: Optional[npt.NDArray[np.float64]] = None,
         zero_flux_rxn_idx: Optional[npt.NDArray[np.int_]] = None,
         zero_flux_exch_idx: Optional[npt.NDArray[np.int_]] = None,
+        custom_bound_exch_idx: Optional[npt.NDArray[np.int_]] = None,
+        custom_bound_values: Optional[npt.NDArray[np.float64]] = None,
         # ortools > 9.5 required for Python 3.11 but will only
         # get support in the 9/2023 release of cvxpy
         solver=cp.GLOP,
@@ -1161,12 +1177,14 @@ class NetworkFlowModel:
             if len(binary_kinetic_idx) > 0:
                 constr.append(v[binary_kinetic_idx] == 0)
 
-        ub_v = np.full(self.n_orig_rxns, upper_flux_bound)
+        ub_v = np.full(self.n_orig_rxns, upper_flux_bound, dtype=float)
         if high_flux_rxn_idx is not None:
             ub_v[high_flux_rxn_idx] = high_flux_bound
-        ub_e = np.full(self.n_exch_rxns, upper_flux_bound)
+        ub_e = np.full(self.n_exch_rxns, upper_flux_bound, dtype=float)
         if high_flux_exch_idx is not None:
             ub_e[high_flux_exch_idx] = high_flux_bound
+        if custom_bound_exch_idx is not None:
+            ub_e[custom_bound_exch_idx] = custom_bound_values
         constr.extend([v >= 0, v <= ub_v, e >= 0, e <= ub_e])
 
         if aa_uptake_package:

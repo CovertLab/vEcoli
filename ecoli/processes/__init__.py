@@ -37,6 +37,7 @@ from ecoli.processes.environment.local_field import LocalField
 from ecoli.processes.environment.field_timeline import FieldTimeline
 from ecoli.processes.environment.exchange_data import ExchangeData
 from ecoli.processes.environment.media_update import MediaUpdate
+from ecoli.processes.environment.oxygen_ramp import OxygenRamp
 from ecoli.processes.shape import Shape
 from ecoli.processes.antibiotics.cell_wall import CellWall
 from ecoli.processes.antibiotics.pbp_binding import PBPBinding
@@ -101,6 +102,7 @@ process_registry.register(LocalField.name, LocalField)
 process_registry.register(FieldTimeline.name, FieldTimeline)
 process_registry.register(ExchangeData.name, ExchangeData)
 process_registry.register(MediaUpdate.name, MediaUpdate)
+process_registry.register(OxygenRamp.name, OxygenRamp)
 
 # auxiliary processes
 process_registry.register(Chemostat.name, Chemostat)

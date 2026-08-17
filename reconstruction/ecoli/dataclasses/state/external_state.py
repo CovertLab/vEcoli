@@ -26,6 +26,30 @@ from typing import Any
 IMPORT_CONSTRAINT_THRESHOLD = 1e-5
 
 
+OXYGEN_SCALING_MODE_DEFAULT = "binary"
+
+# Needed for oxygen import variant:
+# Half-saturation O2 concentration (mmol/L) and Hill coefficient for the
+# uptake interpolation used when OXYGEN_SCALING_MODE == "continuous".
+OXYGEN_UPTAKE_K_HALF_DEFAULT = 1e-2
+OXYGEN_UPTAKE_HILL_N = 2.0
+
+# Finite ceiling (mmol/g DCW/h) on oxygen's OWN import flux when O2 is
+# abundant, used only when OXYGEN_SCALING_MODE == "continuous". Under
+# "binary" mode oxygen import is literally unconstrained (infinite) whenever
+# concentration is above IMPORT_CONSTRAINT_THRESHOLD; "continuous" mode
+# replaces that all-or-nothing treatment with a smooth Michaelis-Menten/Hill
+# curve (see _continuous_oxygen_uptake_bound) from 0 up to this ceiling.
+#
+# Measured directly from listeners__fba_results__estimated_exchange_dmdt__
+# OXYGEN-MOLECULE in a real oxygen_depletion run (test_oxygen_depletion_
+# 20260813-144130): actual aerobic O2 demand is only ~13-24 mmol/gDCW/h. Still not derived from
+# literature O2-uptake-kinetics data -- same placeholder status as
+# OXYGEN_UPTAKE_K_HALF_DEFAULT/OXYGEN_UPTAKE_HILL_N, just now grounded in
+# this model's own measured demand rather than an arbitrary safety margin.
+OXYGEN_UPTAKE_V_MAX_DEFAULT = 30.0
+
+
 class ExternalState(object):
     """External State"""
 
@@ -73,6 +97,11 @@ class ExternalState(object):
 
     def _initialize_environment(self, raw_data):
         self.import_constraint_threshold = IMPORT_CONSTRAINT_THRESHOLD
+        # Both may be overwritten by the oxygen_depletion variant; see
+        # OXYGEN_SCALING_MODE_DEFAULT/OXYGEN_UPTAKE_K_HALF_DEFAULT above.
+        self.oxygen_scaling_mode = OXYGEN_SCALING_MODE_DEFAULT
+        self.oxygen_uptake_k_half = OXYGEN_UPTAKE_K_HALF_DEFAULT
+        self.oxygen_uptake_v_max = OXYGEN_UPTAKE_V_MAX_DEFAULT
 
         # create a dictionary with all saved timelines
         self.saved_timelines = {}
@@ -154,17 +183,43 @@ class ExternalState(object):
         # TODO: functionalize limits based on concentrations of transporters and environment
         # Limit carbon uptake if present depending on the presence of oxygen
         importConstrainedExchangeMolecules = {}
-        for carbon_source_id in self.carbon_sources:
-            if carbon_source_id in importUnconstrainedExchangeMolecules:
-                if oxygen_id in importUnconstrainedExchangeMolecules:
-                    importConstrainedExchangeMolecules[carbon_source_id] = 20.0 * (
-                        units.mmol / units.g / units.h
+        # getattr fallback: sim_data pickled before this attribute existed
+        # (unpickling doesn't re-run __init__) would otherwise crash here.
+        oxygen_scaling_mode = getattr(
+            self, "oxygen_scaling_mode", OXYGEN_SCALING_MODE_DEFAULT
+        )
+        if oxygen_scaling_mode == "continuous":
+            o2_concentration = exchange_molecules.get(oxygen_id)
+            carbon_bound = self._continuous_oxygen_carbon_bound(o2_concentration)
+            for carbon_source_id in self.carbon_sources:
+                if carbon_source_id in importUnconstrainedExchangeMolecules:
+                    importConstrainedExchangeMolecules[carbon_source_id] = (
+                        carbon_bound * (units.mmol / units.g / units.h)
                     )
-                else:
-                    importConstrainedExchangeMolecules[carbon_source_id] = 100.0 * (
-                        units.mmol / units.g / units.h
-                    )
-                importUnconstrainedExchangeMolecules.remove(carbon_source_id)
+                    importUnconstrainedExchangeMolecules.remove(carbon_source_id)
+            # Oxygen's OWN import: replace the binary infinite/absent
+            # treatment with a smooth, finite flux bound (see
+            # _continuous_oxygen_uptake_bound) -- scoped to oxygen only,
+            # everything else (carbon sources above, all other molecules)
+            # keeps its existing unconstrained/constrained treatment.
+            if oxygen_id in importUnconstrainedExchangeMolecules:
+                oxygen_bound = self._continuous_oxygen_uptake_bound(o2_concentration)
+                importConstrainedExchangeMolecules[oxygen_id] = oxygen_bound * (
+                    units.mmol / units.g / units.h
+                )
+                importUnconstrainedExchangeMolecules.remove(oxygen_id)
+        else:
+            for carbon_source_id in self.carbon_sources:
+                if carbon_source_id in importUnconstrainedExchangeMolecules:
+                    if oxygen_id in importUnconstrainedExchangeMolecules:
+                        importConstrainedExchangeMolecules[carbon_source_id] = 20.0 * (
+                            units.mmol / units.g / units.h
+                        )
+                    else:
+                        importConstrainedExchangeMolecules[carbon_source_id] = 100.0 * (
+                            units.mmol / units.g / units.h
+                        )
+                    importUnconstrainedExchangeMolecules.remove(carbon_source_id)
 
         externalExchangeMolecules.update(secretionExchangeMolecules)
 
@@ -175,6 +230,105 @@ class ExternalState(object):
             "importUnconstrainedExchangeMolecules": importUnconstrainedExchangeMolecules,
             "secretionExchangeMolecules": secretionExchangeMolecules,
         }
+
+    @staticmethod
+    def _o2_magnitude_mmol_per_l(o2_concentration):
+        """
+        Extracts a plain O2 concentration magnitude in mmol/L, for use by
+        the continuous-scaling helpers below.
+
+        Args:
+                o2_concentration: external O2 concentration, as either a
+                        plain float/None or a units-wrapped quantity --
+                        environment concentrations may arrive as either
+                        wholecell.utils.units (Unum, exposes .asNumber()) or
+                        vivarium.library.units (pint, exposes .to()/
+                        .magnitude, no .asNumber()) depending on the call
+                        site, so handle both rather than assuming one.
+
+        Returns:
+                float or None (if ``o2_concentration`` is None); may be inf.
+        """
+        if o2_concentration is None:
+            return None
+        if hasattr(o2_concentration, "asNumber"):
+            return o2_concentration.asNumber(units.mmol / units.L)
+        if hasattr(o2_concentration, "to"):
+            from vivarium.library.units import units as vivarium_units
+
+            return o2_concentration.to(vivarium_units.mmol / vivarium_units.L).magnitude
+        return o2_concentration
+
+    def _oxygen_hill_fraction(self, o2_magnitude):
+        """
+        Shared Hill-curve fraction (0 -> 1 as O2 -> abundant) used by both
+        continuous-scaling bounds below, so their K_half/Hill-N shape stays
+        consistent with each other.
+        """
+        # getattr fallback: sim_data pickled before this attribute existed
+        # (unpickling doesn't re-run __init__) would otherwise crash here.
+        oxygen_uptake_k_half = getattr(
+            self, "oxygen_uptake_k_half", OXYGEN_UPTAKE_K_HALF_DEFAULT
+        )
+        return o2_magnitude**OXYGEN_UPTAKE_HILL_N / (
+            o2_magnitude**OXYGEN_UPTAKE_HILL_N
+            + oxygen_uptake_k_half**OXYGEN_UPTAKE_HILL_N
+        )
+
+    def _continuous_oxygen_carbon_bound(self, o2_concentration):
+        """
+        Smoothly interpolates the carbon-uptake FBA bound (mmol/g/h) between
+        the aerobic (20) and anaerobic (100) literal bounds as a Hill
+        function of O2 concentration, for OXYGEN_SCALING_MODE == "continuous".
+
+        Args:
+                o2_concentration: external O2 concentration (mmol/L), as
+                        either a plain float or a units-wrapped quantity;
+                        may be missing (treated as 0) or infinite (treated
+                        as fully aerobic).
+        """
+        o2_magnitude = self._o2_magnitude_mmol_per_l(o2_concentration)
+        if o2_magnitude is None:
+            return 100.0
+        if np.isinf(o2_magnitude):
+            return 20.0
+
+        hill = self._oxygen_hill_fraction(o2_magnitude)
+        # hill -> 1 as O2 is abundant (aerobic bound 20); hill -> 0 as O2 -> 0
+        # (anaerobic bound 100).
+        return 100.0 - hill * (100.0 - 20.0)
+
+    def _continuous_oxygen_uptake_bound(self, o2_concentration):
+        """
+        Smooth Michaelis-Menten/Hill-shaped bound (mmol/g/h) on oxygen's OWN
+        import flux, saturating at a finite ceiling (oxygen_uptake_v_max) as
+        O2 becomes abundant and ->0 as O2->0 -- replacing "binary" mode's
+        all-or-nothing infinite/absent treatment of oxygen's own
+        availability, for OXYGEN_SCALING_MODE == "continuous". Distinct from
+        _continuous_oxygen_carbon_bound above, which only ever adjusted the
+        downstream carbon-source bound, not oxygen's own import.
+
+        Args:
+                o2_concentration: external O2 concentration (mmol/L), as
+                        either a plain float or a units-wrapped quantity;
+                        may be missing (treated as 0 -> 0 bound) or infinite
+                        (treated as fully aerobic -> V_max).
+        """
+        # getattr fallback: sim_data pickled before this attribute existed
+        # (unpickling doesn't re-run __init__) would otherwise crash here.
+        oxygen_uptake_v_max = getattr(
+            self, "oxygen_uptake_v_max", OXYGEN_UPTAKE_V_MAX_DEFAULT
+        )
+        o2_magnitude = self._o2_magnitude_mmol_per_l(o2_concentration)
+        if o2_magnitude is None:
+            return 0.0
+        if np.isinf(o2_magnitude):
+            return oxygen_uptake_v_max
+
+        hill = self._oxygen_hill_fraction(o2_magnitude)
+        # hill -> 1 as O2 is abundant (bound -> V_max); hill -> 0 as O2 -> 0
+        # (bound -> 0).
+        return hill * oxygen_uptake_v_max
 
     def exchange_data_from_media(self, media_label):
         """
