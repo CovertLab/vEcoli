@@ -76,7 +76,7 @@ def _datatree_to_zarr(
         encoding = {}
     if absolute := [p for p in encoding if p.startswith("/")]:
         raise ValueError(f"unexpected absolute paths in `encoding`: {absolute}")
-    # TODO: fix in `_datatree_to_zarr()` (xarray==2026.04)
+    # TODO: Fix upstream in `_datatree_to_zarr()` (as of xarray==2026.07)
     encoding = {f"/{p}": e for (p, e) in encoding.items()}
     if unexpected := set(encoding.keys()) - set(dt.groups):
         raise ValueError(
@@ -104,7 +104,7 @@ def _datatree_to_zarr(
         node_enc = encoding.get(node.path)
         if node_enc is None and encoding:
             raise KeyError(f"missing encoding for \"{node.path}\"")
-        # TODO: fix in `_datatree_to_zarr()` (xarray==2026.04)
+        # TODO: Fix upstream in `_datatree_to_zarr()` (as of xarray==2026.07)
         node_store._validate_encoding(node_enc)
         dump_to_store(ds, node_store, writer, encoding=node_enc)
     return writer
@@ -464,7 +464,7 @@ class AsyncZarrBufferWriter(AsyncBufferWriter[ZarrStore]):
         Update existing consolidated metadata in the Zarr store with the outputs
         of a newly finished simulation.
 
-        Calls: Either :py:func:`zarr.consolidate_metadata`, or
+        Calls: Either :py:func:`.consolidate_metadata`, or
         :py:attr:`.XarrayBuffer.modified_paths`,
         :py:attr:`.XarrayBuffer.added_paths` and
         :py:func:`.reconsolidate_metadata`.

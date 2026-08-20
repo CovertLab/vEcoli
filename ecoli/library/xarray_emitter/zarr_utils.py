@@ -3,13 +3,10 @@
 Utilities for controlling low-level Zarr internals.
 """
 
-import sys
 import warnings
 from asyncio import Semaphore, as_completed, create_task
-from collections import deque
 from collections.abc import AsyncGenerator
 from dataclasses import replace
-from html import escape as html_escape
 from lzma import FILTER_LZMA2, FORMAT_RAW
 from typing import Any, Literal, cast
 
@@ -17,13 +14,11 @@ import zarr
 from numpy.typing import NDArray
 from zarr.abc.codec import Codec
 from zarr.abc.numcodec import Numcodec
-from zarr.core._tree import TreeRepr
 from zarr.core.array import (
     Array,
     AsyncArray,
     _parse_chunk_encoding_v2,
     default_compressors_v3,
-    default_filters_v3,
 )
 from zarr.core.dtype import parse_dtype
 from zarr.core.group import (
@@ -35,7 +30,6 @@ from zarr.core.group import (
 )
 from zarr.core.indexing import BlockIndex
 from zarr.core.metadata import v2, v3
-from zarr.core.sync import sync
 from zarr.errors import UnstableSpecificationWarning, ZarrUserWarning
 from zarr.types import AnyAsyncArray
 
@@ -171,10 +165,11 @@ def parse_codecs(
         _dtype = parse_dtype(dtype, zarr_format=z)
         if z == 2:
             filters, compressor = _parse_chunk_encoding_v2(
-                filters="auto", compressor="auto", dtype=_dtype)
+                filters="auto", compressor="auto", dtype=_dtype
+            )
             compressors = (compressor,)
         else:
-            filters = default_filters_v3(_dtype)
+            filters = ()
             compressors = default_compressors_v3(_dtype)
 
     return {"filters": filters, "compressors": compressors}
@@ -247,8 +242,8 @@ async def consolidate_metadata(
     group: AsyncGroup,
 ) -> AsyncGroup:
     """
-    Consolidate the metadata of all nodes in a hierarchy, including the root
-    node.
+    Consolidate the metadata of all nodes in a hierarchy (except from the root
+    node).
 
     Adapted from: :py:func:`zarr.api.asynchronous.consolidate_metadata`.
     """
@@ -264,8 +259,6 @@ async def consolidate_metadata(
         k: v.metadata
         async for (k, v) in
         group.members(max_depth=None, use_consolidated_for_children=False)}
-    # TODO: fix in `consolidate_metadata()` (zarr==3.2.1)
-    members_metadata |= {"": group.metadata}
 
     # combine and write consolidated metadata
     for k, v in members_metadata.items():
@@ -286,7 +279,7 @@ async def reconsolidate_metadata(
     Incrementally update consolidated metadata. Rather than recursing through
     the entire store tree and recomputing the consolidated metadata afresh, load
     the existing consolidated metadata, and update it with the current metadata
-    from a known list of modified and added paths.
+    from a known list of modified and added paths (except from the root node).
 
     Adapted from: :py:func:`zarr.api.asynchronous.consolidate_metadata`.
     """
@@ -316,11 +309,16 @@ async def reconsolidate_metadata(
     # read metadata at updated paths
     group = _replace_consolidated_metadata(group, None)
     mod_members_metadata, add_members_metadata = [
-        {k: n.metadata async for (k, n) in _iter_from_keys(group, keys)}
+        {k: n.metadata
+         async for (k, n) in _iter_from_keys(group, keys)
+         # NOTE: no updates for root node:
+         # - *children* and *attributes* for root node were already persisted
+         # - no *metadata* for root node allowed inside consolidated metadata
+         if k}
         for keys in [modified_keys, added_keys]]
 
     # check assumptions about metadata updates
-    old_keys = set(members_metadata.keys()) | {""}
+    old_keys = set(members_metadata.keys())
     assert set(mod_members_metadata.keys()).issubset(old_keys)
     assert set(add_members_metadata.keys()).isdisjoint(old_keys)
 
@@ -333,9 +331,13 @@ async def reconsolidate_metadata(
                     v, ConsolidatedMetadata(metadata={}))
     members_metadata |= mod_members_metadata | add_members_metadata
     del old_keys, mod_members_metadata, add_members_metadata
-    # TODO: fix in `ConsolidatedMetadata._flat_to_nested()` (zarr==3.2.1)
+
+    # This is a workaround for a pre-sorting key with
+    # too strict assumptions inside `ConsolidatedMetadata._flat_to_nested()`.
+    # TODO: Fix upstream (as of zarr==3.3)
     members_metadata = dict(sorted(members_metadata.items(),
                                    key=lambda kv: bfs_key(kv[0])))
+
     ConsolidatedMetadata._flat_to_nested(members_metadata)
     group = _replace_consolidated_metadata(
         group, ConsolidatedMetadata(metadata=members_metadata))
@@ -401,125 +403,3 @@ def bfs_key(path: str) -> tuple:
     """
     segments = path.split("/")
     return (len(segments), *segments)
-
-
-# ------------------------------------------------------------------------------
-
-
-def group_tree(
-    group: Group,
-    level: int | None = None,
-    *,
-    max_nodes: int = 500,
-    plain: bool = False,
-) -> TreeRepr:
-    """
-    Adapted from: :py:meth:`!zarr.Group.tree`.
-
-    Calls: :py:func:`.group_tree_async`.
-    """
-    return sync(group_tree_async(
-        group._async_group,
-        max_depth=level, max_nodes=max_nodes, plain=plain))
-
-
-async def group_tree_async(
-    group: AsyncGroup,
-    max_depth: int | None = None,
-    *,
-    max_nodes: int = 500,
-    plain: bool = False,
-) -> TreeRepr:
-    """
-    Fix edge case with infinite recursion in
-    :py:func:`!zarr.core._tree.group_tree_async`.
-
-    Called by: :py:func:`.group_tree`.
-    """
-    members: list[tuple[str, Any]] = []
-    truncated = False
-    async for item in group.members(max_depth=max_depth):
-        if len(members) == max_nodes:
-            truncated = True
-            break
-        members.append(item)
-    members.sort(key=lambda key_node: key_node[0])
-
-    # Set up styling tokens: ANSI bold for terminals, HTML <b> for Jupyter,
-    # or empty strings when plain=True (useful for LLMs, logging, files).
-    if plain:
-        ansi_open = ansi_close = html_open = html_close = ""
-    else:
-        # Avoid emitting ANSI escape codes when output is piped or in CI.
-        use_ansi = sys.stdout.isatty()
-        ansi_open = "\x1b[1m" if use_ansi else ""
-        ansi_close = "\x1b[0m" if use_ansi else ""
-        html_open = "<b>"
-        html_close = "</b>"
-
-    # Group members by parent key so we can render the tree level by level.
-    nodes: dict[str, list[tuple[str, Any]]] = {}
-    for key, node in members:
-        # TODO: fix in `group_tree_async()` (zarr==3.2.1)
-        if key == "":
-            # avoid self-loop at root node
-            continue
-        elif key.count("/") == 0:
-            parent_key = ""
-        else:
-            parent_key = key.rsplit("/", 1)[0]
-        nodes.setdefault(parent_key, []).append((key, node))
-
-    # Render the tree iteratively (not recursively) to avoid hitting
-    # Python's recursion limit on deeply nested hierarchies.
-    # Each stack frame is (prefix_string, remaining_children_at_this_level).
-    text_lines = [f"{ansi_open}{group.name}{ansi_close}"]
-    html_lines = [f"{html_open}{html_escape(group.name)}{html_close}"]
-    stack = [("", deque(nodes.get("", [])))]
-    while stack:
-        prefix, remaining = stack[-1]
-        if not remaining:
-            stack.pop()
-            continue
-        key, node = remaining.popleft()
-        name = key.rsplit("/")[-1]
-        escaped_name = html_escape(name)
-        # if we popped the last item then remaining will
-        # now be empty - that's how we got past the if not remaining
-        # above, but this can still be true.
-        is_last = not remaining
-        connector = "└── " if is_last else "├── "
-        if isinstance(node, AsyncGroup):
-            text_lines.append(f"{prefix}{connector}{ansi_open}{name}{ansi_close}")
-            html_lines.append(f"{prefix}{connector}{html_open}{escaped_name}{html_close}")
-        else:
-            text_lines.append(
-                f"{prefix}{connector}{ansi_open}{name}{ansi_close} {node.shape} {node.dtype}"
-            )
-            html_lines.append(
-                f"{prefix}{connector}{html_open}{escaped_name}{html_close}"
-                f" {html_escape(str(node.shape))} {html_escape(str(node.dtype))}"
-            )
-        # Descend into children with an accumulated prefix:
-        # Example showing how prefix accumulates:
-        #   /
-        #   ├── a              prefix = ""
-        #   │   ├── b          prefix = "" + "│   "
-        #   │   │   └── x      prefix = "" + "│   " + "│   "
-        #   │   └── c          prefix = "" + "│   "
-        #   └── d              prefix = ""
-        #       └── e          prefix = "" + "    "
-        if children := nodes.get(key, []):
-            if is_last:
-                child_prefix = prefix + "    "
-            else:
-                child_prefix = prefix + "│   "
-            stack.append((child_prefix, deque(children)))
-    text = "\n".join(text_lines) + "\n"
-    html = "\n".join(html_lines) + "\n"
-    note = (
-        f"Truncated at max_nodes={max_nodes}, some nodes and their children may be missing\n"
-        if truncated
-        else ""
-    )
-    return TreeRepr(text, html, truncated=note)

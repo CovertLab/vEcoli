@@ -30,7 +30,7 @@ from ecoli.library.xarray_emitter.storage import (
 )
 from ecoli.library.xarray_emitter.utils import WarningFilter
 from ecoli.library.xarray_emitter.view import ForestView, LeafView
-from ecoli.library.xarray_emitter.zarr_utils import get_array, group_tree
+from ecoli.library.xarray_emitter.zarr_utils import get_array
 from ecoli.library.xarray_emitter.zarr_writer import AsyncZarrBufferWriter
 from ecoli.processes.metabolism import TIME_UNITS
 from runscripts.test_workflow import MockEcoliSimWorkflow
@@ -291,7 +291,7 @@ class TestEcoliSim:
         # let Zarr traverse the store
         z = res.zarr
         print()
-        print(group_tree(z))
+        print(z.tree())
 
         # let Xarray traverse the store
         x = res.xarray

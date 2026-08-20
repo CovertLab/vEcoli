@@ -36,10 +36,10 @@ dependencies = [
     "pandas",
     "polars",
     "xarray>=2026.04",
-    # concurrency control in `ecoli.library.xarray_emitter.zarr_writer`
-    # might require adjustments for `zarr>=3.3`:
+    # Concurrency control in `ecoli.library.xarray_emitter.zarr_writer`
+    # might require adjustments once this PR is merged:
     # https://github.com/zarr-developers/zarr-python/pull/3547
-    "zarr==3.2.*",
+    "zarr>=3.3",
     "zarrs>=0.2",
     "pymunk",
     "scikit-image",
