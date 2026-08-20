@@ -878,6 +878,8 @@ class ParquetEmitter(BufferedEmitter):
                         group (optional, default: 400),
                     'threaded': Whether to write Parquet files
                         in a background thread (optional, default: True),
+                    'emit_paths': List of tuple paths to include
+                        in emitted data (optional, omit agent path),
                     # One of the following is REQUIRED
                     'out_dir': local output directory (absolute/relative),
                     'out_uri': Google Cloud storage bucket URI
@@ -909,20 +911,26 @@ class ParquetEmitter(BufferedEmitter):
         # was successfully written to Parquet in order to avoid blocking
         self.last_batch_future: Future = Future()
         self.last_batch_future.set_result(None)
+        # Set either by EcoliSim or by EngineProcess if sim reaches division
+        self.success = False
+        # Convert tuple paths to flat key prefixes for fast filtering
+        emit_paths = config.get("emit_paths", [])
+        if len(emit_paths) > 0:
+            self.emit_prefixes: Optional[set[str]] = {
+                "__".join(path) for path in emit_paths
+            }
+        else:
+            self.emit_prefixes = None
         super().__init__()
 
     def reset_emit_flags(
         self, *,
-        engine: Engine, agent: HierarchyPath, emit_paths: tuple[HierarchyPath]
+        engine: Engine, agent: HierarchyPath, emit_stores: list[HierarchyPath]
     ) -> None:
-        """
-        In this subclass, ``agent`` is ignored and ``emit_paths`` is interpreted
-        as a global path.
-        """
         assert engine.emitter is self
-        if emit_paths:
-            engine.state.set_emit_value(emit=False, path=tuple())
-            engine.state.set_emit_values(emit=True, paths=emit_paths)
+        if emit_stores:
+            engine.state.set_emit_value(emit=False, path=())
+            engine.state.set_emit_values(emit=True, paths=emit_stores)
 
     def _finalize(self, *, success: bool):
         """
@@ -1051,6 +1059,16 @@ class ParquetEmitter(BufferedEmitter):
         for agent_data in data["data"]["agents"].values():
             agent_data["time"] = float(data["data"]["time"])
             agent_data = flatten_dict(agent_data)
+            if self.emit_prefixes is not None:
+                agent_data = {
+                    k: v
+                    for k, v in agent_data.items()
+                    if k == "time"
+                    or any(
+                        k == prefix or k.startswith(prefix + "__")
+                        for prefix in self.emit_prefixes
+                    )
+                }
             emit_idx = self.num_emits % self.batch_size
             # At every emit, each field can take one of two paths.
             #
@@ -1100,7 +1118,22 @@ class ParquetEmitter(BufferedEmitter):
                                 :emit_idx
                             ].tolist() + [None] * (self.batch_size - emit_idx)
                 # Fall back Polars serialization
-                v = pl.Series([v])
+                try:
+                    v = pl.Series([v])
+                except ValueError as e:
+                    if isinstance(v, np.ndarray):
+                        if v.ndim > 1:
+                            raise ValueError(
+                                f"Field {k} is a NumPy array with "
+                                "more than 1 dimension, which cannot be "
+                                "serialized using the fallback Polars logic. "
+                                "If this field has a consistent shape, update "
+                                "the ports schema to define a default value "
+                                "with that expected shape. Otherwise, convert "
+                                "the value to Python lists using tolist() or "
+                                "flatten it to 1-D and emit the shape separately."
+                            ) from e
+                    raise
                 # Ensure type consistency
                 curr_type = self.pl_types.setdefault(k, pl.Null)
                 if v.dtype != curr_type:

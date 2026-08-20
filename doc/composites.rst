@@ -96,6 +96,9 @@ to visualize these updates.
     This feature should only be turned on for debugging purposes, and only when
     using the :ref:`in-memory emitter <ram_emitter>` or the
     :py:mod:`ecoli.library.xarray_emitter`.
+    The Parquet emitter is unable to serialize many of the objects
+    contained in process updates (e.g., nested lists of inconsistent
+    depth like ``[[1], 2]``).
 
 
 -------------

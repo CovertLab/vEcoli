@@ -43,7 +43,7 @@ class PBPBinding(Step):
     topology = TOPOLOGY
 
     defaults = {
-        "murein_name": "CPD-12261[p]",
+        "murein_name": "C6[p]",
         "beta_lactam": "ampicillin",  # Supports cephaloridine, ampicillin
         "PBP": {  # penicillin-binding proteins
             "PBP1A": "CPLX0-7717[p]",  # transglycosylase-transpeptidase ~100
@@ -218,7 +218,7 @@ class PBPBinding(Step):
             if states["wall_state"]["lattice"] is None:
                 # Make sure that all usable murein is initiailly unincorporated
                 unincorporated_monomers = (
-                    4 * counts(states["bulk"], self.murein_idx)
+                    counts(states["bulk"], self.murein_idx)
                     - states["murein_state"]["shadow_murein"]
                 )
                 incorporated_monomers = 0
@@ -296,7 +296,7 @@ class PBPBinding(Step):
                 )
 
         # New murein to allocate
-        new_murein = 4 * counts(states["bulk"], self.murein_idx) - sum(
+        new_murein = counts(states["bulk"], self.murein_idx) - sum(
             states["murein_state"].values()
         )
 
@@ -339,7 +339,7 @@ def test_pbp_binding():
     timeline_params = {
         "timeline": {
             time: {
-                ("bulk", "CPD-12261[p]"): int(initial_murein + 1000 * time),
+                ("bulk", "C6[p]"): int(initial_murein + 1000 * time),
                 ("concentrations", "ampicillin"): (
                     (time - 50) / 10 * units.micromolar
                     if time > 50
@@ -364,7 +364,7 @@ def test_pbp_binding():
         "initial_state": {
             "murein_state": {
                 "incorporated_murein": 0,
-                "unincorporated_murein": initial_murein * 4,
+                "unincorporated_murein": initial_murein,
                 "shadow_murein": 0,
             },
             "concentrations": {
@@ -372,7 +372,7 @@ def test_pbp_binding():
             },
             "bulk": np.array(
                 [
-                    ("CPD-12261[p]", initial_murein),
+                    ("C6[p]", initial_murein),
                     ("CPLX0-7717[p]", 100),
                     ("CPLX0-3951[i]", 100),
                     ("CPLX0-8300[c]", 0),
@@ -394,14 +394,14 @@ def test_pbp_binding():
     data = sim.emitter.get_timeseries()
 
     bulk_array = np.array(data["bulk"])
-    data["bulk"] = {"CPD-12261[p]": bulk_array[:, 0]}
+    data["bulk"] = {"C6[p]": bulk_array[:, 0]}
 
     # Plot output
     fig = plot_variables(
         data,
         variables=[
             ("concentrations", ("ampicillin", "micromolar")),
-            ("bulk", "CPD-12261[p]"),
+            ("bulk", "C6[p]"),
             ("murein_state", "incorporated_murein"),
             ("murein_state", "unincorporated_murein"),
             ("murein_state", "shadow_murein"),
@@ -415,12 +415,12 @@ def test_pbp_binding():
     fig.savefig("out/processes/pbp_binding/test.png")
 
     # Validate output data
-    total_murein = np.array(data["bulk"]["CPD-12261[p]"])
+    total_murein = np.array(data["bulk"]["C6[p]"])
     incorporated_murein = np.array(data["murein_state"]["incorporated_murein"])
     unincorporated_murein = np.array(data["murein_state"]["unincorporated_murein"])
     shadow_murein = np.array(data["murein_state"]["shadow_murein"])
     assert all(
-        4 * total_murein == incorporated_murein + unincorporated_murein + shadow_murein
+        total_murein == incorporated_murein + unincorporated_murein + shadow_murein
     )
 
 

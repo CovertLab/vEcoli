@@ -200,7 +200,7 @@ class TestEcoliSim:
     @classmethod
     @parametrize_workflow([
         ((1, False, 1, 1, 2, False, True ), {}),
-        ((2, True, 3, 2, 3, True, False), {}),
+        ((2, True,  3, 2, 3, True,  False), {}),
         ((2, True,  2, 2, 3, True,  False), {"marks": mark.basic_workflow}),
         ((3, False, 3, 3, 3, True,  False), {})
     ])

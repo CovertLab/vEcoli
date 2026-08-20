@@ -464,6 +464,7 @@ class EcoliSim:
         """
         # Do some datatype pre-processesing
         config["processes"] = {process: None for process in config["processes"]}
+        config["emit_paths"] = [tuple(path) for path in config["emit_paths"]]
 
         # Keep track of base experiment id
         # in case multiple simulations are run with suffix_time = True.
@@ -710,6 +711,7 @@ class EcoliSim:
                 "agents",
                 self.agent_id,
             )
+        self.emit_stores = [path + emit_path for emit_path in self.emit_paths]
 
         # get initial state
         initial_cell_state = ecoli_composer.initial_state()
@@ -882,7 +884,7 @@ class EcoliSim:
         metadata["output_metadata"] = self.output_metadata()
         # make the experiment
         if isinstance(self.emitter, str):
-            self.emitter_config = {"type": self.emitter}
+            self.emitter_config = {"type": self.emitter, "emit_paths": self.emit_paths}
             if self.emitter_arg is not None:
                 for key, value in self.emitter_arg.items():
                     self.emitter_config[key] = value
@@ -952,7 +954,7 @@ class EcoliSim:
             emitter.reset_emit_flags(
                 engine=self.ecoli_experiment,
                 agent=("agents", self.agent_id),
-                emit_paths=self.config["emit_paths"])
+                emit_stores=self.emit_stores)
 
         # Clean up unnecessary references
         self.generated_initial_state = None

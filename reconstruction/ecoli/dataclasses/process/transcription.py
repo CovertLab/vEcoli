@@ -737,7 +737,18 @@ class Transcription(object):
         expression, _ = self.fit_rna_expression(self.cistron_expression["basal"])
 
         # TODO (Albert): should modify more when other types of hybrid RNAs
-        #  are introduced (only rRNA-tRNA hybrids are included currently)
+        #  are introduced. rRNA-tRNA hybrids are handled below by forcing
+        #  is_tRNA/is_rRNA to be mutually exclusive (via is_rtRNA) so
+        #  downstream code can treat the TU as a single RNA type. Manually
+        #  added functional mRNA-miscRNA hybrids (see
+        #  getter_functions.MRNA_MISCRNA_HYBRID_TU_IDS) do not need the same
+        #  treatment: is_mRNA and is_miscRNA are left independently True, and
+        #  every downstream consumer (e.g. rna_degradation.py's
+        #  `is_mRNA | is_miscRNA`, the mRNA-only degradation-rate fitting
+        #  below) only ever ORs or checks is_mRNA, so a TU being both doesn't
+        #  create ambiguity. Any future hybrid classes that mix RNA types have
+        #  NOT been vetted this way and would need the same review before
+        #  assuming it's safe to leave more than one flag set to True.
         # Determine type of each RNA
         is_mRNA = (
             self.cistron_data["is_mRNA"] @ self.cistron_tu_mapping_matrix

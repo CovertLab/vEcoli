@@ -4,20 +4,19 @@ Extensions to the :py:class:`~vivarium.core.emitter.Emitter` interface, as used
 by :py:class:`.ParquetEmitter` and :py:class:`.XarrayEmitter`.
 """
 
-
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from concurrent.futures import Future, Executor
+from collections.abc import Callable
+from concurrent.futures import Executor, Future
 from dataclasses import dataclass, field, replace
-from typing import Any, Callable, Self
+from typing import Any, Self
 from urllib import parse
 from warnings import warn
 
-from vivarium.core.types import HierarchyPath
-from vivarium.core.engine import Engine
 from vivarium.core.emitter import Emitter
-
+from vivarium.core.engine import Engine
+from vivarium.core.types import HierarchyPath
 
 # ==============================================================================
 
@@ -37,7 +36,7 @@ class BlockingExecutor(Executor):
         try:
             result = fn(*args, **kwargs)
             future.set_result(result)
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             future.set_exception(e)
         return future
 
@@ -111,7 +110,7 @@ class BufferedEmitter(Emitter, ABC):
     @abstractmethod
     def reset_emit_flags(
         self, *,
-        engine: Engine, agent: HierarchyPath, emit_paths: tuple[HierarchyPath]
+        engine: Engine, agent: HierarchyPath, emit_stores: list[HierarchyPath]
     ) -> None:
         """
         Reconfigure the simulation engine to avoid futile data marshalling, by

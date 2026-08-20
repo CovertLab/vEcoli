@@ -242,6 +242,7 @@ def counts(states: np.ndarray, idx: int | np.ndarray) -> np.ndarray:
 class get_bulk_counts(Serializer):
     """Serializer for bulk molecules that saves counts without IDs or masses."""
 
+    @staticmethod
     def serialize(bulk: np.ndarray) -> np.ndarray:
         """
         Args:
@@ -256,15 +257,31 @@ class get_bulk_counts(Serializer):
 class get_unique_fields(Serializer):
     """Serializer for unique molecules."""
 
-    def serialize(unique: np.ndarray) -> list[np.ndarray]:
+    @staticmethod
+    def serialize(unique: np.ndarray) -> dict[str, Any]:
         """
         Args:
             unique: Numpy structured array of attributes for one unique molecule
 
         Returns:
-            List of contiguous (required by orjson) arrays, one for each attribute
+            Mapping of attributes to contiguous (required by orjson) arrays.
+            Multi-dimensional attributes are returned as nested Python lists
+            because the Parquet emitter cannot serialize raw N-D arrays.
         """
-        return [np.ascontiguousarray(unique[field]) for field in unique.dtype.names]
+        serialized: dict[str, Any] = {}
+        for field in unique.dtype.names:
+            value = unique[field]
+            if value.ndim > 1:
+                # e.g. promoter ``bound_TF`` has shape (n_molecules, n_TFs).
+                # The Parquet emitter only serializes <=1-D arrays via its
+                # Polars fallback, so emit multi-dimensional attributes as
+                # nested lists (List(List(...))). The JSON emitter handles
+                # nested lists identically, and ``ndlist_to_ndarray`` restores
+                # the N-D array on read:
+                serialized[field] = value.tolist()
+            else:
+                serialized[field] = np.ascontiguousarray(value)
+        return serialized
 
 
 def numpy_schema(name: str, emit: bool = True) -> Dict[str, Any]:
@@ -288,7 +305,7 @@ def numpy_schema(name: str, emit: bool = True) -> Dict[str, Any]:
         # Since vivarium-core ensures that each store will only have a single
         # updater, it's OK to create new UniqueNumpyUpdater objects each time
         schema["_updater"] = UniqueNumpyUpdater().updater
-        # Convert to list of contiguous Numpy arrays for faster and more
+        # Convert to dictionary of contiguous Numpy arrays for faster and more
         # efficient serialization (still do not recommend emitting unique)
         schema["_serializer"] = get_unique_fields
         schema["_divider"] = UNIQUE_DIVIDERS[name]

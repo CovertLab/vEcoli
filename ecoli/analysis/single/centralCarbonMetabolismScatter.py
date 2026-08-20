@@ -74,7 +74,9 @@ def plot(
     ]
 
     raw = pl.DataFrame(
-        read_stacked_columns(history_sql, query, order_results=True, conn=conn)
+        read_stacked_columns(
+            history_sql, query, order_results=True, conn=conn, remove_first=True
+        )
     )
 
     cell_masses = units.fg * raw["cell_mass"]  # (n_timesteps,)

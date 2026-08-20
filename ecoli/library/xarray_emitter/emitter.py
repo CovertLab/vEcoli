@@ -222,14 +222,14 @@ class XarrayEmitter(BufferedEmitter):
 
     def reset_emit_flags(
         self, *,
-        engine: Engine, agent: HierarchyPath, emit_paths: tuple[HierarchyPath]
+        engine: Engine, agent: HierarchyPath, emit_stores: list[HierarchyPath]
     ) -> None:
         """
         In this subclass, ``agent`` is required and ``emit_paths`` is expected
         to be empty.
         """
         assert engine.emitter is self
-        if emit_paths:
+        if emit_stores:
             raise KeyError(
                 "For {\"emitter\": \"xarray\"}, please provide:\n"
                 "  {\"emitter_arg\": {\"view\": ...}}\n"
