@@ -78,10 +78,10 @@ Differences in usage
   See :py:class:`.XarrayEmitter` for an explanation of the JSON configuration
   syntax, and for complete examples, see in ``configs/test_configs/``:
 
-  - ``test_xarray_emitter.json`` (CLI invocation via
-    :py:func:`ecoli.experiments.ecoli_master_sim.main`)
-  - ``moving_avg_analysis.json`` (Nextflow invocation via
-    :py:func:`runscripts.workflow.main`).
+  - ``moving_avg_analysis.json`` (parameters for a **realistic workflow**;
+    Nextflow invocation via :py:func:`runscripts.workflow.main`).
+  - ``test_xarray_emitter.json`` (parameters for **fast CI tests**;
+    CLI invocation via :py:func:`ecoli.experiments.ecoli_master_sim.main`)
 
 .. hint::
   As data structures, `DataTree`_\ s could support changes of variable names and
@@ -108,8 +108,8 @@ Differences in implementation
   backends with *asynchronous* APIs (currently supported: `Zarr`_), realizing
   the opportunity for :ref:`concurrency <concurrency>` among multiple
   `DataArray`_\ s within an output buffer.
-- Decouples the in-memory buffer size from the persistent chunk size, in order
-  to simplify performance tuning of large-scale simulations (see
+- Decouples the *in-memory buffer size* from the *persistent chunk size*, in
+  order to simplify performance tuning of large-scale simulations (see
   :py:class:`.XarrayTransducer` and :py:class:`.AsyncBufferWriter` for details).
 - Maintains `consolidated metadata`_ and updates it at the end of each simulated
   cell generation, in order to reduce the metadata loading latency for
@@ -254,20 +254,23 @@ This design is motivated by the following observations at the time of writing:
     :math:`10^2`--:math:`10^5`
     :py:class:`~ecoli.experiments.ecoli_master_sim.EcoliSim` instances are
     executed in parallel, on a single core each.
-  - The multiplicity of *bandwidth*-consuming arrays in each
-    :py:class:`.XarrayBuffer` provides an opportunity for concurrency, even
-    though on typical compute environments, the *latency* of the transport layer
-    in the :py:class:`.AsyncBufferWriter` is assumed to be at least 3 orders of
-    magnitude smaller than the simulation time required to fill an
-    :py:class:`.XarrayBuffer`. This is particularly relevant if many parallel
-    simulations in an HPC environment are flushing their buffers at correlated
-    wall-clock times.
+  - On typical compute environments, the *latency* of the transport layer in the
+    :py:class:`.AsyncBufferWriter` is **assumed to be at least 2 orders of
+    magnitude smaller** than the *simulation runtime* required to fill one
+    :py:class:`.XarrayBuffer`. This time scale ratio, together with the
+    available memory per CPU core, should determine the
+    ``transducer.buffer.size`` configuration for the
+    :py:class:`.XarrayTransducer`.
+  - Within the filling time of each :py:class:`.XarrayBuffer`, the multiplicity
+    of *bandwidth*-consuming arrays provides an opportunity for *concurrency*.
+    This is particularly relevant if many parallel simulations in an HPC
+    environment are flushing their buffers at correlated wall-clock times.
   - Since using many threads per
     :py:class:`~ecoli.experiments.ecoli_master_sim.EcoliSim` OS process would
     slow down the simulation, and since using many concurrent connections per
     :py:class:`~ecoli.experiments.ecoli_master_sim.EcoliSim` OS process would
-    congest the transport layer, the optimal choice is expected to be a small
-    integer for both resource parameters.
+    congest the transport layer, the optimal choice is expected to be a *small
+    integer* for both resource parameters.
   - The :py:mod:`~zarr.api.asynchronous` API was `central to the design`_ of
     `zarr-python`_ 3.
   - In Xarray, library support for ``async`` calls to storage backends is `still

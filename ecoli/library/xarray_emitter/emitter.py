@@ -62,10 +62,10 @@ class XarrayEmitter(BufferedEmitter):
     .. note::
       For complete examples, see in ``configs/test_configs/``:
 
-      - ``test_xarray_emitter.json`` (CLI invocation via
-        :py:func:`ecoli.experiments.ecoli_master_sim.main`)
-      - ``moving_avg_analysis.json`` (Nextflow invocation via
-        :py:func:`runscripts.workflow.main`).
+      - ``moving_avg_analysis.json`` (parameters for a **realistic workflow**;
+          Nextflow invocation via :py:func:`runscripts.workflow.main`).
+      - ``test_xarray_emitter.json`` (parameters for **fast CI tests**;
+          CLI invocation via :py:func:`ecoli.experiments.ecoli_master_sim.main`)
     """
 
     __slots__ = (

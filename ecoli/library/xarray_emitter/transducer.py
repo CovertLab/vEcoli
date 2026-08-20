@@ -407,7 +407,7 @@ class XarrayTransducer:
       {
         "predicate": [...],
         "buffer": {
-          "size": 3
+          "size": 600
         }
       }
 
@@ -416,14 +416,15 @@ class XarrayTransducer:
       - ``predicate`` defines the criterion for which *simulation steps* also
         become *emit steps*, and is parsed by
         :py:class:`.ConjunctiveEmitPredicate`,
-      - while ``size`` is the number of *emit steps* stored in memory by
+      - while ``buffer.size`` is the number of *emit steps* stored in memory by
         :py:class:`.XarrayBuffer`.
 
     .. note::
-      The parameter ``size`` is intended to constrain the memory cost of each
-      simulation process, when many parallel simulations are executed in
-      parallel on a node with shared memory. Within that memory budget, larger
-      buffer sizes will result in fewer calls to the transport layer.
+      The parameter ``buffer.size`` is intended to constrain the memory cost of
+      each simulation process, when many parallel simulations are executed in
+      parallel on a node with shared memory. Within that memory budget, **larger
+      buffer sizes** will directly translate into **fewer calls to the transport
+      layer**.
     """
 
     __slots__ = (
