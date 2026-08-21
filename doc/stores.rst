@@ -368,6 +368,8 @@ any number of attributes for all active (``_entryState`` is 1) unique molecules
 of a given type (e.g. RNA, active RNAP, etc.).
 
 
+.. _listeners:
+
 ---------
 Listeners
 ---------

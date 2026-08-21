@@ -534,11 +534,11 @@ def strip_resource_keys(config: dict) -> dict:
     return stripped
 
 
-CONFIG_DIR_PATH = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-    "configs",
-)
-NEXTFLOW_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "nextflow")
+RUNSCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
+REPO_DIR = os.path.dirname(RUNSCRIPTS_DIR)
+CONFIG_DIR_PATH = os.path.join(REPO_DIR, "configs")
+NEXTFLOW_DIR = os.path.join(RUNSCRIPTS_DIR, "nextflow")
+CONTAINER_DIR = os.path.join(RUNSCRIPTS_DIR, "container")
 
 # These input channels calculate the values that the analysis jobs defined in
 # runscripts/nextflow/analysis.nf consume.
@@ -1012,9 +1012,7 @@ def get_cluster_config(
 
 
 def build_image_cmd(image_name, apptainer=False) -> list[str]:
-    build_script = os.path.join(
-        os.path.dirname(__file__), "container", "build-image.sh"
-    )
+    build_script = os.path.join(CONTAINER_DIR, "build-image.sh")
     cmd = [build_script, "-i", image_name]
     if apptainer:
         cmd.append("-a")
@@ -1075,9 +1073,7 @@ def run_ecr_script(image: str, build: bool, region: str = "us-gov-west-1") -> st
     Returns:
         Full ECR image URI.
     """
-    build_script = os.path.join(
-        os.path.dirname(__file__), "container", "build-and-push-ecr.sh"
-    )
+    build_script = os.path.join(CONTAINER_DIR, "build-and-push-ecr.sh")
 
     # Parse the container_image to extract repo name and tag
     # Expected format: <account>.dkr.ecr.<region>.amazonaws.com/<repo>:<tag>
@@ -1350,11 +1346,7 @@ def main():
     # Load .env from the repository root so that variables like NXF_VER are
     # set even when the script is invoked directly with python (e.g. on HPC/
     # cloud) rather than via ``uv run --env-file .env``.
-    _load_dotenv(
-        os.path.join(
-            os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env"
-        )
-    )
+    _load_dotenv(os.path.join(REPO_DIR, ".env"))
     parser = argparse.ArgumentParser()
     config_file = os.path.join(CONFIG_DIR_PATH, "default.json")
     parser.add_argument(
@@ -1439,8 +1431,7 @@ def main():
     if cluster_config and cluster_config.jenkins:
         config["lineage_seed"] = random.randint(0, 2**31 - 1)
 
-    repo_dir = os.path.dirname(os.path.dirname(__file__))
-    local_outdir = os.path.join(repo_dir, "nextflow_temp", experiment_id)
+    local_outdir = os.path.join(REPO_DIR, "nextflow_temp", experiment_id)
     os.makedirs(local_outdir, exist_ok=True)
     if filesystem is None:
         if os.path.exists(exp_outdir) and not args.resume:
@@ -1478,7 +1469,7 @@ def main():
     if args.resume is None:
         copy_to_filesystem(temp_stripped_path, final_stripped_path, filesystem)
 
-    nf_config = os.path.join(os.path.dirname(__file__), "nextflow", "config.template")
+    nf_config = os.path.join(NEXTFLOW_DIR, "config.template")
     with open(nf_config, "r") as f:
         nf_config = f.readlines()
     nf_config = "".join(nf_config)
@@ -1572,9 +1563,7 @@ def main():
 
     run_parca, sim_imports, sim_workflow = generate_code(config)
 
-    nf_template_path = os.path.join(
-        os.path.dirname(__file__), "nextflow", "template.nf"
-    )
+    nf_template_path = os.path.join(NEXTFLOW_DIR, "template.nf")
     with open(nf_template_path, "r") as f:
         nf_template = f.readlines()
     nf_template = "".join(nf_template)
