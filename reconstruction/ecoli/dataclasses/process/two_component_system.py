@@ -248,6 +248,20 @@ class TwoComponentSystem(object):
         self._populate_derivative_and_jacobian()
         self.dependency_matrix = self._make_dependency_matrix()
 
+    @property
+    def modified_molecules(
+        self,
+    ):  # Fix 0
+        value = self.__dict__.get("modified_molecules")
+        if value is None:
+            value = self.make_modified_molecule_list()
+            self.__dict__["modified_molecules"] = value
+        return value
+
+    @modified_molecules.setter  # Fix 0
+    def modified_molecules(self, value):
+        self.__dict__["modified_molecules"] = value
+
     def _buildComplexToMonomer(self, sim_data, modifiedFormsMonomers, tcsMolecules):
         """
         Maps each complex to a dictionary that maps each subunit of the complex

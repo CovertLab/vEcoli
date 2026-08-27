@@ -29,6 +29,9 @@ from ecoli.experiments.ecoli_master_sim import (
     tuplify_topology,
 )
 from ecoli.library.logging_tools import write_json
+
+# 27 August Fix3: needed so shutdown can finalize parquet emitters.
+from ecoli.library.parquet_emitter import ParquetEmitter
 from ecoli.library.sim_data import RAND_MAX
 from ecoli.library.schema import not_a_process
 from ecoli.library.json_state import get_state_from_file
@@ -149,6 +152,8 @@ class EcoliInnerSim(Composer):
     def generate_topology(self, config):
         pass
 
+        # Fix 3: pass the emit cadence through to the inner EngineProcess.
+
 
 class EcoliEngineProcess(Composer):
     """
@@ -202,6 +207,8 @@ class EcoliEngineProcess(Composer):
             "tunnel_out_schemas": config["tunnel_out_schemas"],
             "stub_schemas": config["stub_schemas"],
             "seed": (config["seed"] + 1) % RAND_MAX,
+            # Fix 3: pass the emit cadence through to the inner EngineProcess.
+            "emit_step": config.get("emit_step", 1),
             "inner_emitter": config["inner_emitter"],
             "divide": config["divide"],
             # Inner sim will set store at ('division_trigger',)
@@ -263,30 +270,54 @@ def colony_save_states(engine, config):
         engine.update(time_to_next_save)
         time_elapsed = config["save_times"][i]
 
-        # Save the full state of the super-simulation
+        # Save the full state of the super-simulation # Fix 1
         state_to_save = engine.state.get_value(condition=not_a_process)
 
-        # Get internal state from the EngineProcess sub-simulation
-        for agent_id in state_to_save["agents"]:
-            engine.state.get_path(
-                ("agents", agent_id, "cell_process")
-            ).value.send_command("get_inner_state")
-        for agent_id in state_to_save["agents"]:
+        # The parquet emitter wraps the entire outer simulation in
+        # agents/outer. Colony save files should NOT contain this wrapper,
+        # because initial_colony_file expects agents/<agent_id>.
+        if config["emitter"] == "parquet":
+            colony_state = state_to_save["agents"]["outer"]
+            cell_process_base_path = ("agents", "outer", "agents")
+        else:
+            colony_state = state_to_save
+            cell_process_base_path = ("agents",)
+
+        # Get internal state from each EngineProcess sub-simulation
+        for agent_id in colony_state["agents"]:
+            cell_process_path = cell_process_base_path + (
+                agent_id,
+                "cell_process",
+            )
+            engine.state.get_path(cell_process_path).value.send_command(
+                "get_inner_state"
+            )
+
+        for agent_id in colony_state["agents"]:
+            cell_process_path = cell_process_base_path + (
+                agent_id,
+                "cell_process",
+            )
             cell_state = engine.state.get_path(
-                ("agents", agent_id, "cell_process")
+                cell_process_path
             ).value.get_command_result()
+
             # Can't save, but will be restored when loading state
             del cell_state["environment"]["exchange_data"]
+
             # Shared processes are re-initialized on load
             del cell_state["process"]
+
             # Save bulk and unique dtypes
             cell_state["bulk_dtypes"] = str(cell_state["bulk"].dtype)
             cell_state["unique_dtypes"] = {}
             for name, mols in cell_state["unique"].items():
                 cell_state["unique_dtypes"][name] = str(mols.dtype)
-            state_to_save["agents"][agent_id] = cell_state
 
-        state_to_save = serialize_value(state_to_save)
+            colony_state["agents"][agent_id] = cell_state
+
+        state_to_save = serialize_value(colony_state)  # Fix 1
+
         if config.get("colony_save_prefix", None):
             write_json(
                 "data/"
@@ -315,6 +346,19 @@ def colony_save_states(engine, config):
     time_remaining = config["max_duration"] - config["save_times"][-1]
     if time_remaining:
         engine.update(time_remaining)
+
+
+def finalize_parquet_emitters(processes, seen=None):  # Fix 3
+    if seen is None:
+        seen = set()
+    if isinstance(processes, dict):
+        for process in processes.values():
+            finalize_parquet_emitters(process, seen)
+    elif hasattr(processes, "emitter"):
+        emitter = processes.emitter
+        if isinstance(emitter, ParquetEmitter) and id(emitter) not in seen:
+            seen.add(id(emitter))
+            emitter.finalize()
 
 
 def run_simulation(config):
@@ -368,6 +412,8 @@ def run_simulation(config):
         "stub_schemas": stub_schemas,
         "parallel": config["parallel"],
         "divide": config["divide"],
+        # Fix 3: pass the emit cadence into the inner EngineProcess setup.
+        "emit_step": config.get("emit_step", 1),
         "tunnels_in": (
             ("environment",),
             ("boundary",),
@@ -512,6 +558,11 @@ def run_simulation(config):
     else:
         engine.update(config["max_duration"])
     engine.end()
+    # Fix 2&3: flush buffered parquet output on normal shutdown.
+    if config["emitter"] == "parquet":
+        engine.emitter.success = True
+        engine.emitter.finalize()
+        finalize_parquet_emitters(engine.processes)
 
     if config["profile"]:
         report_profiling(engine.stats)

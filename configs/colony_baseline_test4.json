@@ -1,0 +1,30 @@
+{
+    "inherit_from": ["spatial.json"],
+    "description": "Test4: Emit_step test for only 120 seconds, save parquet per cell, save final state",
+    
+    "seed": 10,
+    "sim_data_path": "/home/katha/dev/vEcoli-colony-sim/out/all_media_conditions2/parca/kb/simData.cPickle",
+    
+    "emit_step": 60,
+    "emitter": "parquet",
+    "emitter_arg": {
+        "out_dir": "out/colony_runs/baseline_test4_2"
+    },
+    
+    "inner_emitter": "parquet",
+    
+    "max_duration": 120,
+    
+    "save": true,
+    "save_times": [120],
+    "colony_save_prefix": "baseline_test4",
+    
+    "parallel": false,
+    
+    "engine_process_reports": [
+        ["boundary"],
+        ["bulk"],
+        ["listeners"],
+        ["environment", "exchange"]
+    ]
+}

@@ -1,0 +1,26 @@
+{
+    "experiment_id": "all_media_conditions2",
+    "sim_data_path": null,
+    "suffix_time": false,
+    "lineage_seed": 0,
+    "generations": 8,
+    "n_init_sims": 1,
+    "single_daughters": true,
+    "emitter": "parquet",
+    "emitter_arg": {
+        "out_dir": "out"
+    },
+    "variants": {
+        "condition": {
+            "condition": {
+                "value": ["with_aa", "acetate", "succinate", "no_oxygen"]
+            }
+        }
+    },
+    "analysis_options": {
+        "multivariant": {
+            "doubling_time_hist": {"skip_n_gens": 0},
+            "doubling_time_line": {}
+        }
+    }
+}

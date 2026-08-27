@@ -210,6 +210,7 @@ class EngineProcess(Process):
         "inner_composer_config": {},
         "outer_composer_config": {},
         "seed": 0,
+        "emit_step": 1,  # Fix3
         "inner_emitter": "null",
         "divide": False,
         "division_threshold": None,
@@ -514,16 +515,17 @@ class EngineProcess(Process):
         # other words, since we rely on the outer Engine to apply the
         # updates, we have to wait for those updates from the previous
         # timestep to be applied before we emit data.
-        data = self.sim.state.emit_data()
-        if isinstance(self.emitter, ParquetEmitter):
-            # ParquetEmitter expects per-agent data under agents/<agent_id>.
-            data = {"agents": {self.parameters["agent_id"]: data}}
-        data["time"] = self.sim.global_time
-        emit_config = {
-            "table": "history",
-            "data": data,
-        }
-        self.emitter.emit(emit_config)
+        if self.sim.global_time % self.parameters["emit_step"] == 0:  # Fix 3
+            data = self.sim.state.emit_data()
+            if isinstance(self.emitter, ParquetEmitter):
+                # ParquetEmitter expects per-agent data under agents/<agent_id>.
+                data = {"agents": {self.parameters["agent_id"]: data}}
+            data["time"] = self.sim.global_time
+            emit_config = {
+                "table": "history",
+                "data": data,
+            }
+            self.emitter.emit(emit_config)
 
         # Run inner simulation for timestep.
         try:
