@@ -29,6 +29,9 @@ from ecoli.experiments.ecoli_master_sim import (
     tuplify_topology,
 )
 from ecoli.library.logging_tools import write_json
+
+# 27 August Fix3: needed so shutdown can finalize parquet emitters.
+from ecoli.library.parquet_emitter import ParquetEmitter
 from ecoli.library.sim_data import RAND_MAX
 from ecoli.library.schema import not_a_process
 from ecoli.library.json_state import get_state_from_file
@@ -149,6 +152,8 @@ class EcoliInnerSim(Composer):
     def generate_topology(self, config):
         pass
 
+        # Fix 3: pass the emit cadence through to the inner EngineProcess.
+
 
 class EcoliEngineProcess(Composer):
     """
@@ -202,6 +207,8 @@ class EcoliEngineProcess(Composer):
             "tunnel_out_schemas": config["tunnel_out_schemas"],
             "stub_schemas": config["stub_schemas"],
             "seed": (config["seed"] + 1) % RAND_MAX,
+            # Fix 3: pass the emit cadence through to the inner EngineProcess.
+            "emit_step": config.get("emit_step", 1),
             "inner_emitter": config["inner_emitter"],
             "divide": config["divide"],
             # Inner sim will set store at ('division_trigger',)
@@ -343,6 +350,20 @@ def colony_save_states(engine, config):
         engine.update(time_remaining)
 
 
+def finalize_parquet_emitters(processes, seen=None):  # Fix 3
+    # 27 August Fix3: recurse through nested composites to flush inner parquet emitters.
+    if seen is None:
+        seen = set()
+    if isinstance(processes, dict):
+        for process in processes.values():
+            finalize_parquet_emitters(process, seen)
+    elif hasattr(processes, "emitter"):
+        emitter = processes.emitter
+        if isinstance(emitter, ParquetEmitter) and id(emitter) not in seen:
+            seen.add(id(emitter))
+            emitter.finalize()
+
+
 def run_simulation(config):
     """
     Main method for running colony simulations in
@@ -394,6 +415,8 @@ def run_simulation(config):
         "stub_schemas": stub_schemas,
         "parallel": config["parallel"],
         "divide": config["divide"],
+        # Fix 3: pass the emit cadence into the inner EngineProcess setup.
+        "emit_step": config.get("emit_step", 1),
         "tunnels_in": (
             ("environment",),
             ("boundary",),
@@ -538,10 +561,11 @@ def run_simulation(config):
     else:
         engine.update(config["max_duration"])
     engine.end()
-    # Flush buffered parquet output on normal shutdown (27 August 2026)
+    # 27 August Fix2&3: flush buffered parquet output on normal shutdown.
     if config["emitter"] == "parquet":
         engine.emitter.success = True
         engine.emitter.finalize()
+        finalize_parquet_emitters(engine.processes)
 
     if config["profile"]:
         report_profiling(engine.stats)

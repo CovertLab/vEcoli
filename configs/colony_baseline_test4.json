@@ -8,7 +8,7 @@
     "emit_step": 60,
     "emitter": "parquet",
     "emitter_arg": {
-        "out_dir": "out/colony_runs/baseline_test4"
+        "out_dir": "out/colony_runs/baseline_test4_2"
     },
     
     "inner_emitter": "parquet",
