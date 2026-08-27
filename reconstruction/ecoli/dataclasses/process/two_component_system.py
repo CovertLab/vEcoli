@@ -251,14 +251,14 @@ class TwoComponentSystem(object):
     @property
     def modified_molecules(
         self,
-    ):  # Debug 23 August 2026; "all_media_conditions1" failure
+    ):  # Fix 0
         value = self.__dict__.get("modified_molecules")
         if value is None:
             value = self.make_modified_molecule_list()
             self.__dict__["modified_molecules"] = value
         return value
 
-    @modified_molecules.setter  # Debug 23 August 2026; "all_media_conditions1" failure
+    @modified_molecules.setter  # Fix 0
     def modified_molecules(self, value):
         self.__dict__["modified_molecules"] = value
 

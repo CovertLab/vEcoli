@@ -270,7 +270,7 @@ def colony_save_states(engine, config):
         engine.update(time_to_next_save)
         time_elapsed = config["save_times"][i]
 
-        # Save the full state of the super-simulation # Debugged from test 1 results (25 August 2026)
+        # Save the full state of the super-simulation # Fix 1
         state_to_save = engine.state.get_value(condition=not_a_process)
 
         # The parquet emitter wraps the entire outer simulation in
@@ -316,9 +316,7 @@ def colony_save_states(engine, config):
 
             colony_state["agents"][agent_id] = cell_state
 
-        state_to_save = serialize_value(
-            colony_state
-        )  # Debugged from test 1 results (25 August 2026)
+        state_to_save = serialize_value(colony_state)  # Fix 1
 
         if config.get("colony_save_prefix", None):
             write_json(
@@ -351,7 +349,6 @@ def colony_save_states(engine, config):
 
 
 def finalize_parquet_emitters(processes, seen=None):  # Fix 3
-    # 27 August Fix3: recurse through nested composites to flush inner parquet emitters.
     if seen is None:
         seen = set()
     if isinstance(processes, dict):
@@ -561,7 +558,7 @@ def run_simulation(config):
     else:
         engine.update(config["max_duration"])
     engine.end()
-    # 27 August Fix2&3: flush buffered parquet output on normal shutdown.
+    # Fix 2&3: flush buffered parquet output on normal shutdown.
     if config["emitter"] == "parquet":
         engine.emitter.success = True
         engine.emitter.finalize()

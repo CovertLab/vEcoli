@@ -70,3 +70,9 @@ test_sherlock/
 
 # SMS API #
 .hpc_env
+
+# Local analysis notebooks
+*.ipynb
+
+# Generated simulation state/output
+data/*.json
