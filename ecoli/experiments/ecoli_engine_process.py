@@ -538,6 +538,10 @@ def run_simulation(config):
     else:
         engine.update(config["max_duration"])
     engine.end()
+    # Flush buffered parquet output on normal shutdown (27 August 2026)
+    if config["emitter"] == "parquet":
+        engine.emitter.success = True
+        engine.emitter.finalize()
 
     if config["profile"]:
         report_profiling(engine.stats)
