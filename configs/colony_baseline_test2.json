@@ -1,0 +1,30 @@
+{
+    "inherit_from": ["spatial.json"],
+    "description": "Test2: read from trial1, run for another generation, save parquet per cell, save final state",
+    "initial_colony_file": "baseline_2gen_seed_0_colony_t6000",
+
+    "seed": 0,
+    "sim_data_path": "/home/katha/dev/vEcoli-colony-sim/out/all_media_conditions2/parca/kb/simData.cPickle",
+    
+    "emitter": "parquet",
+    "emit_step": 60,
+    "emitter_arg": {
+        "out_dir": "out/colony_runs/baseline_3rd_gen_seed_0"
+    },
+    "emit_config": false,
+
+    "max_duration": 9000,
+    
+    "save": true,
+    "save_times": [9000],
+    "colony_save_prefix": "baseline_3rd_gen",
+    
+    "parallel": false,
+    
+    "engine_process_reports": [
+        ["boundary"],
+        ["bulk"],
+        ["listeners"],
+        ["environment", "exchange"]
+    ]
+}

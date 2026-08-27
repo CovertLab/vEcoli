@@ -263,30 +263,56 @@ def colony_save_states(engine, config):
         engine.update(time_to_next_save)
         time_elapsed = config["save_times"][i]
 
-        # Save the full state of the super-simulation
+        # Save the full state of the super-simulation # Debugged from test 1 results (25 August 2026)
         state_to_save = engine.state.get_value(condition=not_a_process)
 
-        # Get internal state from the EngineProcess sub-simulation
-        for agent_id in state_to_save["agents"]:
-            engine.state.get_path(
-                ("agents", agent_id, "cell_process")
-            ).value.send_command("get_inner_state")
-        for agent_id in state_to_save["agents"]:
+        # The parquet emitter wraps the entire outer simulation in
+        # agents/outer. Colony save files should NOT contain this wrapper,
+        # because initial_colony_file expects agents/<agent_id>.
+        if config["emitter"] == "parquet":
+            colony_state = state_to_save["agents"]["outer"]
+            cell_process_base_path = ("agents", "outer", "agents")
+        else:
+            colony_state = state_to_save
+            cell_process_base_path = ("agents",)
+
+        # Get internal state from each EngineProcess sub-simulation
+        for agent_id in colony_state["agents"]:
+            cell_process_path = cell_process_base_path + (
+                agent_id,
+                "cell_process",
+            )
+            engine.state.get_path(cell_process_path).value.send_command(
+                "get_inner_state"
+            )
+
+        for agent_id in colony_state["agents"]:
+            cell_process_path = cell_process_base_path + (
+                agent_id,
+                "cell_process",
+            )
             cell_state = engine.state.get_path(
-                ("agents", agent_id, "cell_process")
+                cell_process_path
             ).value.get_command_result()
+
             # Can't save, but will be restored when loading state
             del cell_state["environment"]["exchange_data"]
+
             # Shared processes are re-initialized on load
             del cell_state["process"]
+
             # Save bulk and unique dtypes
             cell_state["bulk_dtypes"] = str(cell_state["bulk"].dtype)
             cell_state["unique_dtypes"] = {}
             for name, mols in cell_state["unique"].items():
                 cell_state["unique_dtypes"][name] = str(mols.dtype)
-            state_to_save["agents"][agent_id] = cell_state
 
-        state_to_save = serialize_value(state_to_save)
+            colony_state["agents"][agent_id] = cell_state
+
+        state_to_save = serialize_value(
+            colony_state
+        )  # Debugged from test 1 results (25 August 2026)
+
         if config.get("colony_save_prefix", None):
             write_json(
                 "data/"
