@@ -1,0 +1,36 @@
+{
+    "emitter_arg": {
+        "out_dir": "out"
+    },
+    "analysis_options": {
+        "experiment_id": [
+            "EXP"
+        ],
+        "variant_data_dir": [
+            "out/EXP/variant_sim_data"
+        ],
+        "validation_data_path": [
+            "out/EXP/parca/kb/validationData.cPickle"
+        ],
+        "outdir": "out/analysis_out",
+        "cpus": 1,
+        "single": {
+            "mass_fraction_summary": {
+            }
+        },
+        "multidaughter": {},
+        "multigeneration": {
+            "metabolite_reaction_breakdown": {
+                "metabolite": ["THF[c]", "METHYLENE-THF[c]", "ATP[c]"],
+                "reactions_per_row": 4,
+                "max_reactions": 16,
+                "flux_threshold_frac": 0,
+                "split_fba_by_instantiation": true,
+                "mark_generations": true
+            }
+        },
+        "multiseed": {},
+        "multivariant": {},
+        "multiexperiment": {}
+    }
+}
