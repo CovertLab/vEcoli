@@ -10,9 +10,13 @@ import hashlib
 from tqdm import tqdm
 import zipfile
 
-from vivarium.library.dict_utils import get_value_from_path
-from vivarium.core.emitter import data_from_database, get_experiment_database
+import duckdb
 
+from ecoli.library.parquet_emitter import (
+    field_metadata,
+    ndlist_to_ndarray,
+    read_stacked_columns,
+)
 from ecoli.processes.metabolism import (
     COUNTS_UNITS,
     VOLUME_UNITS,
@@ -29,6 +33,27 @@ from ecoli.analysis.causality_network.network_components import (
 from ecoli.analysis.causality_network.build_network import NODE_ID_SUFFIX
 
 from wholecell.utils import units
+
+
+LISTENER_COLUMNS = [
+    "listeners__mass__cell_mass",
+    "listeners__mass__dry_mass",
+    "listeners__rna_synth_prob__p_promoter_bound",
+    "listeners__rna_synth_prob__actual_rna_synth_prob_per_cistron",
+    "listeners__rna_synth_prob__promoter_copy_number",
+    "listeners__rna_synth_prob__gene_copy_number",
+    "listeners__rna_synth_prob__n_bound_TF_per_TU",
+    "listeners__rna_synth_prob__n_bound_TF_per_cistron",
+    "listeners__rna_counts__mRNA_counts",
+    "listeners__rna_maturation_listener__unprocessed_rnas_consumed",
+    "listeners__rnap_data__rna_init_event",
+    "listeners__ribosome_data__actual_prob_translation_per_transcript",
+    "listeners__complexation_listener__complexation_events",
+    "listeners__fba_results__reaction_fluxes",
+    "listeners__equilibrium_listener__reaction_rates",
+    "listeners__growth_limits__net_charged",
+    "bulk",
+]
 
 
 MIN_TIMESTEPS = (
@@ -61,67 +86,65 @@ def get_safe_name(s):
     return fname
 
 
-def array_timeseries(data, path, timeseries):
-    """Converts data of the format {time: {path: value}}} to timeseries of the
-    format {path: [value_1, value_2,...]}. Modifies timeseries in place."""
-    path_timeseries = timeseries
+def _nest_assign(nested, path, value):
+    """Assign value at nested dict path, creating intermediate dicts."""
+    cursor = nested
     for key in path[:-1]:
-        path_timeseries = path_timeseries.setdefault(key, {})
-    accumulated_data = []
-    for datum in data.values():
-        path_data = get_value_from_path(datum, path)
-        accumulated_data.append(path_data)
-    path_timeseries[path[-1]] = np.array(accumulated_data)
+        cursor = cursor.setdefault(key, {})
+    cursor[path[-1]] = value
 
 
-def convert_dynamics(seriesOutDir, sim_data, node_list, edge_list, experiment_id):
-    """Convert the sim's dynamics data to a Causality seriesOut.zip file."""
+def build_timeseries_and_indexes(sim_data, conn: duckdb.DuckDBPyConnection, history_sql: str, config_sql: str):
+    """Read listener time series from the Parquet output via DuckDB and
+    rebuild the nested ``timeseries[...]`` dict-of-ndarrays, the per-node-type
+    ID->index lookup ``indexes`` dict, and the per-timestep cell ``volume``
+    array that the per-node reader functions (``TYPE_TO_READER_FUNCTION``)
+    consume.
 
-    if not experiment_id:
-        experiment_id = input("Please provide an experiment id: ")
+    Extracted out of ``convert_dynamics`` (which now just calls this and
+    writes the result to a ``seriesOut.zip``) so a second writer -- one that
+    caches the same per-node dynamics into a Zarr store instead of a zip, see
+    ``write_training_cache.py`` -- can reuse this exact reading/indexing/unit-
+    conversion logic rather than duplicating it. This logic has real
+    domain-specific subtlety (unit conversions against physical constants,
+    reshaping the bound-TF arrays, building 10 different ID->index lookups)
+    that would be a genuine correctness risk to reimplement independently
+    rather than share.
 
-    # TODO: Convert to use DuckDB
-    raise NotImplementedError("Still need to convert to use DuckDB!")
-    # Retrieve the data directly from database
-    db = get_experiment_database()
-    query = [
-        ("bulk",),
-        ("listeners", "mass", "cell_mass"),
-        ("listeners", "mass", "dry_mass"),
-        ("listeners", "rna_synth_prob", "p_promoter_bound"),
-        ("listeners", "rna_synth_prob", "actual_rna_synth_prob_per_cistron"),
-        ("listeners", "rna_synth_prob", "promoter_copy_number"),
-        ("listeners", "rna_synth_prob", "gene_copy_number"),
-        ("listeners", "rna_synth_prob", "n_bound_TF_per_TU"),
-        ("listeners", "rna_synth_prob", "n_bound_TF_per_cistron"),
-        ("listeners", "rna_counts", "mRNA_counts"),
-        ("listeners", "rna_maturation_listener", "unprocessed_rnas_consumed"),
-        ("listeners", "rnap_data", "rna_init_event"),
-        ("listeners", "ribosome_data", "actual_prob_translation_per_transcript"),
-        ("listeners", "complexation_listener", "complexation_events"),
-        ("listeners", "fba_results", "reaction_fluxes"),
-        ("listeners", "equilibrium_listener", "reaction_rates"),
-        ("listeners", "growth_limits", "net_charged"),
-    ]
-    data, config = data_from_database(experiment_id, db, query=query)
-    del data[0.0]
+    Reads happen **cell-by-cell** (one query per (experiment, variant, seed,
+    generation, agent)) via ``read_stacked_columns(..., func=...)`` so that
+    long single-daughter lineages don't force DuckDB to materialize a giant
+    intermediate result and spill huge ``.block`` files (which can fail with
+    ``Invalid argument`` from macOS APFS ``F_PREALLOCATE`` on large sizes).
+    Each per-cell frame is sorted by time before concatenation, giving a
+    monotone timeseries across the whole lineage.
+    """
+
+    df = read_stacked_columns(
+        history_sql, LISTENER_COLUMNS, conn=conn,
+        func=lambda _cell_df: _cell_df.sort("time"),
+    )
 
     timeseries = {}
-    for path in query:
-        array_timeseries(data, path, timeseries)
-    timeseries["time"] = np.array(list(data.keys()))
+    for col in LISTENER_COLUMNS:
+        series = df[col]
+        # Nested-list columns become (n_timesteps, ...) ndarrays; scalar columns
+        # become 1-D ndarrays.
+        arr = ndlist_to_ndarray(series) if series.dtype.is_nested() else series.to_numpy()
+        _nest_assign(timeseries, col.split("__"), arr)
+    timeseries["time"] = df["time"].to_numpy()
 
     # Reshape arrays for number of bound transcription factors
     n_TU = len(sim_data.process.transcription.rna_data["id"])
     n_cistron = len(sim_data.process.transcription.cistron_data["id"])
     n_TF = len(sim_data.process.transcription_regulation.tf_ids)
 
-    timeseries["listeners"]["rna_synth_prob"]["n_bound_TF_per_cistron"] = np.array(
-        timeseries["listeners"]["rna_synth_prob"]["n_bound_TF_per_cistron"]
-    ).reshape(-1, n_cistron, n_TF)
-    timeseries["listeners"]["rna_synth_prob"]["n_bound_TF_per_TU"] = np.array(
-        timeseries["listeners"]["rna_synth_prob"]["n_bound_TF_per_TU"]
-    ).reshape(-1, n_TU, n_TF)
+    timeseries["listeners"]["rna_synth_prob"]["n_bound_TF_per_cistron"] = timeseries[
+        "listeners"
+    ]["rna_synth_prob"]["n_bound_TF_per_cistron"].reshape(-1, n_cistron, n_TF)
+    timeseries["listeners"]["rna_synth_prob"]["n_bound_TF_per_TU"] = timeseries[
+        "listeners"
+    ]["rna_synth_prob"]["n_bound_TF_per_TU"].reshape(-1, n_TU, n_TF)
 
     conversion_coeffs = (
         timeseries["listeners"]["mass"]["dry_mass"]
@@ -142,7 +165,7 @@ def convert_dynamics(seriesOutDir, sim_data, node_list, edge_list, experiment_id
     def build_index_dict(id_array):
         return {mol: i for i, mol in enumerate(id_array)}
 
-    molecule_ids = config["state"]["bulk"]["_properties"]["metadata"]
+    molecule_ids = field_metadata(conn, config_sql, "bulk")
     indexes["BulkMolecules"] = build_index_dict(molecule_ids)
 
     gene_ids = sim_data.process.transcription.cistron_data["gene_id"]
@@ -157,11 +180,6 @@ def convert_dynamics(seriesOutDir, sim_data, node_list, edge_list, experiment_id
     translated_rna_ids = sim_data.process.translation.monomer_data["cistron_id"]
     indexes["TranslatedRnas"] = build_index_dict(translated_rna_ids)
 
-    # metabolism_rxn_ids = TableReader(
-    # 	os.path.join(simOutDir, "FBAResults")).readAttribute("reactionIDs")
-    metabolism_rxn_ids = config["state"]["listeners"]["fba_results"]["reaction_fluxes"][
-        "_properties"
-    ]["metadata"]
     metabolism_rxn_ids = sim_data.process.metabolism.reaction_stoich.keys()
     indexes["MetabolismReactions"] = build_index_dict(metabolism_rxn_ids)
 
@@ -171,11 +189,11 @@ def convert_dynamics(seriesOutDir, sim_data, node_list, edge_list, experiment_id
     equilibrium_rxn_ids = sim_data.process.equilibrium.rxn_ids
     indexes["EquilibriumReactions"] = build_index_dict(equilibrium_rxn_ids)
 
-    # unprocessed_rna_ids = TableReader(
-    #     os.path.join(simOutDir, "RnaMaturationListener")).readAttribute("unprocessed_rna_ids")
-    unprocessed_rna_ids = config["state"]["listeners"]["rna_maturation_listener"][
-        "unprocessed_rnas_consumed"
-    ]["_properties"]["metadata"]
+    unprocessed_rna_ids = field_metadata(
+        conn,
+        config_sql,
+        "listeners__rna_maturation_listener__unprocessed_rnas_consumed",
+    )
     indexes["UnprocessedRnas"] = build_index_dict(unprocessed_rna_ids)
 
     tf_ids = sim_data.process.transcription_regulation.tf_ids
@@ -193,6 +211,46 @@ def convert_dynamics(seriesOutDir, sim_data, node_list, edge_list, experiment_id
         * (units.fg * timeseries["listeners"]["mass"]["cell_mass"])
     ).asNumber(units.L)
 
+    return timeseries, indexes, volume
+
+
+def build_node_dynamics(node_dict, sim_data, indexes, volume, timeseries):
+    """Build one populated ``Node`` (with ``.dynamics``/``.dynamics_units``
+    set by its type's reader function) from a plain node dict, e.g. one entry
+    of ``node_list``. Extracted out of ``convert_dynamics``'s local
+    ``build_dynamics`` closure so ``write_training_cache.py`` can reuse it
+    without going through ``Node.dynamics_dict()``'s JSON-oriented list-of-
+    dicts shape at all -- it can read ``node.dynamics`` directly.
+    """
+    node = Node()
+    node.node_id = node_dict["ID"]
+    node.node_type = node_dict["type"]
+    reader = TYPE_TO_READER_FUNCTION.get(node.node_type)
+    if reader:
+        reader(sim_data, node, node.node_id, indexes, volume, timeseries)
+    return node
+
+
+def convert_dynamics(
+    seriesOutDir,
+    sim_data,
+    node_list,
+    edge_list,
+    experiment_id,
+    conn: duckdb.DuckDBPyConnection,
+    history_sql: str,
+    config_sql: str,
+):
+    """Convert the sim's dynamics data to a Causality seriesOut.zip file.
+
+    See ``build_timeseries_and_indexes`` for how the listener data is read
+    and indexed; this function only handles the per-node dynamics extraction
+    and JSON/zip serialization on top of that.
+    """
+    timeseries, indexes, volume = build_timeseries_and_indexes(
+        sim_data, conn, history_sql, config_sql
+    )
+
     def dynamics_mapping(dynamics, safe):
         return [
             {
@@ -205,16 +263,6 @@ def convert_dynamics(seriesOutDir, sim_data, node_list, edge_list, experiment_id
         ]
 
     name_mapping = {}
-
-    def build_dynamics(node_dict):
-        node = Node()
-        node.node_id = node_dict["ID"]
-        node.node_type = node_dict["type"]
-        reader = TYPE_TO_READER_FUNCTION.get(node.node_type)
-        if reader:
-            # reader(sim_data, node, node.node_id, columns, indexes, volume)
-            reader(sim_data, node, node.node_id, indexes, volume, timeseries)
-        return node
 
     def save_node(node, name_mapping):
         if node.node_id in name_mapping:
@@ -237,7 +285,7 @@ def convert_dynamics(seriesOutDir, sim_data, node_list, edge_list, experiment_id
         zip_name, "w", compression=zipfile.ZIP_DEFLATED, allowZip64=True
     ) as zf:
         for node_dict in tqdm(node_list):
-            node = build_dynamics(node_dict)
+            node = build_node_dynamics(node_dict, sim_data, indexes, volume, timeseries)
             save_node(node, name_mapping)
         save_node(time_node(timeseries), name_mapping)
 
