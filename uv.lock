@@ -2364,7 +2364,7 @@ wheels = [
 
 [[package]]
 name = "nbformat"
-version = "5.10.4"
+version = "5.11.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "fastjsonschema" },
@@ -2372,9 +2372,9 @@ dependencies = [
     { name = "jupyter-core" },
     { name = "traitlets" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/6d/fd/91545e604bc3dad7dca9ed03284086039b294c6b3d75c0d2fa45f9e9caf3/nbformat-5.10.4.tar.gz", hash = "sha256:322168b14f937a5d11362988ecac2a4952d3d8e3a2cbeb2319584631226d5b3a", size = 142749, upload-time = "2024-04-04T11:20:37.371Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/31/72/b3446efab8756e7df4b8ec587f8e611cb5a7249e4323db480802f1d3be04/nbformat-5.11.1.tar.gz", hash = "sha256:32d4521c68c6e7d5b29c76defaeed9f42ea733142b9b19f88277ce10390b9c4d", size = 147775, upload-time = "2026-08-17T08:10:51.942Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/a9/82/0340caa499416c78e5d8f5f05947ae4bc3cba53c9f038ab6e9ed964e22f1/nbformat-5.10.4-py3-none-any.whl", hash = "sha256:3b48d6c8fbca4b299bf3982ea7db1af21580e4fec269ad087b9e81588891200b", size = 78454, upload-time = "2024-04-04T11:20:34.895Z" },
+    { url = "https://files.pythonhosted.org/packages/1a/69/ee613f74085ca7103f79cd08d579c4f3177d1d26e5d3d9528d2d6536a707/nbformat-5.11.1-py3-none-any.whl", hash = "sha256:cc6698fa75f4fab8755ead786317815f13a6fee3b53311c0abb1a8b51d52f7ec", size = 79849, upload-time = "2026-08-17T08:10:50.18Z" },
 ]
 
 [[package]]
@@ -2670,7 +2670,7 @@ name = "pexpect"
 version = "4.9.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "ptyprocess" },
+    { name = "ptyprocess", marker = "sys_platform != 'emscripten' or (extra == 'extra-6-vecoli-dev' and extra == 'extra-6-vecoli-escher')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/42/92/cc564bf6381ff43ce1f4d06852fc19a2f11d180f23dc32d9588bee2f149d/pexpect-4.9.0.tar.gz", hash = "sha256:ee7d41123f3c9911050ea2c2dac107568dc43b2d3b0c7557a33212c398ead30f", size = 166450, upload-time = "2023-11-25T09:07:26.339Z" }
 wheels = [
@@ -3141,10 +3141,10 @@ resolution-markers = [
 ]
 dependencies = [
     { name = "colorama", marker = "(sys_platform == 'win32' and extra == 'extra-6-vecoli-dev') or (sys_platform == 'win32' and extra != 'extra-6-vecoli-escher') or (extra == 'extra-6-vecoli-dev' and extra == 'extra-6-vecoli-escher')" },
-    { name = "iniconfig" },
-    { name = "packaging" },
-    { name = "pluggy" },
-    { name = "pygments" },
+    { name = "iniconfig", marker = "extra == 'extra-6-vecoli-dev' or extra != 'extra-6-vecoli-escher'" },
+    { name = "packaging", marker = "extra == 'extra-6-vecoli-dev' or extra != 'extra-6-vecoli-escher'" },
+    { name = "pluggy", marker = "extra == 'extra-6-vecoli-dev' or extra != 'extra-6-vecoli-escher'" },
+    { name = "pygments", marker = "extra == 'extra-6-vecoli-dev' or extra != 'extra-6-vecoli-escher'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/7d/0d/549bd94f1a0a402dc8cf64563a117c0f3765662e2e668477624baeec44d5/pytest-9.0.3.tar.gz", hash = "sha256:b86ada508af81d19edeb213c681b1d48246c1a91d304c6c81a427674c17eb91c", size = 1572165, upload-time = "2026-04-07T17:16:18.027Z" }
 wheels = [
@@ -4160,6 +4160,7 @@ dependencies = [
     { name = "kaleido" },
     { name = "line-profiler" },
     { name = "matplotlib" },
+    { name = "nbformat" },
     { name = "numba" },
     { name = "numpy" },
     { name = "orjson" },
@@ -4244,6 +4245,7 @@ requires-dist = [
     { name = "marimo", extras = ["sql", "lsp"], marker = "extra == 'dev'" },
     { name = "matplotlib" },
     { name = "mypy", marker = "extra == 'dev'" },
+    { name = "nbformat", specifier = "==5.11.1" },
     { name = "nbsphinx", marker = "extra == 'docs'" },
     { name = "numba" },
     { name = "numpy" },

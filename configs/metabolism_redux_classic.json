@@ -10,7 +10,7 @@
     "generations": 2,
     "emitter": "parquet",
     "emitter_arg": {
-        "out_dir": "out/phenotypic/"
+        "out_dir": "out_cyrus/"
     },
     "save": false,
     "save_times": [
@@ -97,11 +97,11 @@
         },
         "ecoli-metabolism-redux-classic": {
             "objective_weights": {
-                "secretion": 5.02061e-05,
-                "efficiency": 2.33e-07,
-                "kinetics": 3.1497e-05,
-                "diversity": 0.008770645,
-                "homeostatic": 0.023748941
+                "secretion": 8.57135E-05,
+                "efficiency": 7.54E-07,
+                "kinetics": 5.04793E-05,
+                "diversity": 0.001594363,
+                "homeostatic": 0.0428839
             },
             "include_new": true
         }

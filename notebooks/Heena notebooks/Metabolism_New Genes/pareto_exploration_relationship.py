@@ -51,10 +51,10 @@ import pareto_exploration as pe
 # extra log-transform). DIV_RANGE is in linear lambda-space, same as
 # pareto_exploration.WEIGHT_RANGES, and drawn log-uniform as before.
 # ---------------------------------------------------------------------------
-KIN_RANGE = (-6.0, -4.0)  # log10(lambda_kin)
-HOM_KIN_RATIO_RANGE = (2.81, 2.91)  # log10(lambda_hom) - log10(lambda_kin)
-EFF_KIN_RATIO_RANGE = (-2.5, -1.59)  # log10(lambda_eff) - log10(lambda_kin)
-SEC_KIN_RATIO_RANGE = (0.05, 0.35)  # log10(lambda_sec) - log10(lambda_kin)
+KIN_RANGE = (-4.0, -2.0)  # log10(lambda_kin)
+HOM_KIN_RATIO_RANGE = (2.77, 845)  # log10(lambda_hom) - log10(lambda_kin)
+EFF_KIN_RATIO_RANGE = (-0.8, 0.4)  # log10(lambda_eff) - log10(lambda_kin)
+SEC_KIN_RATIO_RANGE = (-0.2, 1)  # log10(lambda_sec) - log10(lambda_kin)
 DIV_RANGE = (1e-5, 1e-2)
 
 # Rejection windows for the two ratios that are *derived* from the three
@@ -67,10 +67,10 @@ DIV_RANGE = (1e-5, 1e-2)
 # [2.7,2.76] showed a genuine, reproducible orders-of-magnitude obj_homeo
 # response to kinetic knockdown, cross-validated against the raw
 # ratio_pairwise_analysis_obj_home.html plots for the jul and v6 datasets.
-HOM_EFF_TARGET_RANGE = (4.5, 5.5)
-HOM_SEC_TARGET_RANGE = (2.6, 2.76)
+HOM_EFF_TARGET_RANGE = (4.6, 6.0)
+HOM_SEC_TARGET_RANGE = (2.85, 5.5)
 
-OUT_DIR = "notebooks/Heena notebooks/Metabolism_New Genes/pareto_results_relationship_v7_10000samples"
+OUT_DIR = "notebooks/Heena notebooks/Metabolism_New Genes/pareto_results_relationship_sep_v1_10000samples"
 pe.OUT_DIR = OUT_DIR  # redirect run()'s output (CSV + 4 plots) to this directory
 
 
