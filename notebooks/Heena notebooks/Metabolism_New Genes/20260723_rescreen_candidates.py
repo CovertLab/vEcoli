@@ -16,7 +16,7 @@ pareto_results_jul_10000samples/pareto_results.csv (current process code,
 widened kinetics weight range).
 
 Usage:
-    uvenv notebooks/Heena\ notebooks/Metabolism_New\ Genes/20260723_rescreen_candidates.py
+    uvenv "notebooks/Heena\ notebooks/Metabolism_New\ Genes/20260723_rescreen_candidates.py"
 """
 
 import os
@@ -25,11 +25,12 @@ import plotly.express.colors as pc
 import plotly.graph_objects as go
 import polars as pl
 
-OUT_DIR = "notebooks/Heena notebooks/Metabolism_New Genes/pareto_results_relationship_sep_v1_10000samples"
-TOYA_R2_MIN = 0.6
+OUT_DIR = "notebooks/Heena notebooks/Metabolism_New Genes/pareto_results_relationship_sep_v3_10000samples"
+TOYA_R2_MIN = 0.5
 OBJ_HOMEO_NOISE_FLOOR = (
-    1e-12  # empirically: obj_homeo deciles jump from ~1e-11 to ~2e-4
+    1e-13  # empirically: obj_homeo deciles jump from ~1e-11 to ~2e-4
 )
+OBJ_HOMEO_CEIL_FLOOR = 5e-12  # empirically: obj_homeo deciles jump from ~1e-11 to ~2e-4
 N_CANDIDATES = 1000
 
 
@@ -47,7 +48,10 @@ def rescreen() -> pl.DataFrame:
         (pl.col("lambda_kin") / pl.col("lambda_hom")).alias("kin_hom_ratio")
     )
 
-    real_competition = feasible.filter(pl.col("obj_homeo") <= OBJ_HOMEO_NOISE_FLOOR)
+    real_competition = feasible.filter(
+        pl.col("obj_homeo") <= OBJ_HOMEO_CEIL_FLOOR
+    ).filter(pl.col("obj_homeo") >= OBJ_HOMEO_NOISE_FLOOR)
+
     print(
         f"{real_competition.height} of those have obj_homeo <= "
         f"{OBJ_HOMEO_NOISE_FLOOR:.0e} (i.e. the kinetics penalty is "
@@ -57,7 +61,7 @@ def rescreen() -> pl.DataFrame:
     shortlist = real_competition.sort("kin_hom_ratio", descending=True).head(
         N_CANDIDATES
     )
-    out_path = f"{OUT_DIR}/best_of_best_low_toya.csv"
+    out_path = f"{OUT_DIR}/best_of_best.csv"
     shortlist.write_csv(out_path)
     print(f"Saved {shortlist.height}-candidate shortlist: {out_path}")
     print(

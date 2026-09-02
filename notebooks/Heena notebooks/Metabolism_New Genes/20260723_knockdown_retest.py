@@ -17,7 +17,10 @@ Usage:
     uvenv notebooks/Heena\ notebooks/Metabolism_New\ Genes/20260723_knockdown_retest.py
 """
 
+import itertools
 import os
+
+from concurrent.futures import ProcessPoolExecutor, as_completed
 
 import plotly.express.colors as pc
 import plotly.graph_objects as go
@@ -29,13 +32,38 @@ from pareto_exploration import (
     solve_one,
 )
 
-OUT_DIR = "notebooks/Heena notebooks/Metabolism_New Genes/pareto_results_relationship_sep_v1_10000samples"
+OUT_DIR = "notebooks/Heena notebooks/Metabolism_New Genes/pareto_results_relationship_sep_v3_10000samples"
 SHORTLIST_PATH = f"{OUT_DIR}/best_of_best.csv"
-KNOCKDOWN_DIR = f"{OUT_DIR}/knockdown_low_toya_retested"
+KNOCKDOWN_DIR = f"{OUT_DIR}/knockdown_retested"
 FRACTIONS = [1.0, 0.8, 0.5, 0.3, 0.1]
 
+# Conservative default: CVXPY's own solve is multi-threaded (see
+# pareto_exploration.py's --n_jobs docstring), and each worker rebuilds the
+# full load_problem_data() state independently, so N_JOBS * (solver threads +
+# per-worker memory) must fit the machine's budget -- os.cpu_count() workers
+# can oversubscribe and be *slower*, or OOM. Override via the env var if you've
+# checked the machine can take it.
+N_JOBS = int(os.environ.get("N_JOBS", 20))
 
-def solve_and_score(candidate: dict, fraction: float, problem_data: dict) -> dict:
+# Loaded once per worker process by _init_worker, not pickled per task.
+_problem_data = None
+
+
+def _init_worker() -> None:
+    # Avoid each worker's BLAS/OpenMP libraries spawning their own thread
+    # pools on top of N_JOBS-way process parallelism -- only takes effect if
+    # the caller hasn't already set these.
+    for var in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS"):
+        os.environ.setdefault(var, "1")
+
+    global _problem_data
+    os.chdir(os.path.expanduser("~/dev/vEcoli/"))
+    _problem_data = load_problem_data("out/objective_weights_jul")
+
+
+def solve_and_score(
+    candidate: dict, fraction: float, problem_data: dict
+) -> dict | None:
     result = solve_one(
         candidate["lambda_hom"],
         candidate["lambda_sec"],
@@ -61,30 +89,60 @@ def solve_and_score(candidate: dict, fraction: float, problem_data: dict) -> dic
     return result
 
 
+def _worker_solve(candidate: dict, fraction: float) -> dict | None:
+    # Uses the module-level _problem_data set up by _init_worker in this process.
+    return solve_and_score(candidate, fraction, _problem_data)
+
+
 def retest() -> pl.DataFrame:
     os.chdir(os.path.expanduser("~/dev/vEcoli/"))
     os.makedirs(KNOCKDOWN_DIR, exist_ok=True)
 
-    problem_data = load_problem_data("out/objective_weights_jul")
     shortlist = pl.read_csv(SHORTLIST_PATH)
+    tasks = list(itertools.product(shortlist.iter_rows(named=True), FRACTIONS))
+    results_path = f"{KNOCKDOWN_DIR}/knockdown_retest_results.csv"
 
     rows = []
-    for candidate in shortlist.iter_rows(named=True):
-        for fraction in FRACTIONS:
-            row = solve_and_score(candidate, fraction, problem_data)
+    n_done = 0
+    with ProcessPoolExecutor(max_workers=N_JOBS, initializer=_init_worker) as executor:
+        futures = {
+            executor.submit(_worker_solve, candidate, fraction): (candidate, fraction)
+            for candidate, fraction in tasks
+        }
+        for fut in as_completed(futures):
+            candidate, fraction = futures[fut]
+            try:
+                row = fut.result()
+            except Exception as e:
+                print(
+                    f"  solve raised: Index={candidate['Index']} fraction={fraction}: {e}"
+                )
+                continue
             if row is not None:
                 rows.append(row)
             else:
                 print(f"  solve failed: Index={candidate['Index']} fraction={fraction}")
 
+            n_done += 1
+            if n_done % 50 == 0 or n_done == len(tasks):
+                print(f"  {n_done}/{len(tasks)} solves done")
+                # Checkpoint so a later failure doesn't lose completed work.
+                pl.DataFrame(rows).write_csv(results_path)
+
     results = pl.DataFrame(rows)
-    results_path = f"{KNOCKDOWN_DIR}/knockdown_retest_results.csv"
     results.write_csv(results_path)
     print(f"Saved: {results_path}")
 
     pivot = results.pivot(
         on="fraction_kinetic_target",
-        index=["Index", "lambda_hom", "lambda_kin", "lambda_eff", "lambda_sec"],
+        index=[
+            "Index",
+            "lambda_hom",
+            "lambda_kin",
+            "lambda_eff",
+            "lambda_sec",
+            "lambda_div",
+        ],
         values=["obj_homeo", "obj_kin", "toya_r_squared"],
     )
     pivot = pivot.with_columns(

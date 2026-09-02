@@ -23,7 +23,7 @@ pareto_results_init_selective_2000samples/objective_weights_batch_apr.csv" \\
 
     # Just write the merged config JSON without running the workflow:
     uvenv runscripts/variants_or_json_from_csv.py \\
-        --config configs/metabolism_redux_classic_variant.json \\
+        --config configs/metabolism_redux_classic_variants.json \\
         --csv path/to/weights.csv \\
         --outdir out/variants_apr \\
         --write-config-only merged_config.json
