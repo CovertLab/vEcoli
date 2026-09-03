@@ -1,0 +1,265 @@
+{
+  "experiment_id": "sep_v3_relationship_shortlisted",
+  "parca_options": {
+    "cpus": 10
+  },
+  "max_duration": 4000,
+  "fail_at_max_duration": true,
+  "progress_bar": true,
+  "log_updates": false,
+  "generations": 3,
+  "emitter": "parquet",
+  "emitter_arg": {
+    "out_dir": "/scratch/users/hsaqibo1/"
+  },
+  "sim_data_path": null,
+  "save": false,
+  "save_times": [
+    1
+  ],
+  "fixed_media": "minimal",
+  "condition": "basal",
+  "swap_processes": {
+    "ecoli-metabolism": "ecoli-metabolism-redux-classic"
+  },
+  "exclude_processes": [
+    "exchange_data"
+  ],
+  "flow": {
+    "ecoli-metabolism-redux-classic": [
+      [
+        "ecoli-chromosome-structure"
+      ]
+    ],
+    "ecoli-mass-listener": [
+      [
+        "ecoli-metabolism-redux-classic"
+      ]
+    ],
+    "RNA_counts_listener": [
+      [
+        "ecoli-metabolism-redux-classic"
+      ]
+    ],
+    "rna_synth_prob_listener": [
+      [
+        "ecoli-metabolism-redux-classic"
+      ]
+    ],
+    "monomer_counts_listener": [
+      [
+        "ecoli-metabolism-redux-classic"
+      ]
+    ],
+    "dna_supercoiling_listener": [
+      [
+        "ecoli-metabolism-redux-classic"
+      ]
+    ],
+    "replication_data_listener": [
+      [
+        "ecoli-metabolism-redux-classic"
+      ]
+    ],
+    "rnap_data_listener": [
+      [
+        "ecoli-metabolism-redux-classic"
+      ]
+    ],
+    "unique_molecule_counts": [
+      [
+        "ecoli-metabolism-redux-classic"
+      ]
+    ],
+    "ribosome_data_listener": [
+      [
+        "ecoli-metabolism-redux-classic"
+      ]
+    ]
+  },
+  "raw_output": false,
+  "operons": true,
+  "trna_charging": false,
+  "ppgpp_regulation": false,
+  "initial_state_gaussian": true,
+  "trna_attenuation": false,
+  "variable_elongation_transcription": true,
+  "variable_elongation_translation": false,
+  "mechanistic_translation_supply": false,
+  "mechanistic_aa_transport": false,
+  "translation_supply": false,
+  "aa_supply_in_charging": false,
+  "adjust_timestep_for_charging": false,
+  "disable_ppgpp_elongation_inhibition": true,
+  "process_configs": {
+    "ecoli-metabolism-redux-classic": {
+      "fraction_kinetic_target": 1.0,
+      "include_new": true
+    }
+  },
+  "variants": {
+    "metabolism_redux_classic_combined": {
+      "weights": {
+        "nested": {
+          "homeostatic": {
+            "value": [
+              0.7311269128474008,
+              0.5771078532063532,
+              0.3241397386881082,
+              0.7340875073641202,
+              0.226472459516972,
+              0.3694699771927876,
+              0.1655483140290506,
+              1.0340311081350904,
+              0.492276211112605,
+              0.1571228469356711,
+              0.0699984791207644,
+              0.0623257760672786,
+              1.7601324924395276,
+              0.6851775269788548,
+              1.4022230396841606,
+              1.898696358837531,
+              1.3507874807556386,
+              0.1806539597865943,
+              0.7227957468032142,
+              1.5846394646420836,
+              0.9700659131484254,
+              0.0888146654945251,
+              0.4892339021256404,
+              0.1451201061282886
+            ]
+          },
+          "secretion": {
+            "value": [
+              0.0016243770397199,
+              0.0013386134813469,
+              0.0007276323925387,
+              0.0016684614655341,
+              0.000520251888494,
+              0.0008638670190841,
+              0.0003663503749257,
+              0.0023668138437482,
+              0.001125719045759,
+              0.000348767318689,
+              0.0001519467731386,
+              0.0001388788107957,
+              0.0040734254471052,
+              0.0014673122606898,
+              0.002931966493749,
+              0.0044474222501294,
+              0.0030458973561648,
+              0.0004123146053099,
+              0.0016503195925622,
+              0.0035528189752476,
+              0.0023470914755764,
+              0.0002177154017634,
+              0.0011537081470173,
+              0.0003118863835073
+            ]
+          },
+          "efficiency": {
+            "value": [
+              4.007379867475003e-06,
+              1.090408456575806e-06,
+              1.2816761649827256e-06,
+              3.0961299301407623e-06,
+              4.981599378843756e-07,
+              4.889064212467571e-07,
+              2.0310530161133196e-06,
+              1.935876483092019e-06,
+              2.118652408109286e-06,
+              6.094918843628533e-07,
+              4.914918454123446e-07,
+              1.2863118537482089e-07,
+              5.292006861856332e-06,
+              1.33140879528e-05,
+              2.89595090886e-05,
+              7.0806704955977825e-06,
+              1.3343963265e-05,
+              6.802660938395066e-07,
+              2.314642613994451e-06,
+              1.2407795693e-05,
+              1.4589977436039151e-06,
+              1.1153712326973617e-07,
+              1.7124924696911857e-06,
+              7.015430665495837e-07
+            ]
+          },
+          "kinetics": {
+            "value": [
+              0.0012377332609972,
+              0.0009767690873671,
+              0.0005481941385139,
+              0.0012358262448555,
+              0.0003810306468172,
+              0.0006181113697494,
+              0.0002767021502358,
+              0.001726775378173,
+              0.0008183493425496,
+              0.0002607651376022,
+              0.0001160972256009,
+              0.0001029137983716,
+              0.0029060275614708,
+              0.0011291935012287,
+              0.0022960326490885,
+              0.0030998195513405,
+              0.002200731600083,
+              0.0002888441205338,
+              0.0011554009532712,
+              0.0025305667377732,
+              0.00154473290838,
+              0.0001398710197107,
+              0.0007552231197607,
+              0.0002228992007406
+            ]
+          },
+          "diversity": {
+            "value": [
+              7.72714535255e-05,
+              1.51008716668e-05,
+              2.06002493727e-05,
+              0.0015945455065898,
+              6.28380116697e-05,
+              5.62414769688e-05,
+              1.59801239624e-05,
+              0.0027664274933233,
+              3.1782517398e-05,
+              1.3637004432e-05,
+              0.0002239229689403,
+              0.000125302151147,
+              2.20609323947e-05,
+              0.0061333870673684,
+              2.64251731262e-05,
+              0.0004059744788654,
+              0.0001039864278181,
+              4.1283803005e-05,
+              2.13433241652e-05,
+              0.0029611564481897,
+              4.08915195434e-05,
+              0.0007996157338527,
+              0.0076779791526445,
+              0.0009182040705785
+            ]
+          },
+          "op": "zip"
+        }
+      },
+      "fraction_kinetic_target": {
+        "value": [
+          1.0,
+          0.8,
+          0.6,
+          0.4,
+          0.1
+        ]
+      },
+      "op": "prod"
+    }
+  },
+  "sherlock": {
+    "build_image": true,
+    "container_image": "./test_sherlock/test_image",
+    "hyperqueue": true,
+    "jenkins": false
+  }
+}
