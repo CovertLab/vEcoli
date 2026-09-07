@@ -12,6 +12,7 @@ loop over wells is parallelized with `joblib.Parallel`.
 """
 
 import argparse
+import ast
 import json
 import os
 import re
@@ -29,19 +30,12 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 
 # Mirrors the example weights in Standalone_FBA.ipynb cell 6 (no per-plate
 # tuning has been done yet for the phenotype-array sweep).
-# DEFAULT_OBJECTIVE_WEIGHTS = {
-#     "secretion": 0.01,
-#     "efficiency": 1e-06,
-#     "kinetics": 1e-05,
-#     "diversity": 1e-07,
-#     "homeostatic": 1,
-# }
 DEFAULT_OBJECTIVE_WEIGHTS = {
-    "secretion": 5.02061e-05,
-    "efficiency": 2.33e-07,
-    "kinetics": 3.1497e-05,
-    "diversity": 0.008770645,
-    "homeostatic": 0.023748941,
+    "secretion": 0.01,
+    "efficiency": 1e-06,
+    "kinetics": 1e-05,
+    "diversity": 1e-07,
+    "homeostatic": 1,
 }
 
 CARBON_REMOVE = {"GLC[p]", "CA+2[p]"}
@@ -237,7 +231,7 @@ def test_NetworkFlowModel(
         binary_kinetic_idx=None,
         force_flow_idx=force_reaction_idx,
         objective_weights=objective_weights,
-        target_minimal_flux=counts_to_molar,
+        target_minimal_flux=0,
         include_new=metabolism.include_new,
         new_reaction_idx=metabolism.new_reaction_idx,
         upper_flux_bound=100,  # matches the live WC sim's scale now everything is in concentration units.
@@ -258,6 +252,63 @@ def test_NetworkFlowModel(
         solution,
         model,
     )
+
+
+def _parse_enzyme_list(value):
+    """Parse an "Enzyme encoded" cell: a bracket-list-string (e.g.
+    "['PYRUVATEDEH-CPLX', 'E1P-CPLX']") -> list; a bare non-null string
+    (e.g. "AAS-MONOMER") -> single-item list; NaN -> empty list. Mirrors
+    202607_plot_gene_flux_dumbbell.py's helper of the same name."""
+    if pd.isna(value):
+        return []
+    value = str(value).strip()
+    if value.startswith("["):
+        return ast.literal_eval(value)
+    return [value]
+
+
+def load_gene_to_fba_reactions(gene_annotation_csv, reaction_catalysts):
+    """Map each gene (keyed by "Gene ID (EcoCyc)") to the set of fba-level
+    reaction ids its enzyme(s) catalyze: gene -> enzyme(s) ["Enzyme
+    encoded"] -> fba-level reactions [reaction_catalysts, tag-stripped the
+    same way --capture-fluxes strips it]. Stops at fba-level ids (unlike
+    202607_plot_gene_flux_dumbbell.py's load_gene_to_base_reactions, which
+    goes one step further to base-reaction ids) since remove_reaction needs
+    the exact ids in metabolism.reaction_names."""
+    genes_df = pd.read_csv(gene_annotation_csv)
+    genes_to_enzymes = genes_df.set_index("Gene ID (EcoCyc)")[
+        "Enzyme encoded"
+    ].to_dict()
+
+    stripped_catalysts = {
+        rxn: [catalyst.split("[")[0] for catalyst in catalysts]
+        for rxn, catalysts in reaction_catalysts.items()
+    }
+    enzyme_to_fba_reactions = {}
+    for rxn, enzymes in stripped_catalysts.items():
+        for enzyme in enzymes:
+            enzyme_to_fba_reactions.setdefault(enzyme, []).append(rxn)
+
+    gene_to_fba_reactions = {}
+    for gene_id, enzyme_value in genes_to_enzymes.items():
+        reactions = set()
+        for enzyme in _parse_enzyme_list(enzyme_value):
+            reactions.update(enzyme_to_fba_reactions.get(enzyme, []))
+        gene_to_fba_reactions[gene_id] = reactions
+    return gene_to_fba_reactions
+
+
+def parse_gene_list(value):
+    """--remove-reaction-genes accepts either a comma-separated list of
+    Gene ID (EcoCyc) values, or a path to a file listing them (a JSON list,
+    or one gene id per line)."""
+    path = Path(value)
+    if path.exists():
+        text = path.read_text().strip()
+        if text.startswith("["):
+            return [str(g).strip() for g in json.loads(text)]
+        return [line.strip() for line in text.splitlines() if line.strip()]
+    return [gene.strip() for gene in value.split(",") if gene.strip()]
 
 
 def parse_well(well):
@@ -373,7 +424,13 @@ def load_growth_calls(wells_json_path):
 
 
 def run_condition(
-    cond, metabolism, fba, objective_weights, growth_calls, capture_fluxes=False
+    cond,
+    metabolism,
+    fba,
+    objective_weights,
+    growth_calls,
+    capture_fluxes=False,
+    remove_reaction=None,
 ):
     # Some wells' Add species (see match_compounds.py's "confirmed_absent" /
     # add_metabolite rows in compound_mapping.csv) don't exist as a row in
@@ -406,6 +463,7 @@ def run_condition(
             # regardless of condition).
             new_exchange_molecules=cond["Add"],
             add_metabolite=add_metabolite,
+            remove_reaction=remove_reaction,
         )
         oofv, velocities, reaction_names, _, _, _, solution, model = result
 
@@ -430,14 +488,14 @@ def run_condition(
             # variants) down to one signed flux per "base" reaction id --
             # the same aggregation the live sim uses to produce the
             # "base_reaction_fluxes" listener (metabolism_redux_classic.py
-            # next_update, ~line 653-655). run_condition never passes
-            # add_reaction/remove_reaction to test_NetworkFlowModel (only
-            # add_metabolite, which only appends S-matrix rows), so
+            # next_update, ~line 653-655). This aggregation assumes
             # reaction_names/velocities stay column-aligned with
-            # metabolism.reaction_names/reaction_mapping_matrix across every
-            # well -- assert this holds so a future add_reaction/
-            # remove_reaction usage fails loudly instead of silently
-            # mismapping fluxes.
+            # metabolism.reaction_names/reaction_mapping_matrix, which
+            # remove_reaction breaks (it deletes columns) -- main() enforces
+            # --remove-reaction-genes and --capture-fluxes are mutually
+            # exclusive, so remove_reaction is always None here; assert it
+            # anyway so that invariant fails loudly instead of silently
+            # mismapping fluxes if that ever changes.
             assert list(metabolism.reaction_names) == list(reaction_names), (
                 "reaction_names diverged from metabolism.reaction_names -- "
                 "base-reaction flux capture assumes a fixed column order"
@@ -515,6 +573,25 @@ def parse_args():
         "and fba_reaction_ids_to_base_reaction_ids for downstream "
         "gene-to-flux mapping.",
     )
+    parser.add_argument(
+        "--remove-reaction-genes",
+        default=None,
+        help="Comma-separated Gene ID (EcoCyc) values (or a path to a file "
+        "listing them, one per line or as a JSON list) -- restricts the "
+        "new (2022) reactions to only those catalyzed by these genes' "
+        "enzymes, removing every other new reaction before solving every "
+        "well. Used for the gene-accumulation validation sweeps "
+        "(202609_run_gene_accumulation.py); mutually exclusive with "
+        "--capture-fluxes, since flux capture assumes the full, "
+        "unmodified reaction column order.",
+    )
+    parser.add_argument(
+        "--gene-annotation-csv",
+        default="notebooks/Heena notebooks/Metabolism_New Genes/new_metabolic_gene_annotation.csv",
+        help="Path to new_metabolic_gene_annotation.csv, used only with "
+        "--remove-reaction-genes to map gene ids to their enzyme(s)' "
+        "fba-level reactions.",
+    )
     return parser.parse_args()
 
 
@@ -529,6 +606,29 @@ def main():
 
     conditions = build_conditions(args.mapping_csv)
     growth_calls = load_growth_calls(args.wells_json)
+
+    if args.remove_reaction_genes and args.capture_fluxes:
+        raise ValueError(
+            "--remove-reaction-genes is incompatible with --capture-fluxes: "
+            "flux capture assumes the full, unmodified reaction column order."
+        )
+
+    remove_reaction = None
+    if args.remove_reaction_genes:
+        genes = parse_gene_list(args.remove_reaction_genes)
+        gene_to_fba_reactions = load_gene_to_fba_reactions(
+            args.gene_annotation_csv, metabolism.parameters["reaction_catalysts"]
+        )
+        keep_reactions = set()
+        for gene in genes:
+            keep_reactions.update(gene_to_fba_reactions.get(gene, set()))
+        new_reaction_ids = set(metabolism.parameters["fba_new_reaction_ids"])
+        remove_reaction = sorted(new_reaction_ids - keep_reactions)
+        print(
+            f"--remove-reaction-genes {genes}: keeping "
+            f"{len(keep_reactions & new_reaction_ids)}/{len(new_reaction_ids)} "
+            f"new reactions, removing {len(remove_reaction)}"
+        )
 
     # Wells are independent FBA solves. Each call builds its own CVXPY Problem
     # (fresh NetworkFlowModel) inside test_NetworkFlowModel, so there is no
@@ -546,6 +646,7 @@ def main():
             DEFAULT_OBJECTIVE_WEIGHTS,
             growth_calls,
             capture_fluxes=args.capture_fluxes,
+            remove_reaction=remove_reaction,
         )
         for cond in conditions.values()
     )
@@ -576,6 +677,7 @@ def main():
             DEFAULT_OBJECTIVE_WEIGHTS,
             growth_calls,
             capture_fluxes=args.capture_fluxes,
+            remove_reaction=remove_reaction,
         )
     )
 
