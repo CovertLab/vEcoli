@@ -20,6 +20,7 @@ import os
 from typing import Any, TYPE_CHECKING, cast
 
 import altair as alt
+import pandas as pd
 import polars as pl
 
 from ecoli.analysis.multivariant.utils import compute_variant_grid, create_variant_label
@@ -48,6 +49,62 @@ PASTEL = [
     "#b3de69",
     "#fccde5",
 ]
+
+
+# Maps this workbook's lambda_* column names to the corresponding key in a
+# variant's "weights" dict (variant_sim_data/metadata.json convention).
+WEIGHT_KEY_MAP = {
+    "lambda_hom": "homeostatic",
+    "lambda_kin": "kinetics",
+    "lambda_eff": "efficiency",
+    "lambda_sec": "secretion",
+    "lambda_div": "diversity",
+}
+
+
+def _build_excel_df(
+    top3_by_variant: dict[int, pl.DataFrame],
+    per_variant_params: dict[int, Any],
+) -> pd.DataFrame | None:
+    """
+    One row per distinct weight combo, with top{1,2,3}_metabolite_<fraction> /
+    top{1,2,3}_unmet_<fraction> columns per fraction_kinetic_target level --
+    same convention as the standalone
+    pareto_all/build_whole_cell_unmet_need_excel.py's build_sheet(), computed
+    directly from the met_score data already aggregated above instead of a
+    separate Sherlock extraction + build step.
+    """
+    rows_by_combo: dict[tuple[float, ...], dict[str, Any]] = {}
+    for variant_val, vparams in per_variant_params.items():
+        if variant_val not in top3_by_variant:
+            continue
+        if not isinstance(vparams, dict) or "weights" not in vparams:
+            continue
+        frac = vparams.get("fraction_kinetic_target")
+        if frac is None:
+            continue
+        w = vparams["weights"]
+        try:
+            weight_vals = tuple(
+                round(float(w[src_key]), 10) for src_key in WEIGHT_KEY_MAP.values()
+            )
+        except (KeyError, TypeError):
+            continue
+
+        row = rows_by_combo.setdefault(
+            weight_vals, dict(zip(WEIGHT_KEY_MAP.keys(), weight_vals))
+        )
+        for i, r in enumerate(top3_by_variant[variant_val].to_dicts(), start=1):
+            row[f"top{i}_metabolite_{frac}"] = r["metabolite"]
+            row[f"top{i}_unmet_{frac}"] = r["mean_abs_unmet"]
+
+    if not rows_by_combo:
+        return None
+    return (
+        pd.DataFrame(list(rows_by_combo.values()))
+        .sort_values("lambda_hom")
+        .reset_index(drop=True)
+    )
 
 
 def _format_int_list(values: list[int]) -> str:
@@ -203,6 +260,7 @@ def plot(
     ordered_mets: list[str] = []
     data_by_variant: dict[int, tuple[pl.DataFrame, pl.DataFrame]] = {}
     total_unmet_by_variant: dict[int, float] = {}
+    top3_by_variant: dict[int, pl.DataFrame] = {}
     for variant_val in variants:
         sub = agg.filter(pl.col("variant") == variant_val)
         if sub.is_empty():
@@ -213,6 +271,7 @@ def plot(
             .sort("mean_abs_unmet", descending=True)
         )
         total_unmet_by_variant[int(variant_val)] = met_score["mean_abs_unmet"].sum()
+        top3_by_variant[int(variant_val)] = met_score.head(3)
         top_mets = met_score.head(top_n)["metabolite"].to_list()
         line_mets = (
             metabolites_of_interest if metabolites_of_interest is not None else top_mets
@@ -230,6 +289,20 @@ def plot(
     if not data_by_variant:
         print("metabolite_unmet_need: no per-variant data after aggregation; skipping.")
         return
+
+    # Write the same per-weight-combo top1/2/3 summary that the standalone
+    # Sherlock extraction + build script (workflow.md step 8) produces,
+    # directly from the met_score data already computed above -- no need to
+    # separately extract/build it.
+    excel_df = _build_excel_df(top3_by_variant, per_variant_params)
+    if excel_df is not None:
+        excel_path = os.path.join(outdir, "metabolite_unmet_need.xlsx")
+        with pd.ExcelWriter(excel_path, engine="openpyxl") as writer:
+            excel_df.to_excel(writer, sheet_name="unmet_need", index=False)
+        print(
+            f"Saved metabolite unmet need summary ({len(excel_df)} weight combos) "
+            f"to {excel_path}"
+        )
 
     # Split variants into total unmet need above the threshold
     kd1_threshold = float(
