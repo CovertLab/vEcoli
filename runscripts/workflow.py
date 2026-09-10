@@ -109,7 +109,9 @@ CLUSTER_PRESETS: dict[str, dict[str, Any]] = {
             # See https://github.com/CovertLab/vEcoli/pull/331
             "CLUSTER_OPTIONS": {
                 "prefer": '"CPU_GEN:GEN|CPU_GEN:SPR"',
-                "constraint": '"CPU_GEN:RME|CPU_GEN:MLN|CPU_GEN:BGM|CPU_GEN:SIE|CPU_GEN:GEN|CPU_GEN:SPR"',
+                # Removed EPYC Rome and Milan as they do not support AVX-512,
+                # causing unpredictable floating point differences
+                "constraint": '"CPU_GEN:BGM|CPU_GEN:SIE|CPU_GEN:GEN|CPU_GEN:SPR"',
             },
             "QUEUE": "owners,normal",
         },
