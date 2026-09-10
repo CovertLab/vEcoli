@@ -12,7 +12,7 @@
   "emitter_arg": {
     "out_dir": "/scratch/users/hsaqibo1/"
   },
-  "sim_data_path": null,
+  "sim_data_path": "/scratch/users/hsaqibo1/sep_v3_relationship_20260907-164738/parca/kb/simData.cPickle",
   "save": false,
   "save_times": [
     1
