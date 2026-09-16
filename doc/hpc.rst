@@ -339,7 +339,9 @@ More specifically, users who wish to debug a failed workflow job should:
 2. Use ``nano`` to add breakpoints (``import ipdb; ipdb.set_trace()``)
    to the relevant scripts in ``/vEcoli``.
 3. Navigate to the working directory (see :ref:`troubleshooting`) for the
-   job that you want to debug.
+   job that you want to debug. Do not run ``nextflow log`` on login
+   nodes as it can be I/O intensive. Instead, request an interactive session
+   using ``srun --pty bash`` first.
 4. Invoke ``bash .command.sh`` to run the failing task and pause upon
    reaching your breakpoints, allowing you to inspect variables and step
    through the code.
