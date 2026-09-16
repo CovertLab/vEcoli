@@ -8,6 +8,14 @@ import json
 from typing import Any
 
 
+def _format_param_value(value: Any) -> str:
+    """Compactly format a scalar parameter value (3 significant figures for
+    floats) so labels stay short."""
+    if isinstance(value, float):
+        return f"{value:.3g}"
+    return str(value)
+
+
 def create_variant_label(
     variant_id: int,
     per_variant_params: dict[int, Any],
@@ -17,6 +25,14 @@ def create_variant_label(
     Uses the first key/value pair from the variant's parameter dict when
     available (e.g. ``fraction_kinetic_target = 0.5``), marks the baseline
     variant explicitly, and falls back to ``'Variant {id}'`` otherwise.
+
+    When a parameter value is itself a dict (e.g. a ``weights`` combo with
+    several sub-terms), each sub-term becomes its own entry in the returned
+    list instead of one entry with the whole dict's repr crammed onto a
+    single line -- callers that join the list with a separator (most do)
+    end up with a much shorter label, and callers that render the list as
+    separate lines (e.g. a multi-line facet header) get one sub-term per
+    line for free.
     """
     params = per_variant_params.get(variant_id, {})
     if params == "baseline":
@@ -30,7 +46,11 @@ def create_variant_label(
         label = [f"Variant {variant_id}"]
         for key in variant_name:
             value = params[key]
-            label.append(f"{key}={value}")
+            if isinstance(value, dict):
+                for sub_key, sub_value in value.items():
+                    label.append(f"{sub_key}={_format_param_value(sub_value)}")
+            else:
+                label.append(f"{key}={_format_param_value(value)}")
         return label
 
 

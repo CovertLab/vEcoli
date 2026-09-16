@@ -20,6 +20,7 @@ from typing import TYPE_CHECKING, Any
 import altair as alt
 import polars as pl
 
+from ecoli.analysis.multivariant.utils import compute_variant_grid, create_variant_label
 from ecoli.library.parquet_emitter import read_stacked_columns
 
 if TYPE_CHECKING:
@@ -53,6 +54,10 @@ def plot(
     variant_names: dict[str, str],
 ):
     """Plot mean mass fraction over time, one facet per variant."""
+    experiment_id = next(iter(variant_metadata.keys()), None)
+    per_variant_params: dict[int, Any] = (
+        variant_metadata[experiment_id] if experiment_id else {}
+    )
     time_bin_min = params.get("time_bin_min", DEFAULT_TIME_BIN_MIN)
 
     raw_sql = read_stacked_columns(
@@ -69,22 +74,25 @@ def plot(
     fractions = dict(zip(MASS_COLUMNS.keys(), fractions_row))
     labels = {name: f"{name} ({fractions[name]:.3f})" for name in MASS_COLUMNS}
 
-    # Reference row (t=0) for each cell instance, used to normalize that
-    # instance's own trajectory. mass_fraction_summary.py instead divides
-    # every row by the single first row of the whole (unordered) result
-    # set, which is only correct for generation 1 -- daughter cells at
-    # later generations start from a different mass than the very first
-    # row, so their curves don't actually start at 1.0 there. Normalizing
-    # per (variant, generation, lineage_seed) here fixes that.
+    # Reference row (t=0 of the *first* generation) for each lineage
+    # (variant, lineage_seed), used to normalize that lineage's whole
+    # multi-generation trajectory continuously -- mass_fraction_summary.py
+    # instead resets both the time axis and the normalization reference at
+    # every generation boundary, which stacks all generations on top of
+    # each other (they all start at 1.0 and cover roughly the same
+    # 0-45 min span) and makes every variant's plot look like the same
+    # fuzzy band. Normalizing and timing off a single per-lineage t0
+    # instead makes time flow continuously across generations (division
+    # shows up as a real drop in mass fraction, not a reset to 1.0).
     safe_names = {name: name.replace(" ", "_") for name in MASS_COLUMNS}
     t0_selects = ", ".join(
         f"{col} AS {safe_names[name]}_t0" for name, col in MASS_COLUMNS.items()
     )
     t0_sql = f"""
-        SELECT DISTINCT ON (variant, generation, lineage_seed)
-            variant, generation, lineage_seed, time AS time_ref, {t0_selects}
+        SELECT DISTINCT ON (variant, lineage_seed)
+            variant, lineage_seed, time AS time_ref, {t0_selects}
         FROM ({raw_sql})
-        ORDER BY variant, generation, lineage_seed, time
+        ORDER BY variant, lineage_seed, generation, time
     """
 
     norm_selects = ", ".join(
@@ -100,7 +108,7 @@ def plot(
             {norm_selects}
         FROM ({raw_sql}) r
         JOIN ({t0_sql}) t0
-            USING (variant, generation, lineage_seed)
+            USING (variant, lineage_seed)
     """
     agg_sql = f"""
         SELECT variant, generation, "Time (min)", Submass,
@@ -111,16 +119,23 @@ def plot(
     """
     agg = conn.sql(agg_sql).pl().with_columns(pl.col("mass_norm").round(4))
 
-    variant_label = pl.Series(
-        [variant_names.get(v, f"Variant {v}") for v in agg["variant"]]
+    def _make_label(v: int) -> str:
+        raw_label = create_variant_label(v, per_variant_params)
+        return "\n".join(raw_label) if isinstance(raw_label, list) else raw_label
+
+    variant_label_map = {v: _make_label(v) for v in agg["variant"].unique()}
+    agg = agg.with_columns(
+        pl.col("variant").replace_strict(variant_label_map).alias("variant_label")
     )
-    agg = agg.with_columns(variant_label.alias("variant_label"))
-    variant_order = (
-        agg.select("variant", "variant_label")
-        .unique()
-        .sort("variant")["variant_label"]
-        .to_list()
-    )
+
+    # Row-major grid order (grouped by first/second sweep param, baseline
+    # first), wrapped into a grid instead of one tall column -- a single
+    # column of 100+ variants exceeds the browser's max canvas height and
+    # renders as a broken image.
+    _, grid_columns, ordered_variant_ids = compute_variant_grid(per_variant_params)
+    variant_sort_order = [
+        variant_label_map[v] for v in ordered_variant_ids if v in variant_label_map
+    ]
 
     final = (
         alt.Chart(agg.to_pandas())
@@ -131,8 +146,16 @@ def plot(
             color=alt.Color("Submass:N", legend=alt.Legend(title="Mass subcomponent")),
             detail=alt.Detail("generation:N"),
         )
-        .properties(width=600, height=250)
-        .facet(row=alt.Row("variant_label:N", title=None, sort=variant_order))
+        .properties(width=280, height=200)
+        .facet(
+            facet=alt.Facet(
+                "variant_label:N",
+                title="Variant",
+                sort=variant_sort_order,
+                header=alt.Header(labelExpr="split(datum.value, '\\n')"),
+            ),
+            columns=grid_columns,
+        )
         .resolve_scale(x="independent", y="independent")
         .properties(title="Mass Fraction by Variant")
     )
