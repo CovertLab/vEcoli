@@ -40,22 +40,14 @@ topology_registry.register(NAME, TOPOLOGY)
 
 
 WATER_DIFFUSION_RXN_ID = "TRANS-RXN0-547[CCO-PM-BAC-NEG]-WATER//WATER.29."
-HIGH_FLUX_BOUND = 1e5
 WATER_ID = "WATER[c]"
 WATER_PERI_ID = "WATER[p]"
 
-# How WATER[c]'s homeostatic target is enforced. Kept togglable (3 modes)
-# so any of them can be run/compared against each other, e.g. via
+# How WATER[c]'s homeostatic target is enforced. Kept togglable (2 modes)
+# so both can be run/compared against each other, e.g. via
 # ecoli/analysis/multiexperiment/basal_regression_check.py.
 #   "none": the original, unmodified behavior -- WATER[c] is an ordinary
 #       homeostatic metabolite subject only to the scale-sensitive L1 loss
-#   "hard_constraint": force dm[WATER[c]] == target via a single hard
-#       equality inside the LP (like the maintenance reaction). Satisfiable
-#       by ANY reaction touching WATER[c], including ordinary metabolism --
-#       in practice the solver ends up routing the correction through
-#       metabolism rather than the diffusion pathway,
-#       which is not biologically accurate (real cells don't adjust
-#       biosynthetic reaction rates to regulate bulk water content).
 #   "diffusion": ordinary metabolism runs completely unconstrained by
 #       water's target (WATER[c] is a free byproduct of whatever the rest of
 #       the LP produces); separately, the exact remaining gap is applied
@@ -206,7 +198,6 @@ class MetabolismRedux(Step):
         self.mechanistic_aa_transport = self.parameters["mechanistic_aa_transport"]
         self.current_timeline = self.parameters["current_timeline"]
         self.media_id = self.parameters["media_id"]
-        print(self.media_id)
         self.exchange_molecules = self.parameters["exchange_molecules"]
         self.aa_names = self.parameters["aa_names"]
         self.aa_targets_not_updated = self.parameters["aa_targets_not_updated"]
@@ -227,9 +218,12 @@ class MetabolismRedux(Step):
         self.reaction_names = list(stoich_dict.keys())
 
         # Water diffuses passively across the membrane, far faster than
-        # enzyme-catalyzed reactions -- exempt this reaction from the standard
-        # flux bound so the LP always has headroom to correct WATER[c]'s
-        # homeostatic deficit before it can run away (see HIGH_FLUX_BOUND).
+        # enzyme-catalyzed reactions. Under WATER_CORRECTION_MODE ==
+        # "diffusion" this reaction is forced to exactly zero inside the LP
+        # (see zero_flux_rxn_idx in next_update()/solve()) and the real
+        # diffusion correction is instead applied deterministically outside
+        # the LP, rather than letting the LP route WATER[c]'s correction
+        # through ordinary biosynthesis.
         self.water_diffusion_rxn_idx = np.array(
             [
                 self.reaction_names.index(rxn_id)
@@ -397,10 +391,10 @@ class MetabolismRedux(Step):
         )
 
         # WATER[c]'s target is enforced via WATER_CORRECTION_MODE (see
-        # module-level comment above and HIGH_FLUX_BOUND/
-        # water_diffusion_rxn_idx) rather than the scale-sensitive
-        # homeostatic loss, which gives its mismatch far too little weight
-        # to ever win against competing objective terms.
+        # module-level comment above and water_diffusion_rxn_idx) rather
+        # than the scale-sensitive homeostatic loss, which gives its
+        # mismatch far too little weight to ever win against competing
+        # objective terms.
         self.water_met_idx = np.array([self.network_flow_model.met_map[WATER_ID]])
         self.water_homeostatic_pos = self.homeostatic_metabolites.index(WATER_ID)
         if WATER_CORRECTION_MODE == "diffusion":
@@ -801,18 +795,6 @@ class MetabolismRedux(Step):
                 zero_flux_rxn_idx=self.water_diffusion_rxn_idx,
                 zero_flux_exch_idx=water_exchange_idx,
             )
-        elif WATER_CORRECTION_MODE == "hard_constraint":
-            water_solve_kwargs = dict(
-                homeostatic_concs=homeostatic_metabolite_concentrations,
-                homeostatic_dm_targets=target_homeostatic_dmdt,
-                high_flux_rxn_idx=self.water_diffusion_rxn_idx,
-                high_flux_exch_idx=water_exchange_idx,
-                high_flux_bound=HIGH_FLUX_BOUND,
-                hard_target_met_idx=self.water_met_idx,
-                hard_target_dmdt=target_homeostatic_dmdt[
-                    self.water_homeostatic_pos : self.water_homeostatic_pos + 1
-                ],
-            )
         else:
             water_solve_kwargs = dict(
                 homeostatic_concs=homeostatic_metabolite_concentrations,
@@ -1118,11 +1100,6 @@ class NetworkFlowModel:
         objective_weights: Optional[Mapping[str, float]] = None,
         aa_uptake_package: Optional[Mapping[str, float]] = None,
         upper_flux_bound: float = 100,
-        high_flux_rxn_idx: Optional[npt.NDArray[np.int_]] = None,
-        high_flux_exch_idx: Optional[npt.NDArray[np.int_]] = None,
-        high_flux_bound: float = 100,
-        hard_target_met_idx: Optional[npt.NDArray[np.int_]] = None,
-        hard_target_dmdt: Optional[npt.NDArray[np.float64]] = None,
         zero_flux_rxn_idx: Optional[npt.NDArray[np.int_]] = None,
         zero_flux_exch_idx: Optional[npt.NDArray[np.int_]] = None,
         custom_bound_exch_idx: Optional[npt.NDArray[np.int_]] = None,
@@ -1149,8 +1126,6 @@ class NetworkFlowModel:
         constr = []
         constr.append(dm[self.intermediates_idx] == 0)
 
-        if hard_target_met_idx is not None:
-            constr.append(dm[hard_target_met_idx] == np.asarray(hard_target_dmdt))
         # WATER_CORRECTION_MODE == "diffusion": force the water diffusion
         # reaction and WATER[p] exchange to exactly zero inside the LP, so
         # metabolism's (now-unconstrained) byproduct flux can't accidentally
@@ -1178,11 +1153,7 @@ class NetworkFlowModel:
                 constr.append(v[binary_kinetic_idx] == 0)
 
         ub_v = np.full(self.n_orig_rxns, upper_flux_bound, dtype=float)
-        if high_flux_rxn_idx is not None:
-            ub_v[high_flux_rxn_idx] = high_flux_bound
         ub_e = np.full(self.n_exch_rxns, upper_flux_bound, dtype=float)
-        if high_flux_exch_idx is not None:
-            ub_e[high_flux_exch_idx] = high_flux_bound
         if custom_bound_exch_idx is not None:
             ub_e[custom_bound_exch_idx] = custom_bound_values
         constr.extend([v >= 0, v <= ub_v, e >= 0, e <= ub_e])
