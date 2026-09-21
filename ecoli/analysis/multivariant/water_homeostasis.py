@@ -4,8 +4,9 @@ Plot WATER[c]'s homeostatic tracking over time for multivariant simulation.
 For each variant: (1) WATER[c]'s actual bulk count over time, and (2) the
 mismatch between the FBA's achieved and target dm/dt for WATER[c]
 (``estimated_homeostatic_dmdt - target_homeostatic_dmdt``). Post-fix, the
-mismatch should sit at ~0 throughout (the hard constraint in
-``NetworkFlowModel.solve()`` forces an exact match); pre-fix, it grows
+mismatch should sit at ~0 throughout (under ``WATER_CORRECTION_MODE ==
+"diffusion"``, the remaining gap is applied deterministically via the
+WATER[p]<->WATER[c] diffusion reaction outside the LP); pre-fix, it grows
 without bound as the deficit runs away.
 
 One pair of line subplots per variant, averaged across all cells in that
