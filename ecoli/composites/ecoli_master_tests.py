@@ -436,7 +436,6 @@ def test_emit_unique(parquet_out_dir):
     sim.config["emitter_arg"] = {"out_dir": parquet_out_dir}
     sim.build_ecoli()
     sim.run()
-    sim.ecoli_experiment.emitter.finalize()
 
     unique_molecules = sim.ecoli_experiment.state["agents"]["0"]["unique"].inner.keys()
     history_sql, _, _ = dataset_sql(parquet_out_dir, [sim.experiment_id])
@@ -476,7 +475,6 @@ def test_emit_paths(parquet_out_dir):
     sim.config["emitter_arg"] = {"out_dir": parquet_out_dir}
     sim.build_ecoli()
     sim.run()
-    sim.ecoli_experiment.emitter.finalize()
 
     history_sql, _, _ = dataset_sql(parquet_out_dir, [sim.experiment_id])
     conn = create_duckdb_conn()

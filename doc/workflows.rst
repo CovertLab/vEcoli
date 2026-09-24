@@ -330,6 +330,7 @@ it has access to.
   folder, you can just create stub files in the appropriate folders
   that simply import the ``plot`` function from a primary analysis script.
 
+
 .. _analysis_config:
 
 Configuration
@@ -501,6 +502,9 @@ All analysis scripts must contain a ``plot`` function with the following signatu
 Refer to :ref:`/output.rst` for more information about how
 to use DuckDB to read and analyze simulation output inside
 analysis scripts.
+
+
+.. _workflows:
 
 ---------
 Workflows
@@ -706,7 +710,7 @@ is a list workflow behaviors enabled in our model to handle unexpected errors.
   The only exceptions are changes to resource allocation options (e.g., ``SIM_MEM``),
   allowing users to retry failed jobs with higher resource limits without triggering
   re-execution of already completed jobs. If you want to change other options, you
-  must launch a new workflow. 
+  must launch a new workflow.
 
 .. _output:
 

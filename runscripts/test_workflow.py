@@ -1,7 +1,9 @@
-"""
-Tests for Nextflow workflow generation in workflow.py
 
-These tests verify the correctness of:
+"""
+Tests for Nextflow workflow generation in :py:mod:`runscripts.workflow`, and a
+mock class for workflow execution that can be used by other test modules.
+
+The tests verify the correctness of:
 - Channel grouping templates (MULTIDAUGHTER_CHANNEL, MULTIGENERATION_CHANNEL, etc.)
 - Analysis batching logic with group_size for cache invalidation
 - Full workflow generation via --build-only
@@ -17,19 +19,309 @@ import re
 import shutil
 import subprocess
 import uuid
+import sys
+from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any
 from unittest.mock import patch
 
 import pytest
+
+from vivarium.core.store import Store
+from vivarium.core.engine import Engine
+
+from ecoli.library.test_utils import PatchConfig, patch_func, patch_meth
+from ecoli.library.emitter import StoragePartition
+from ecoli.processes.cell_division import DivisionDetected, daughter_phylogeny_id
+from ecoli.experiments.ecoli_master_sim import CONFIG_DIR_PATH, SimConfig, EcoliSim
 
 from runscripts.workflow import (
     generate_lineage,
     generate_code,
 )
 
-# Constants for test calculations
+
+# mypy: disable-error-code="attr-defined"
+
+
+# ==============================================================================
+# constants
+# ==============================================================================
+
+
 # The mock createVariants stub always produces 3 variants
 MOCK_NUM_VARIANTS = 3
+
+
+# ==============================================================================
+# mock workflow
+# ==============================================================================
+
+
+@dataclass(kw_only=True, slots=True)
+class MockEcoliSimWorkflow:
+    """
+    Mock class for emulating the orchestration of a single-variant, single-seed,
+    multi-generation, single-lineage simulation via the templated Nextflow
+    workflow, as triggered by :py:func:`runscripts.workflow.main`. Instead of
+    using Nextflow, this mock class runs on a single Python process inside a
+    temporary directory, and it incurs only a small fraction of the simulation
+    cost required for actually reaching cell division.
+
+    For documentation on the functionality being mocked, see :ref:`workflows`
+    and :ref:`experiment_output`.
+
+    The following CLI arguments for
+    :py:func:`ecoli.experiments.ecoli_master_sim.main` are handled explicitly,
+    via attributes and methods of this mock class:
+
+      - ``--config``
+      - ``--sim_data_path``
+      - ``--daughter_outdir``
+      - ``--initial_state_file``
+      - ``--agent_id``
+      - ``--initial_global_time``
+      - ``--lineage_seed``
+      - ``--seed``
+      - ``--emitter``
+      - ``--emitter_arg``
+
+    The following CLI arguments for
+    :py:func:`ecoli.experiments.ecoli_master_sim.main` are not represented in
+    this mock class:
+
+      - ``--variant``
+    """
+
+    #: Pytest fixture for modifying the execution environment.
+    monkeypatch: pytest.MonkeyPatch
+    #: Unique temporary working directory for this mock workflow.
+    workdir: Path
+
+    # ~~~~~~~~~~~~~~~~~ #
+
+    #: Stem of the baseline JSON configuration file.
+    config_name: str
+    #: - ``configs/test_configs/{config_name}.json``.
+    #: - Emulates the Nextflow input variable ``config_uri``.
+    #: - Passed to :py:class:`.EcoliSim` via the CLI argument ``--config``.
+    config_file: Path = field(init=False)
+    #: - Emulates the Nextflow input variable ``sim_data_uri``.
+    #: - Passed to :py:class:`.EcoliSim` via the CLI argument ``--sim_data_path``.
+    sim_data_path: Path
+
+    # ~~~~~~~~~~~~~~~~~ #
+
+    #: - Emulates the Nextflow local variable ``daughter_outdir``.
+    #: - Passed to :py:class:`.EcoliSim` via the CLI argument
+    #:   ``--daughter_outdir``.
+    daughter_outdir: Path
+    #: File inside :py:attr:`.daughter_outdir` that is exported by
+    #: :py:meth:`.EcoliSim.persist_generation`.
+    initial_state_name: str = "daughter_state_0.json"
+    #: - ``{daughter_outdir}/{initial_state_name}``.
+    #: - Emulates the Nextflow input variable ``initial_state_uri``.
+    #: - Passed back to :py:class:`.EcoliSim` via the CLI argument
+    #:   ``--initial_state_file``.
+    initial_state_file: Path = field(init=False)
+
+    # ~~~~~~~~~~~~~~~~~ #
+
+    #: - Emulates the Nextflow input variable ``agent_id``.
+    #: - Initialised in :py:func:`runscripts.workflow.generate_lineage`.
+    #: - Passed to :py:class:`.EcoliSim` via the CLI argument ``--agent_id``.
+    agent_id: str = '0'
+    #: - Emulates the Nextflow input variable ``generation``.
+    #: - Initialised in :py:func:`runscripts.workflow.generate_lineage`.
+    #: - Computed by :py:class:`.EcoliSim` as ``len(agent_id)`` in
+    #:   :py:class:`.StoragePartition`.
+    generation: int = 1
+    #: - Environment variable exported by :py:meth:`.EcoliSim.persist_generation`.
+    #: - Emulates the Nextflow input variable ``prev_division_time``.
+    #: - Passed back to :py:class:`.EcoliSim` via the CLI argument
+    #:   ``--initial_global_time``.
+    division_time: float = .0
+    #: - Emulates the Nextflow input variable ``lineage_seed``.
+    #: - Passed to :py:class:`.EcoliSim` via the CLI argument ``--lineage_seed``.
+    lineage_seed: int
+    #: - Emulates the Nextflow input variable ``sim_seed``.
+    #: - Passed to :py:class:`.EcoliSim` via the CLI argument ``--seed``.
+    sim_seed: int = field(init=False)
+
+    # ~~~~~~~~~~~~~~~~~ #
+
+    #: - Emitter configuration under test.
+    #: - Passed to :py:class:`.EcoliSim` via the CLI arguments
+    #:   ``--emitter`` and ``--emitter_arg``.
+    emitter_config: PatchConfig
+    #: Result of combining :py:attr:`.config_file` and :py:attr:`.emitter_config`.
+    config: dict[str, Any] = field(init=False)
+
+    # ~~~~~~~~~~~~~~~~~ #
+
+    #: Emulates the Nextflow process for a single generation.
+    sim: EcoliSim | None = None
+    #: Internal flag, unset at the generation that doesn't reach cell division.
+    prev_success: bool = True
+
+    # ~~~~~~~~~~~~~~~~~ #
+
+    def __post_init__(self) -> None:
+        """
+        Set the working directory, I/O file paths, and the initial seed.
+        """
+        # use a temporary working directory to contain workflow artefacts, e.g.,
+        # local files written by `ecoli.experiments.EcoliSim.persist_generation()`
+        self.monkeypatch.chdir(self.workdir)
+
+        # find a baseline JSON config
+        self.config_file = (
+            Path(CONFIG_DIR_PATH) / "test_configs" / f"{self.config_name}.json")
+        assert self.config_file.exists()
+
+        # find a `simData` in the repository
+        assert isinstance(self.sim_data_path, Path)
+        assert self.sim_data_path.is_absolute()
+        assert self.sim_data_path.exists()
+
+        # set the local path for daughter state
+        # - stored by: `ecoli.experiments.EcoliSim.persist_generation()`
+        # - loaded by: `ecoli.composites.ecoli_master.Ecoli.initial_state()`
+        assert isinstance(self.daughter_outdir, Path)
+        assert self.daughter_outdir.is_absolute()
+        self.daughter_outdir.mkdir(parents=True, exist_ok=True)
+        self.initial_state_file = self.daughter_outdir / self.initial_state_name
+
+        # initialise the seed stream, emulating:
+        # `runscripts/nextflow/sim.nf::simGen0().script`
+        assert isinstance(self.lineage_seed, int)
+        self.sim_seed = self.lineage_seed
+
+    # ~~~~~~~~~~~~~~~~~ #
+
+    def init_sim(self, success: bool, /) -> EcoliSim:
+        """
+        Create a new simulator instance, in the emulated environment of a call
+        to :py:func:`ecoli.experiments.ecoli_master_sim.main` from the Nextflow
+        process of a new generation, and additionally apply
+        :py:attr:`.emitter_config` as well as the method patches required to
+        achieve the mock behaviour.
+
+        Called by: :py:meth:`.sim_gen`.
+
+        Args:
+            success: Flag for emulating a :py:exc:`.DivisionDetected` event.
+        """
+        # configure the baseline simulation
+        config = SimConfig()
+        config.update_from_json(str(self.config_file))
+        config.update_from_dict({
+            "sim_data_path": str(self.sim_data_path),
+            "daughter_outdir": str(self.daughter_outdir)})
+
+        # configure the generation state
+        config.update_from_dict({
+            "agent_id": self.agent_id,
+            "lineage_seed": self.lineage_seed,
+            "seed": self.sim_seed})
+        if self.generation > 1:
+            config.update_from_dict({
+                "initial_global_time": self.division_time,
+                "initial_state_file": str(self.initial_state_file)})
+
+        # configure the emitter parameters
+        config.update_from_dict(self.emitter_config.to_dict())
+        self.config = config.to_dict()
+
+        # construct the simulation state
+        sim = EcoliSim(self.config)
+        with patch_func("ecoli.composites.ecoli_master.get_state_from_file") as f:
+            sim.build_ecoli()
+            if self.generation == 1:
+                f.assert_not_called()
+            else:
+                f.assert_called_once_with(path=str(self.initial_state_file))
+
+        # emulate the effects of reaching cell division
+        def update_experiment(_self: EcoliSim, _) -> None:
+            engine = _self.ecoli_experiment
+
+            # method called conditionally on exception `DivisionDetected`
+            def persist_generation(_: EcoliSim) -> tuple[tuple, dict]:
+                nonlocal self, engine
+                # emulate the environment variable `division_time`
+                self.division_time = engine.global_time
+                # mock agent division for single-daughter lineage
+                agents = engine.state.get_path(("agents",))
+                assert isinstance(agents, Store)
+                assert list(agents.inner.keys()) == [self.agent_id]
+                daughter_state = agents.get_path((self.agent_id,))
+                agents.inner = {i: daughter_state
+                                for i in daughter_phylogeny_id(self.agent_id)}
+                return ((), {"mock": True})
+            patch_meth(_self, "persist_generation", modargs=persist_generation)
+
+            # patch applied conditionally on test flag `success`
+            nonlocal success
+            if success:
+                # simulate until `config["max_duration"]` and then raise
+                def _check_complete(_: Engine):
+                    raise DivisionDetected
+                patch_meth(engine, "_check_complete", cb=_check_complete)
+        patch_meth(sim, "update_experiment", cb=update_experiment)
+        return sim
+
+    # ~~~~~~~~~~~~~~~~~ #
+
+    def sim_gen(self, success: bool, /) -> tuple[StoragePartition, dict[str, Any]]:
+        """
+        Emulate ``runscripts/nextflow/sim.nf::{simGen0,sim}()`` by starting a
+        single-generation simulation, stopping at ``config["max_duration"]``,
+        and storing the resulting single cell state to disk, without waiting for
+        an actual cell division.
+
+        Calls: :py:meth:`.init_sim`.
+
+        Args:
+          success: Flag for emulating a :py:exc:`.DivisionDetected` event.
+
+        Returns:
+          - :py:class:`.StoragePartition` of the resulting simulation.
+          - Full configuration of the resulting simulation.
+        """
+        # sanity check the mock generation state
+        assert self.sim is None
+        assert self.prev_success
+        assert len(self.agent_id) == self.generation
+        assert self.sim_seed - self.lineage_seed == self.generation - 1
+
+        # emulate `ecoli_master_sim.main()`
+        self.sim = self.init_sim(success)
+        with self.monkeypatch.context() as mp:
+            # skip `sys.exit()` inside `EcoliSim.update_experiment()`
+            mp.setattr(sys, "exit", lambda: None)
+            self.sim.run()
+
+        # sanity check the patching logic
+        u, p = self.sim.update_experiment, self.sim.persist_generation
+        u.assert_called_once_with(self.sim.max_duration)
+        p.assert_called_once_with() if success else p.assert_not_called()
+
+        # finalise the mock generation state
+        partition = self.sim.ecoli_experiment.emitter.partition
+        self.sim = None
+        self.prev_success = success
+
+        # emulate the generation transition in Nextflow variables
+        self.agent_id += "0"
+        self.generation += 1
+        self.sim_seed += 1
+        return (partition, self.config)
+
+
+# ==============================================================================
+# Nextflow tests
+# ==============================================================================
 
 
 class TestGenerateLineage:
@@ -197,6 +489,9 @@ class TestGenerateLineage:
         assert "size: 7" in workflow_str
 
 
+# ------------------------------------------------------------------------------
+
+
 class TestGenerateCode:
     """Test the generate_code function."""
 
@@ -235,6 +530,9 @@ class TestGenerateCode:
 
         # Should run runParca process
         assert "runParca(params.config)" in run_parca
+
+
+# ------------------------------------------------------------------------------
 
 
 @pytest.fixture
@@ -780,6 +1078,9 @@ class TestNextflowStubExecution:
                 shutil.rmtree(out_dir)
 
 
+# ------------------------------------------------------------------------------
+
+
 class TestGroupSizeValues:
     """Test that group_size values are calculated correctly for different configurations."""
 
@@ -987,6 +1288,9 @@ class TestGroupSizeValues:
             assert expected_gen_size_map in workflow_str, (
                 f"Expected generationSize = {expected_gen_size_map} not found"
             )
+
+
+# ------------------------------------------------------------------------------
 
 
 if __name__ == "__main__":
