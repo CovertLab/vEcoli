@@ -821,6 +821,12 @@ in a workflow called ``agitated_mendel``:
   nextflow log agitated_mendel -f name,stderr,workdir -F "status == 'FAILED'"
 
 
+.. warning::
+  Do not run ``nextflow log`` on HPC login nodes as it can be I/O intensive. Instead,
+  request an interactive session using ``srun --pty bash`` (or the appropriate
+  command for your system).
+
+
 .. _make_and_test:
 
 Make and Test Fixes
