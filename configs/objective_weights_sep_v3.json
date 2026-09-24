@@ -5133,6 +5133,15 @@
       "op": "prod"
     }
   },
+  "analysis_options": {
+    "memory_gb": 96,
+    "multivariant": {
+      "cell_mass": {},
+      "doubling_time_hist": {},
+      "centralCarbonMetabolismScatter": {},
+      "metabolite_unmet_need": {}
+    }
+  },
   "sherlock": {
     "build_image": true,
     "container_image": "./test_sherlock/test_image",
