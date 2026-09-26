@@ -211,9 +211,6 @@ def test_NetworkFlowModel(
     kinetic_targets_conc = np.array(list(dict(kinetic).values())) * counts_to_molar
     maintenance_conc = maintenance * counts_to_molar
 
-    # get binary_kinetic_idx for the kinetic reactions that are binary
-    binary_kinetic_idx = fba["binary_kinetic_idx"][-1]
-    print(binary_kinetic_idx)
     # --- Solve NetworkFlowModel ---
     model = NetworkFlowModel(
         stoich_arr=S_new,
@@ -228,7 +225,7 @@ def test_NetworkFlowModel(
         homeostatic_dm_targets=homeostatic_dm_targets_conc,
         maintenance_target=maintenance_conc,
         kinetic_targets=kinetic_targets_conc,
-        binary_kinetic_idx=None,
+        binary_kinetic_idx=None,  # pretend enzymes are available per condition
         force_flow_idx=force_reaction_idx,
         objective_weights=objective_weights,
         target_minimal_flux=0,
