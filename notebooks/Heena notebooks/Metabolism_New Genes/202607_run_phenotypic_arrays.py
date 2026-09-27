@@ -31,7 +31,7 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 # Mirrors the example weights in Standalone_FBA.ipynb cell 6 (no per-plate
 # tuning has been done yet for the phenotype-array sweep).
 DEFAULT_OBJECTIVE_WEIGHTS = {
-    "secretion": 0.01,
+    "secretion": 1e-07,
     "efficiency": 1e-06,
     "kinetics": 1e-05,
     "diversity": 1e-07,

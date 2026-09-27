@@ -820,34 +820,34 @@ class NetworkFlowModel:
             else 0
         )
         secretion_term = cp.sum(e[self.secretion_idx])
-        # loss += (
-        #     objective_weights["secretion"] * secretion_term
-        #     if "secretion" in objective_weights
-        #     else 0
-        # )
+        loss += (
+            objective_weights["secretion"] * secretion_term
+            if "secretion" in objective_weights
+            else 0
+        )
 
         efficiency_term = cp.sum(v)
-        # loss += (
-        #     objective_weights["efficiency"] * efficiency_term
-        #     if "efficiency" in objective_weights
-        #     else 0
-        # )
+        loss += (
+            objective_weights["efficiency"] * efficiency_term
+            if "efficiency" in objective_weights
+            else 0
+        )
 
         kinetic_targets = kinetic_targets * fraction_kinetic_target
         kinetics_term = cp.norm1(v[self.kinetic_rxn_idx] - kinetic_targets)
-        # loss += (
-        #     objective_weights["kinetics"] * kinetics_term
-        #     if "kinetics" in objective_weights
-        #     else 0
-        # )
+        loss += (
+            objective_weights["kinetics"] * kinetics_term
+            if "kinetics" in objective_weights
+            else 0
+        )
 
         # Heena's addition: minimize number of reactions with no flow
         diversity_term = cp.sum(cp.pos(target_minimal_flux - v))
-        # loss += (
-        #     objective_weights["diversity"] * diversity_term
-        #     if "diversity" in objective_weights
-        #     else 0
-        # )
+        loss += (
+            objective_weights["diversity"] * diversity_term
+            if "diversity" in objective_weights
+            else 0
+        )
 
         p = cp.Problem(cp.Minimize(loss), constr)
 
