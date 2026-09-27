@@ -7,7 +7,7 @@
   "fail_at_max_duration": true,
   "progress_bar": true,
   "log_updates": false,
-  "generations": 3,
+  "generations": 4,
   "emitter": "parquet",
   "emitter_arg": {
     "out_dir": "/scratch/users/hsaqibo1/"
@@ -93,7 +93,6 @@
   "disable_ppgpp_elongation_inhibition": true,
   "process_configs": {
     "ecoli-metabolism-redux-classic": {
-      "fraction_kinetic_target": 1.0,
       "include_new": true
     }
   },
@@ -5136,9 +5135,6 @@
   "analysis_options": {
     "memory_gb": 96,
     "multivariant": {
-      "cell_mass": {},
-      "doubling_time_hist": {},
-      "centralCarbonMetabolismScatter": {},
       "metabolite_unmet_need": {}
     }
   },
