@@ -17,11 +17,27 @@ per-reaction breakdowns (``reactions_per_row`` reactions per grid row, default
 Top 3 context panels (share the time axis with everything below):
   1. Every active reaction's signed contribution to the metabolite's dm/dt,
      ``S[met, r] * v_r`` (mM/s), stacked (producers up, consumers down), with the
-     net (black dotted) = the homeostatic accumulation rate.
+     net (solid black) = the homeostatic accumulation rate. Uptake from the
+     medium is not in ``reaction_fluxes``, so it is added from
+     ``external_exchange_fluxes`` as its own "external exchange (uptake)"
+     series (tagged EXCHANGE in its block).
   2. The same, converted to molecules per timestep (counts), the units the
-     homeostatic objective and division-mass accounting actually work in.
-  3. The metabolite's actual concentration vs its homeostatic target
-     concentration (mM). Might be blank if a molecule not in the HO is passed.
+     homeostatic objective and division-mass accounting actually work with. The
+     solid black net is the actual change FBA made to the pool; the red dotted
+     line is the targeted change the homeostatic objective asked for
+     (``target_homeostatic_dmdt``). The net is recomputed here from the
+     reaction fluxes and checked every run against the model's own
+     ``estimated_homeostatic_dmdt`` listener; a warning is emitted (console +
+     on the panel) if they disagree by more than rounding. Known cause: FBA's
+     maintenance fluxes (growth-associated, non-growth-associated, translation
+     energy) are not emitted, so ATP / ADP / Pi / H2O / H+ always warn -- their
+     stacks are missing that (large) term.
+  3. The metabolite's homeostatic target concentration (red dotted) with its
+     actual pool concentration both pre-FBA (grey dashed, start of the step) and
+     post-FBA (solid black, end of the step, = ``metabolite_counts_final`` *
+     counts_to_molar). The avg deviation in the title is measured post-FBA vs
+     target, i.e. the residual homeostatic error after FBA has acted. Might be
+     blank if a molecule not in the HO is passed.
 
 Per-reaction block (one per active, nonzero flux producing reaction):
   a. First subpanel: Contribution to the metabolite flux (mM/s). Kinetic
@@ -39,6 +55,7 @@ Requires a classic ``metabolism.py`` run (reads the ``enzyme_kinetics`` and
 
 import os
 import pickle
+import warnings
 from collections import defaultdict
 from typing import Any
 
@@ -79,6 +96,21 @@ TARGET_CONC = (
 POOL_COUNTS = (
     "listeners__fba_results__homeostatic_metabolite_counts"  # pool size (molecules)
 )
+# Pool change FBA actually made this step (molecules; stochastically rounded):
+EST_DMDT = "listeners__fba_results__estimated_homeostatic_dmdt"
+# Pool change the homeostatic objective asked for (target - actual, molecules):
+ASK_DMDT = "listeners__fba_results__target_homeostatic_dmdt"
+# Exchange with the environment. FBA treats these as "special" fluxes, so they
+# are NOT in reaction_fluxes; emitted per molecule in mmol/gDCW/h, pointing OUT
+# of the cell (negative = uptake). x coefficient / 3600 -> mM per step.
+EXCH_FLUXES = "listeners__fba_results__external_exchange_fluxes"
+FBA_COEFF = "listeners__fba_results__coefficient"  # g DCW * s / L
+EXCH_KEY = "external exchange (uptake)"
+
+# The model stochastically rounds FBA's pool change to whole molecules, so the
+# recomputed net may differ from the listener by up to ~1 molecule per step.
+NET_CHECK_ABS_TOL = 1.5  # molecules
+NET_CHECK_REL_TOL = 1e-4  # fraction of |listener value|
 
 # Columns that identify a single cell (one generation of one lineage):
 CELL_ID_COLS = ["experiment_id", "variant", "lineage_seed", "generation", "agent_id"]
@@ -281,6 +313,14 @@ def plot(
         tconc_ids = field_metadata(conn, config_sql, TARGET_CONC)
     except Exception:
         pool_ids, tconc_ids = [], []
+    try:
+        dmdt_ids = field_metadata(conn, config_sql, ASK_DMDT)
+    except Exception:
+        dmdt_ids = []
+    try:
+        exch_ids = field_metadata(conn, config_sql, EXCH_FLUXES)
+    except Exception:
+        exch_ids = []
 
     for metabolite in metabolites:
         _run_metabolite(
@@ -298,6 +338,8 @@ def plot(
             kin_set,
             pool_ids,
             tconc_ids,
+            dmdt_ids,
+            exch_ids,
             rpr,
             max_reactions,
             thresh_frac,
@@ -322,6 +364,8 @@ def _run_metabolite(
     kin_set,
     pool_ids,
     tconc_ids,
+    dmdt_ids,
+    exch_ids,
     rpr,
     max_reactions,
     thresh_frac,
@@ -385,6 +429,21 @@ def _run_metabolite(
         columns.append(
             named_idx(TARGET_CONC, ["met_tconc"], [[tconc_ids.index(metabolite)]])
         )
+    # Actual and targeted pool change per step, straight from the listeners,
+    # for panel 2 and the recomputed-net check.
+    if metabolite in dmdt_ids:
+        d_i = [[dmdt_ids.index(metabolite)]]
+        columns += [
+            named_idx(EST_DMDT, ["met_est_dmdt"], d_i),
+            named_idx(ASK_DMDT, ["met_ask_dmdt"], d_i),
+        ]
+    # Exchange with the environment (uptake/secretion), if this metabolite has
+    # one; converted to a contribution below.
+    if metabolite in exch_ids:
+        columns += [
+            named_idx(EXCH_FLUXES, ["met_exch"], [[exch_ids.index(metabolite)]]),
+            f"{FBA_COEFF} AS fba_coeff",
+        ]
 
     # remove_first=True drops each cell's first emitted row (a carried-over parent
     # value, not one this cell computed); order_results keeps the lineage in time
@@ -458,6 +517,7 @@ def _run_metabolite(
             dpi,
             mark_generations,
             outdir,
+            in_maintenance=metabolite in getattr(metab, "maintenance_reaction", {}),
         )
 
 
@@ -479,16 +539,25 @@ def _plot_seed(
     dpi,
     mark_generations,
     outdir,
+    in_maintenance=False,
 ):
     t = sub["time"].to_numpy().astype(float) / 60.0  # minutes for the x-axis
     c2m = sub["c2m"].to_numpy().astype(float)  # mM per molecule, per timestep
     generation = sub["generation"].to_numpy() if "generation" in sub.columns else None
     exp_id = str(sub["experiment_id"][0]) if "experiment_id" in sub.columns else "?"
 
-    # Per-step duration (s): forward difference of emitted times, last value
-    # repeated so dt_s aligns element-wise with every row:
-    dt_s = np.diff(sub["time"].to_numpy().astype(float))
-    dt_s = np.append(dt_s, dt_s[-1]) if len(dt_s) else np.array([1.0])
+    # Per-step duration (s): forward difference of emitted times WITHIN each
+    # cell (a difference across a division would span the dropped rows); each
+    # cell's last row takes the median step:
+    dt_s = (
+        sub.select(
+            (pl.col("time").shift(-1) - pl.col("time")).over(CELL_ID_COLS).alias("dt")
+        )["dt"]
+        .to_numpy()
+        .astype(float)
+    )
+    med_dt = float(np.nanmedian(dt_s)) if np.isfinite(dt_s).any() else 1.0
+    dt_s = np.where(np.isfinite(dt_s) & (dt_s > 0), dt_s, med_dt)
 
     # mM/s -> molecules/step conversion factor: (mM/s) * dt_s[s] / c2m[mM/molecule]
     # = molecules. Guard against c2m==0 (NaN, so those steps drop out cleanly):
@@ -561,6 +630,23 @@ def _plot_seed(
             entry["contrib"] = entry["contrib"] + contrib
         # Union the catalysts across every instantiation folded into this series:
         entry["catalysts"].update(reaction_catalysts.get(r, []))
+
+    # Exchange with the environment as its own series: flip the outward sign
+    # so uptake is a positive (producing) contribution, and convert
+    # mmol/gDCW/h x (g DCW s/L) / 3600 -> mM per step -> mM/s.
+    if "met_exch" in sub.columns:
+        exch_mM_step = (
+            -sub["met_exch"].to_numpy().astype(float)
+            * sub["fba_coeff"].to_numpy().astype(float)
+            / 3600.0
+        )
+        series[EXCH_KEY] = {
+            "contrib": exch_mM_step / dt_s,
+            "kinetic": False,
+            "exchange": True,
+            "coeff": 1.0,
+            "catalysts": set(),
+        }
 
     # Net dm/dt: sum of every series' signed contribution == the model's
     # homeostatic accumulation rate for this metabolite (mM/s):
@@ -663,7 +749,7 @@ def _plot_seed(
             pos_base = pos_base + pos
             neg_base = neg_base + neg
         ax.axhline(0, color="0.3", lw=0.8)
-        ax.plot(t, net_line, color="black", lw=1.6, ls=":", label=net_label)
+        ax.plot(t, net_line, color="black", lw=1.4, label=net_label)
         # Robust y-limits: clip to the 0.5/99.5 percentiles of the stacked totals
         # so a one-step post-division transient can't flatten the whole scale:
         hi = np.percentile(pos_base, 99.5)
@@ -674,6 +760,67 @@ def _plot_seed(
     # Net in counts/step, plus legend labels carrying the net's mean +/- std in
     # each unit:
     net_counts = net * to_counts
+
+    # Listener values for panel 2: the actual pool change the model recorded
+    # (est) and the targeted change it asked FBA for (ask), both molecules/step.
+    est = (
+        sub["met_est_dmdt"].to_numpy().astype(float)
+        if "met_est_dmdt" in sub.columns
+        else None
+    )
+    ask = (
+        sub["met_ask_dmdt"].to_numpy().astype(float)
+        if "met_ask_dmdt" in sub.columns
+        else None
+    )
+
+    # Hard check: the net recomputed from every reaction touching this
+    # metabolite must reproduce the model's own recorded pool change, up to the
+    # model's stochastic rounding to whole molecules. Any larger gap means the
+    # decomposition is missing or mis-scaling something, so the stacked bands
+    # can't be trusted to add up to what the cell actually did.
+    check_msg = None
+    if est is not None:
+        gap = np.abs(net_counts - est)
+        tol = NET_CHECK_ABS_TOL + NET_CHECK_REL_TOL * np.abs(est)
+        bad = np.isfinite(gap) & (gap > tol)
+        if bad.any():
+            k = int(np.nanargmax(np.where(bad, gap, np.nan)))
+            mean_gap = float(np.nanmean(net_counts - est))
+            check_msg = (
+                f"recomputed net ≠ estimated_homeostatic_dmdt listener at "
+                f"{int(bad.sum())}/{bad.size} steps (mean recomputed − listener "
+                f"{mean_gap:+,.0f} molec/step; max |gap| {gap[k]:,.0f} at "
+                f"t={t[k]:.1f} min)"
+            )
+            # FBA's maintenance fluxes (GAM, NGAM, translation energy) use the
+            # maintenance-reaction stoichiometry but are "special" fluxes left
+            # out of the emitted reaction_fluxes, so for these metabolites the
+            # stacked bands omit that (usually dominant) term.
+            if in_maintenance:
+                check_msg += (
+                    "\nlikely cause: maintenance reactions (growth-associated, "
+                    "non-growth-associated, translation energy) use this "
+                    "metabolite. They run inside FBA but are not emitted in "
+                    "reaction_fluxes, so they are missing from the stack"
+                )
+            warnings.warn(
+                f"[metabolite_ho_reaction_breakdown] {metabolite} seed {seed}: "
+                f"{check_msg}. The per-reaction decomposition does not add up "
+                f"to the model's recorded pool change."
+            )
+        else:
+            print(
+                f"[metabolite_ho_reaction_breakdown] {metabolite} seed {seed}: "
+                f"recomputed net matches estimated_homeostatic_dmdt at all "
+                f"{bad.size} steps (within rounding)."
+            )
+    else:
+        print(
+            f"[metabolite_ho_reaction_breakdown] {metabolite}: no "
+            f"estimated_homeostatic_dmdt listener entry (not a homeostatic "
+            f"target?); net check skipped."
+        )
     net_lbl_mM = f"net dm/dt: {np.nanmean(net):.2e} ± {np.nanstd(net):.1e} mM/s"
     net_lbl_cnt = (
         f"net dm/dt: {np.nanmean(net_counts):,.0f} ± "
@@ -703,7 +850,7 @@ def _plot_seed(
     ax_top1.set_ylabel("contribution to\ndm/dt (mM/s)")
     ax_top1.set_title(
         f"{metabolite}: per-reaction contribution to homeostatic dm/dt  "
-        f"(net dm/dt dotted)",
+        f"(net dm/dt = black line)",
         fontsize=11,
     )
     ax_top1.legend(
@@ -721,11 +868,41 @@ def _plot_seed(
     )
     ax_top2.set_ylabel("contribution to\ndm/dt (molecules/step)")
 
-    # Small legend with only the net line:
-    h2, l2 = ax_top2.get_legend_handles_labels()
+    # Targeted change (homeostatic objective's ask) on top of the actual net;
+    # widen the y-range if the ask runs outside the stacked bands:
+    net_handles = [ax_top2.get_legend_handles_labels()[0][-1]]
+    net_labels = [net_lbl_cnt]
+    if ask is not None:
+        (h_ask,) = ax_top2.plot(t, ask, color="red", lw=1.4, ls=":", zorder=6)
+        net_handles.append(h_ask)
+        net_labels.append(
+            f"targeted dm/dt: {np.nanmean(ask):,.0f} ± {np.nanstd(ask):,.0f} molec/step"
+        )
+        lo, hi = ax_top2.get_ylim()
+        a_lo, a_hi = np.nanpercentile(ask, [0.5, 99.5])
+        pad = 0.08 * max(hi - lo, a_hi - a_lo, 1e-30)
+        ax_top2.set_ylim(min(lo, a_lo - pad), max(hi, a_hi + pad))
+    ax_top2.set_title(
+        "Actual pool change (black = net of reactions) vs targeted change (red dotted)",
+        fontsize=10,
+    )
+    if check_msg is not None:
+        ax_top2.text(
+            0.01,
+            0.97,
+            f"WARNING: {check_msg}",
+            transform=ax_top2.transAxes,
+            ha="left",
+            va="top",
+            fontsize=7,
+            color="red",
+            bbox=dict(boxstyle="round", fc="white", ec="red", alpha=0.9),
+        )
+
+    # Small legend with only the net and targeted lines:
     ax_top2.legend(
-        [h2[-1]],
-        [l2[-1]],
+        net_handles,
+        net_labels,
         loc="center left",
         bbox_to_anchor=(1.005, 0.5),
         fontsize=7,
@@ -733,15 +910,24 @@ def _plot_seed(
     )
     ctx_axes.append(ax_top2)
 
-    # Context panel 3: homeostatic pool vs target:
+    # Context panel 3: homeostatic pool (pre- and post-FBA) vs target:
     ax_top3 = fig.add_subplot(gs[2, :], sharex=ax_top1)
 
-    # Pool concentration = pool counts * counts_to_molar (mM). Both pool and
-    # target traces are optional (either may be absent if this metabolite is
-    # not a homeostatic target or the listeners weren't emitted):
-    pool_conc = (
+    # Pre-FBA pool concentration = pool counts (as read at the start of the
+    # metabolism step, before FBA) * counts_to_molar (mM). Post-FBA pool
+    # concentration adds the change FBA actually made this step
+    # (estimated_homeostatic_dmdt, molecules): post = (pool + est) * c2m, which
+    # equals metabolite_counts_final * c2m. All three traces are optional (any
+    # may be absent if this metabolite is not a homeostatic target or the
+    # listeners weren't emitted).
+    pre_conc = (
         sub["met_pool"].to_numpy().astype(float) * c2m
         if "met_pool" in sub.columns
+        else None
+    )
+    post_conc = (
+        (sub["met_pool"].to_numpy().astype(float) + est) * c2m
+        if ("met_pool" in sub.columns and est is not None)
         else None
     )
     tconc = (
@@ -750,40 +936,63 @@ def _plot_seed(
         else None
     )
 
-    # Average deviation of the pool from its homeostatic target (+ = below).
+    # Average deviation is now measured POST-FBA vs target (+ = pool ends the
+    # step below target), i.e. the residual homeostatic error after FBA has
+    # acted -- the meaningful "how close did we end up?" number. (The pre-FBA
+    # trace only shows the demand entering the solve; per-step FBA success is
+    # already visible in the estimated-vs-target dm/dt panel above.)
     dev_txt = ""
-    if pool_conc is not None and tconc is not None:
+    if post_conc is not None and tconc is not None:
         valid = tconc > 0
         if bool(np.any(valid)):
-            dev = 100.0 * (tconc[valid] - pool_conc[valid]) / tconc[valid]
+            dev = 100.0 * (tconc[valid] - post_conc[valid]) / tconc[valid]
             mean_dev, std_dev = float(np.nanmean(dev)), float(np.nanstd(dev))
             side = "below" if mean_dev >= 0 else "above"
             dev_txt = (
-                f"  ·  avg deviation {abs(mean_dev):.1f}% ± {std_dev:.1f}% "
-                f"{side} target"
+                f"  ·  post-FBA avg deviation {abs(mean_dev):.1f}% ± "
+                f"{std_dev:.1f}% {side} target"
             )
-    if pool_conc is not None:
+    # Draw order matters here: pre-FBA (widest) at the bottom, then the slightly
+    # thinner black post-FBA actual, then the red-dotted target ON TOP so its
+    # dots stay visible where the black actual sits right on the target.
+    if pre_conc is not None:
         ax_top3.plot(
             t,
-            pool_conc,
+            pre_conc,
+            color="0.6",
+            lw=2.4,
+            ls="--",
+            zorder=1,
+            label=f"actual pre-FBA (start of step)  (avg {np.nanmean(pre_conc):.3g} "
+            f"± {np.nanstd(pre_conc):.2g} mM)",
+        )
+    if post_conc is not None:
+        ax_top3.plot(
+            t,
+            post_conc,
             color="black",
-            lw=1.4,
-            label=f"actual {metabolite}  (avg {np.nanmean(pool_conc):.3g} "
-            f"± {np.nanstd(pool_conc):.2g} mM)",
+            lw=0.9,
+            zorder=2,
+            label=f"actual post-FBA (end of step)  (avg {np.nanmean(post_conc):.3g} "
+            f"± {np.nanstd(post_conc):.2g} mM)",
         )
     if tconc is not None:
         ax_top3.plot(
             t,
             tconc,
             color="red",
-            lw=1.4,
+            lw=1.6,
             ls=":",
+            zorder=3,
             label=f"homeostatic target  (avg {np.nanmean(tconc):.3g} "
             f"± {np.nanstd(tconc):.2g} mM)",
         )
     ax_top3.set_ylabel(f"{metabolite}\nconc (mM)")
     ax_top3.set_title(
-        f"Homeostatic objective (red dotted = target){dev_txt}", fontsize=10
+        f"Homeostatic objective  "
+        f"(red dotted = target, black = post-FBA, grey dashed = pre-FBA)"
+        f"{dev_txt}",
+        fontsize=10,
     )
     ax_top3.legend(
         loc="center left", bbox_to_anchor=(1.005, 0.5), fontsize=7, frameon=False
@@ -808,9 +1017,15 @@ def _plot_seed(
         # Block title: reaction id, KINETIC vs FBA-only tag, up-to-3 catalyzing
         # enzymes (compartment tag stripped), and this reaction's % share of the
         # metabolite's gross (not net) production or consumption:
-        tag = "KINETIC" if v["kinetic"] else "FBA-only"
+        tag = (
+            "KINETIC"
+            if v["kinetic"]
+            else ("EXCHANGE" if v.get("exchange") else "FBA-only")
+        )
         cats = sorted(c.split("[")[0] for c in v.get("catalysts", set()))
-        if cats:
+        if v.get("exchange"):
+            cat_str = "medium exchange (not in reaction_fluxes)"
+        elif cats:
             cat_str = ", ".join(cats[:3]) + ("…" if len(cats) > 3 else "")
         else:
             cat_str = "no annotated catalyst"
@@ -970,10 +1185,12 @@ def _plot_seed(
 
     n_gens = sub["generation"].n_unique() if "generation" in sub.columns else "?"
     n_kin = sum(series[k]["kinetic"] for k in kept)
+    n_exch = sum(bool(series[k].get("exchange")) for k in kept)
+    exch_txt = " + medium exchange" if n_exch else ""
     fig.suptitle(
         f"{metabolite} homeostatic reaction breakdown — {exp_id} · seed {seed} · "
-        f"{n_gens} gen(s)\n{len(kept)} active reactions "
-        f"({n_kin} kinetic, {len(kept) - n_kin} FBA-only)",
+        f"{n_gens} gen(s)\n{len(kept) - n_exch} active reactions "
+        f"({n_kin} kinetic, {len(kept) - n_kin - n_exch} FBA-only){exch_txt}",
         fontsize=12,
         y=0.995,
     )
