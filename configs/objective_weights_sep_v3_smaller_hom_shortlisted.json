@@ -1,0 +1,156 @@
+{
+  "experiment_id": "sep_v3_relationship_low_hom_shortlisted",
+  "parca_options": {
+    "cpus": 10
+  },
+  "max_duration": 4000,
+  "fail_at_max_duration": true,
+  "progress_bar": true,
+  "log_updates": false,
+  "generations": 12,
+  "n_init_sims": 6,
+  "emitter": "parquet",
+  "emitter_arg": {
+    "out_dir": "/scratch/users/hsaqibo1/"
+  },
+  "sim_data_path": null,
+  "save": false,
+  "save_times": [
+    1
+  ],
+  "fixed_media": "minimal",
+  "condition": "basal",
+  "swap_processes": {
+    "ecoli-metabolism": "ecoli-metabolism-redux-classic"
+  },
+  "exclude_processes": [
+    "exchange_data"
+  ],
+  "flow": {
+    "ecoli-metabolism-redux-classic": [
+      [
+        "ecoli-chromosome-structure"
+      ]
+    ],
+    "ecoli-mass-listener": [
+      [
+        "ecoli-metabolism-redux-classic"
+      ]
+    ],
+    "RNA_counts_listener": [
+      [
+        "ecoli-metabolism-redux-classic"
+      ]
+    ],
+    "rna_synth_prob_listener": [
+      [
+        "ecoli-metabolism-redux-classic"
+      ]
+    ],
+    "monomer_counts_listener": [
+      [
+        "ecoli-metabolism-redux-classic"
+      ]
+    ],
+    "dna_supercoiling_listener": [
+      [
+        "ecoli-metabolism-redux-classic"
+      ]
+    ],
+    "replication_data_listener": [
+      [
+        "ecoli-metabolism-redux-classic"
+      ]
+    ],
+    "rnap_data_listener": [
+      [
+        "ecoli-metabolism-redux-classic"
+      ]
+    ],
+    "unique_molecule_counts": [
+      [
+        "ecoli-metabolism-redux-classic"
+      ]
+    ],
+    "ribosome_data_listener": [
+      [
+        "ecoli-metabolism-redux-classic"
+      ]
+    ]
+  },
+  "raw_output": false,
+  "operons": true,
+  "trna_charging": false,
+  "ppgpp_regulation": false,
+  "initial_state_gaussian": true,
+  "trna_attenuation": false,
+  "variable_elongation_transcription": true,
+  "variable_elongation_translation": false,
+  "mechanistic_translation_supply": false,
+  "mechanistic_aa_transport": false,
+  "translation_supply": false,
+  "aa_supply_in_charging": false,
+  "adjust_timestep_for_charging": false,
+  "disable_ppgpp_elongation_inhibition": true,
+  "process_configs": {
+    "ecoli-metabolism-redux-classic": {
+      "include_new": true
+    }
+  },
+  "variants": {
+    "metabolism_redux_classic_combined": {
+      "weights": {
+        "nested": {
+          "homeostatic": {
+            "value": [
+              0.435298048,
+              0.07973146
+        ]
+      },
+      "secretion": {
+        "value": [
+          0.00100069,
+          0.000195524
+        ]
+      },
+      "efficiency": {
+        "value": [
+          0.00000747,
+          9.078E-07
+        ]
+      },
+      "kinetics": {
+        "value": [
+          0.000615971,
+          0.000115636
+        ]
+      },
+      "diversity": {
+        "value": [
+          0.003779848,
+          0.000891033
+        ]
+      },
+      "op": "zip"
+        }
+      },
+      "fraction_kinetic_target": {
+        "value": [
+          1.0,
+          0.8,
+          0.6,
+          0.4,
+          0.2,
+          0.1
+        ]
+      },
+      "op": "prod"
+    }
+  },
+  "sherlock": {
+    "build_image": true,
+    "container_image": "./test_sherlock/test_image",
+    "hyperqueue": true,
+    "jenkins": false
+  }
+}
