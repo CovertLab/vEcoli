@@ -200,7 +200,7 @@ def build_lollipop_figure(result_df, orientation, run_name):
             ),
         )
         width, height = 400, size
-        label_encode = dict(dot_encode, text=alt.Text("fraction:Q", format=".2f"))
+        label_encode = dict(dot_encode, text=alt.Text("fraction:Q", format=".3f"))
         label_offset = dict(dx=18)
     else:
         cat_axis = alt.X(

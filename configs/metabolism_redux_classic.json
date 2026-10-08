@@ -99,7 +99,7 @@
             "objective_weights": {
                 "homeostatic": 1
             },
-            "include_new": false
+            "include_new": true
         }
     }
 }

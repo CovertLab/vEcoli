@@ -38,7 +38,7 @@ DEFAULT_NEW_RESULTS_CSV = (
     / "results_new_reactions_original_weights.csv"
 )
 DEFAULT_WELLS_JSON = SCRIPT_DIR / "phenotypic_array_wells.json"
-DEFAULT_OUT_DIR = SCRIPT_DIR / "out" / "phenotypic_arrays" / "plots"
+DEFAULT_OUT_DIR = SCRIPT_DIR / "out" / "phenotypic_arrays" / "together_hom_only"
 
 CATEGORY_ORDER = ["A", "B", "C", "D", "Missing"]
 CATEGORY_LABELS = {

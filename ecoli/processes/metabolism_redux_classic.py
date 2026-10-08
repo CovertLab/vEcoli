@@ -42,11 +42,9 @@ topology_registry.register(NAME, TOPOLOGY)
 # TODO (Cyrus) - Remove when have a better way to handle these rxns.
 # ParCa mistakes in carbon gen, efflux/influx proton gen, mass gen
 BAD_RXNS = [
-    "RXN-12440",
     "TRANS-RXN-121",
     "TRANS-RXN-300",
     "TRANS-RXN-8",
-    "R15-RXN-MET/CPD-479//CPD-479/MET.25.",
     "TRANS-RXN-218",
     "TRANS-RXN0-601-PROTON//PROTON.15. (reverse)",
     # "DISULFOXRED-RXN[CCO-PERI-BAC]-MONOMER0-4152/MONOMER0-4438//MONOMER0-4438/MONOMER0-4152.71.",

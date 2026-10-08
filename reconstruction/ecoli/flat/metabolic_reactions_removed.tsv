@@ -4,3 +4,7 @@
 "N-ACETYLGLUCOSAMINE-KINASE-RXN-N-acetyl-D-glucosamine/ATP//CPD-16168/ADP/PROTON.49."	"Identical reaction with N-ACETYL-D-GLUCOSAMINE exists."
 "RXN-18678"	"Undetermined stoichiometry."
 "TRANS-RXN0-636"	"Undetermined stoichiometry."
+"R15-RXN-MET/CPD-479//CPD-479/MET.25."	"HS: Reactant and product are identical."
+"RXN-12440"	"HS: ill stoichiometry causing removal of L-ascorbate due to nature of dict(). Sub-reactions RXN-3521 and RXN-3523 exist."
+"DISULFOXRED-RXN[CCO-PERI-BAC]-MONOMER0-4152/DISULFOXRED-MONOMER//DISULFOXRED-MONOMER/MONOMER0-4152.83."	"HS: Reactant and product are identical."
+"DISULFOXRED-RXN[CCO-CYTOSOL]-MONOMER0-4152/DISULFOXRED-MONOMER//DISULFOXRED-MONOMER/MONOMER0-4152.82."	"HS: Reactant and product are identical."

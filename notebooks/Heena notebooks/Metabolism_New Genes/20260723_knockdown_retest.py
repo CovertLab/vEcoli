@@ -33,8 +33,8 @@ from pareto_exploration import (
 )
 
 OUT_DIR = "notebooks/Heena notebooks/Metabolism_New Genes/pareto_results_relationship_sep_v3_10000samples"
-SHORTLIST_PATH = f"{OUT_DIR}/best_of_best.csv"
-KNOCKDOWN_DIR = f"{OUT_DIR}/knockdown_retested"
+SHORTLIST_PATH = f"{OUT_DIR}/best_of_best_shrinked.csv"
+KNOCKDOWN_DIR = f"{OUT_DIR}/knockdown_retested_shrinked"
 FRACTIONS = [1.0, 0.8, 0.5, 0.3, 0.1]
 
 # Conservative default: CVXPY's own solve is multi-threaded (see

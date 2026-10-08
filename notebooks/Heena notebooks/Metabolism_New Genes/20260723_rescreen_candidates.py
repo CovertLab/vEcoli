@@ -28,9 +28,9 @@ import polars as pl
 OUT_DIR = "notebooks/Heena notebooks/Metabolism_New Genes/pareto_results_relationship_sep_v3_10000samples"
 TOYA_R2_MIN = 0.5
 OBJ_HOMEO_NOISE_FLOOR = (
-    1e-13  # empirically: obj_homeo deciles jump from ~1e-11 to ~2e-4
+    1e-14  # empirically: obj_homeo deciles jump from ~1e-11 to ~2e-4
 )
-OBJ_HOMEO_CEIL_FLOOR = 5e-12  # empirically: obj_homeo deciles jump from ~1e-11 to ~2e-4
+OBJ_HOMEO_CEIL_FLOOR = 1e-12  # empirically: obj_homeo deciles jump from ~1e-11 to ~2e-4
 N_CANDIDATES = 1000
 
 
@@ -61,7 +61,7 @@ def rescreen() -> pl.DataFrame:
     shortlist = real_competition.sort("kin_hom_ratio", descending=True).head(
         N_CANDIDATES
     )
-    out_path = f"{OUT_DIR}/best_of_best.csv"
+    out_path = f"{OUT_DIR}/best_of_best_shrinked.csv"
     shortlist.write_csv(out_path)
     print(f"Saved {shortlist.height}-candidate shortlist: {out_path}")
     print(

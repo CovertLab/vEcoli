@@ -51,7 +51,7 @@ CATEGORY_LABELS = {
 # qualitative palette): two 2-step ramps -- grey for "no NEW-model
 # correctness gain" (A/B), blue for "NEW model correct" (C/D) -- chosen for
 # perceptual distinctness and consistency in a static figure.
-CATEGORY_COLORS = ["#d9d9d9", "#969696", "#9ecae1", "#3182bd"]  # A, B, C, D
+CATEGORY_COLORS = ["#d9d9d9", "#969696", "#3182bd", "#9ecae1"]  # A, B, C, D
 BLANK_COLOR = "#ffffff"  # Missing: no ground truth / infeasible
 
 CELL_WIDTH = 130

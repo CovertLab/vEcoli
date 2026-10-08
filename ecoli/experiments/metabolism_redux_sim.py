@@ -62,7 +62,7 @@ def run_ecoli_with_metabolism_redux_classic(
     progress_bar=True,
     log_updates=False,
     emitter="timeseries",  # 'timeseries','parquet'
-    name="no_new_hom_only",
+    name="new_hom_only_stoich_adj",
     raw_output=False,
     save=False,
     save_times=[1],

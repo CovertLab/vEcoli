@@ -39,9 +39,12 @@ DEFAULT_OBJECTIVE_WEIGHTS = {
 }
 
 CARBON_REMOVE = {"GLC[p]", "CA+2[p]"}
-NITROGEN_REMOVE = {"AMMONIUM[c]", "CA+2[p]"}
-PHOSPHORUS_REMOVE = {"Pi[p]", "CA+2[p]"}
-SULFUR_REMOVE = {"SULFATE[p]", "CA+2[p]"}
+NITROGEN_ADD = {"PYRUVATE[e]"}
+NITROGEN_REMOVE = {"GLC[p]", "AMMONIUM[c]", "CA+2[p]"}
+PHOSPHORUS_ADD = {"PYRUVATE[e]"}
+PHOSPHORUS_REMOVE = {"GLC[p]", "Pi[p]", "CA+2[p]"}
+SULFUR_ADD = {"PYRUVATE[e]"}
+SULFUR_REMOVE = {"GLC[p]", "SULFATE[p]", "CA+2[p]"}
 
 WELL_RE = re.compile(r"^([A-Ha-h])0*(\d{1,2})$")
 
@@ -86,8 +89,9 @@ def test_NetworkFlowModel(
     #       Uptake molecules are the molecules that can be taken up.
     uptake = metabolism.allowed_exchange_uptake.copy()
     uptake = set(uptake)
-    uptake = uptake | uptake_addition
+
     uptake = uptake - uptake_removal
+    uptake = uptake | uptake_addition
 
     exchange_molecules = metabolism.exchange_molecules.copy()
     exchange_molecules = exchange_molecules | new_exchange_molecules
@@ -334,13 +338,33 @@ def default_removals(plate_key, well_row):
     return set()
 
 
+def default_additions(plate_key, well_row):
+    """Background nutrients a plate supplies on top of the well's own compound.
+
+    PM1/PM2 test carbon sources, so they add nothing. PM3 (nitrogen) and PM4
+    (phosphorus rows A-E, sulfur rows F-H) swap glucose out for pyruvate as the
+    carbon source (see *_REMOVE), so pyruvate has to be supplied here -- the
+    negative-control wells on those plates included, so they still differ from
+    their test wells only in the nutrient being tested.
+    """
+    if plate_key == "PM3":
+        return set(NITROGEN_ADD)
+    if plate_key == "PM4":
+        if well_row in "ABCDE":
+            return set(PHOSPHORUS_ADD)
+        if well_row in "FGH":
+            return set(SULFUR_ADD)
+    return set()
+
+
 def build_conditions(mapping_csv_path):
     """Read compound_mapping.csv into a dict of well -> {Add, Remove, ...}.
 
     Rows are skipped only when the compound could not be resolved to a
     species at all (match_status != "matched" and matched_species_id is
     empty). Legitimate negative-control wells (match_status == "matched"
-    with an empty matched_species_id) are kept with an empty Add set.
+    with an empty matched_species_id) are kept, with an Add set holding only
+    the plate's background nutrients from default_additions (empty on PM1/PM2).
     """
     df = pd.read_csv(mapping_csv_path, dtype=str).fillna("")
     conditions = {}
@@ -384,7 +408,7 @@ def build_conditions(mapping_csv_path):
             "compound_name": row.get("compound_name", ""),
             "mix0_id": row.get("mix0_id", ""),
             "species_id": species_id,
-            "Add": add_set,
+            "Add": add_set | default_additions(plate_key, well_row),
             "Remove": default_removals(plate_key, well_row),
         }
     return conditions
@@ -450,14 +474,6 @@ def run_condition(
             fba=fba,
             uptake_addition=cond["Add"],
             uptake_removal=cond["Remove"],
-            # A species newly Add-ed for a PM well usually isn't already in
-            # this checkpoint's metabolism.exchange_molecules (that set only
-            # reflects whatever media the checkpoint's own simulation history
-            # happened to use, see match_compounds.py's module docstring) --
-            # without also listing it here, set_up_exchanges never builds an
-            # exchange reaction for it at all and uptake_addition is a no-op
-            # (verified: omitting this made every well return ~the same oofv
-            # regardless of condition).
             new_exchange_molecules=cond["Add"],
             add_metabolite=add_metabolite,
             remove_reaction=remove_reaction,
