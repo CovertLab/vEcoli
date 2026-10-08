@@ -1,12 +1,17 @@
 """Summarize, per nutrient-source category (Carbon/Nitrogen/Phosphorus/
-Sulfur), how many phenotype-microarray wells fall into each of the 4
+Sulfur), how many phenotype-microarray wells fall into each of 4
 OLD-vs-NEW model alignment categories from 202607_plot_alignment_heatmap.py:
 
     A - neither model's prediction matches experimental ground truth
     B - only the OLD model matches
     C - only the NEW model matches
     D - both models match
-    Missing - infeasible/unavailable prediction in one or both models
+
+Wells in the 5th ("Missing": infeasible/unavailable prediction in one or
+both models) category are excluded from this summary table entirely --
+both from the row set and from each source's total (the percentage
+denominator) -- since they don't represent a model alignment outcome.  A
+"Total" column (row-sum across the 4 sources) is included alongside them.
 
 Unlike 202607_plot_alignment_heatmap.py (which plots one plate at a time),
 this covers all four PM plates so the counts/percentages here are the
@@ -38,15 +43,9 @@ DEFAULT_NEW_RESULTS_CSV = (
     / "results_new_reactions_original_weights.csv"
 )
 DEFAULT_WELLS_JSON = SCRIPT_DIR / "phenotypic_array_wells.json"
-DEFAULT_OUT_DIR = SCRIPT_DIR / "out" / "phenotypic_arrays" / "together_hom_only"
+DEFAULT_OUT_DIR = SCRIPT_DIR / "out" / "phenotypic_arrays" / "plots"
 
-CATEGORY_ORDER = ["A", "B", "C", "D", "Missing"]
-CATEGORY_LABELS = {
-    "A": "neither correct",
-    "B": "only OLD correct",
-    "C": "only NEW correct",
-    "D": "both correct",
-}
+CATEGORY_ORDER = ["A", "B", "C", "D"]
 SOURCE_ORDER = ["Carbon", "Nitrogen", "Phosphorus", "Sulfur"]
 
 
@@ -63,11 +62,13 @@ def load_plot_phenotypic_results():
 
 def summarize_alignment_by_source(merged, ppr):
     """Return (counts, percentages) DataFrames: rows = alignment_category
-    (A/B/C/D/Missing), columns = nutrient source (Carbon/Nitrogen/
-    Phosphorus/Sulfur), percentages are each cell's share of that source's
-    total well count (source well counts differ a lot -- Carbon spans two
-    plates, Sulfur is only PM4's F-H rows -- so raw counts alone aren't
-    comparable across sources)."""
+    (A/B/C/D -- "Missing" wells are dropped entirely, see module docstring),
+    columns = nutrient source (Carbon/Nitrogen/Phosphorus/Sulfur) plus a
+    5th "Total" column (row-sum across the 4 sources). percentages are each
+    cell's share of that source's total well count (source well counts
+    differ a lot -- Carbon spans two plates, Sulfur is only PM4's F-H rows
+    -- so raw counts alone aren't comparable across sources); "Total" has
+    no percentage column (it would trivially always be 100%)."""
     df = merged.copy()
     df["source"] = [
         ppr.well_source_category(plate, well)
@@ -83,22 +84,26 @@ def summarize_alignment_by_source(merged, ppr):
         .astype(int)
     )
     percentages = counts.div(counts.sum(axis=0), axis=1).mul(100).round(1)
+    counts["Total"] = counts[SOURCE_ORDER].sum(axis=1)
     return counts, percentages
 
 
 def build_summary_table_figure(counts, percentages):
-    cell_text = counts.astype(str) + " (" + percentages.astype(str) + "%)"
-    row_labels = [CATEGORY_LABELS.get(cat, cat) for cat in counts.index]
+    cell_text = counts[SOURCE_ORDER].astype(str) + " (" + percentages.astype(str) + "%)"
     fig = go.Figure(
         data=[
             go.Table(
                 header=dict(
-                    values=["Alignment category", *SOURCE_ORDER],
+                    values=["Alignment category", *SOURCE_ORDER, "Total"],
                     fill_color="#e5ecf6",
                     align="left",
                 ),
                 cells=dict(
-                    values=[row_labels, *[cell_text[col] for col in SOURCE_ORDER]],
+                    values=[
+                        counts.index,
+                        *[cell_text[col] for col in SOURCE_ORDER],
+                        counts["Total"],
+                    ],
                     align="left",
                 ),
             )
@@ -106,8 +111,8 @@ def build_summary_table_figure(counts, percentages):
     )
     fig.update_layout(
         title="OLD-vs-NEW Model Alignment by Nutrient Source (count (% of source total))",
-        width=800,
-        height=280,
+        width=880,
+        height=260,
         margin=dict(t=60, b=20, l=20, r=20),
     )
     return fig

@@ -200,8 +200,6 @@ def build_lollipop_figure(result_df, orientation, run_name):
             ),
         )
         width, height = 400, size
-        label_encode = dict(dot_encode, text=alt.Text("fraction:Q", format=".3f"))
-        label_offset = dict(dx=18)
     else:
         cat_axis = alt.X(
             "gene_label:N",
@@ -221,23 +219,16 @@ def build_lollipop_figure(result_df, orientation, run_name):
             ),
         )
         width, height = size, 400
-        label_encode = dict(dot_encode, text=alt.Text("fraction:Q", format=".2f"))
-        label_offset = dict(dy=-12)
 
     rules = alt.Chart(plot_df).mark_rule(color=LINE_COLOR).encode(**stem_encode)
     points = (
         alt.Chart(plot_df)
         .mark_circle(size=80, color=MARK_COLOR)
-        .encode(tooltip=["gene_label:N", "fraction:Q"], **dot_encode)
-    )
-    value_labels = (
-        alt.Chart(plot_df)
-        .mark_text(color="black", fontSize=10, **label_offset)
-        .encode(**label_encode)
+        .encode(tooltip=["gene_label:N", "fraction_label:N"], **dot_encode)
     )
 
     chart = (
-        (rules + points + value_labels)
+        (rules + points)
         .properties(
             width=width,
             height=height,
@@ -251,14 +242,9 @@ def build_lollipop_figure(result_df, orientation, run_name):
 
 def build_condition_coverage_bar_figure(category_counts, n_wells, run_name):
     """Bar chart of gene counts per condition-coverage category, computed
-    over ALL genes regardless of --top-n. Each bar is labeled with its
-    count's share of the total gene count (category_counts is expected to
-    cover ALL genes, so the shares sum to 100%)."""
-    total_genes = int(category_counts["count"].sum())
-    plot_df = category_counts.assign(fraction=lambda d: d["count"] / total_genes)
-
-    bars = (
-        alt.Chart(plot_df)
+    over ALL genes regardless of --top-n."""
+    chart = (
+        alt.Chart(category_counts)
         .mark_bar(color=MARK_COLOR)
         .encode(
             x=alt.X(
@@ -268,24 +254,14 @@ def build_condition_coverage_bar_figure(category_counts, n_wells, run_name):
                 axis=alt.Axis(labelAngle=-20),
             ),
             y=alt.Y("count:Q", title="Number of genes"),
-            tooltip=["category:N", "count:Q", alt.Tooltip("fraction:Q", format=".1%")],
+            tooltip=["category:N", "count:Q"],
         )
-    )
-    value_labels = (
-        alt.Chart(plot_df)
-        .mark_text(color="black", dy=-8)
-        .encode(
-            x=alt.X("category:N", sort=COVERAGE_CATEGORY_ORDER),
-            y=alt.Y("count:Q"),
-            text=alt.Text("fraction:Q", format=".1%"),
+        .properties(
+            width=400,
+            height=300,
+            title="New Metabolic Gene Condition-Coverage Categories "
+            f"({run_name}, n={n_wells} wells, all genes)",
         )
-    )
-
-    chart = (bars + value_labels).properties(
-        width=400,
-        height=300,
-        title="New Metabolic Gene Condition-Coverage Categories "
-        f"({run_name}, n={n_wells} wells, all genes)",
     )
     return chart
 
@@ -294,7 +270,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--run-name",
-        default="new_reaction_original_weights",
+        default="new_reactions_original_weights",
         help="--out-name used when running 202607_run_phenotypic_arrays.py "
         "--capture-fluxes for this model run",
     )
@@ -377,6 +353,9 @@ def main():
         }
     )
     result_df["gene_label"] = result_df["gene_name"].fillna(result_df["gene_id"])
+    result_df["fraction_label"] = (
+        result_df["n_wells_with_flux"].astype(str) + "/" + str(n_wells)
+    )
 
     n_covered = (result_df["n_reactions"] > 0).sum()
     print(
