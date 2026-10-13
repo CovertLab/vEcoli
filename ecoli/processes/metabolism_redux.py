@@ -142,6 +142,36 @@ BAD_RXNS.extend(
     ]
 )
 
+REDOX_LOOP_MODE = "open"
+
+if REDOX_LOOP_MODE == "closed":
+    BAD_RXNS.extend(
+        [
+            # free transhydrogenation bridges: NADP isoform's NADPH-producing
+            # direction, for each of the three illegitimate isoform groups
+            "1.5.1.20-RXN-5-METHYL-THF/NADP//METHYLENE-THF/NADPH/PROTON.46.",
+            "MALATE-DEHYDROGENASE-NADP+-RXN",
+            # terminal electron dump: ferredoxin-driven H2 evolution
+            "HYDROG-RXN (reverse)",
+        ]
+    )
+elif REDOX_LOOP_MODE != "open":
+    raise ValueError(f"Unknown REDOX_LOOP_MODE: {REDOX_LOOP_MODE!r}")
+
+
+glycolysis_kinetic_path = "open"
+
+if glycolysis_kinetic_path == "closed":
+    BAD_RXNS.extend(
+        [
+            "RXN0-6541",
+            "SEDOBISALDOL-RXN",
+            "SEDOBISALDOL-RXN (reverse)",
+        ]
+    )
+elif glycolysis_kinetic_path != "open":
+    raise ValueError(f"Unknown glycolysis_kinetic_path: {glycolysis_kinetic_path!r}")
+
 
 class MetabolismRedux(Step):
     name = NAME
