@@ -25,7 +25,8 @@ import plotly.express.colors as pc
 import plotly.graph_objects as go
 import polars as pl
 
-OUT_DIR = "notebooks/Heena notebooks/Metabolism_New Genes/pareto_results_relationship_sep_v3_10000samples"
+OUT_DIR = "notebooks/Heena notebooks/Metabolism_New Genes/pareto_results_enzymatic_v2_10000samples"
+CSV_NAME = "best_of_best.csv"
 TOYA_R2_MIN = 0.5
 OBJ_HOMEO_NOISE_FLOOR = (
     1e-14  # empirically: obj_homeo deciles jump from ~1e-11 to ~2e-4
@@ -61,7 +62,7 @@ def rescreen() -> pl.DataFrame:
     shortlist = real_competition.sort("kin_hom_ratio", descending=True).head(
         N_CANDIDATES
     )
-    out_path = f"{OUT_DIR}/best_of_best_shrinked.csv"
+    out_path = f"{OUT_DIR}/{CSV_NAME}"
     shortlist.write_csv(out_path)
     print(f"Saved {shortlist.height}-candidate shortlist: {out_path}")
     print(

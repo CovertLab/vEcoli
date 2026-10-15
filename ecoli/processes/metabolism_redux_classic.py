@@ -143,6 +143,10 @@ class MetabolismReduxClassic(Step):
         # Fallback only: overridden by sim_data.process.metabolism in normal sims
         "fraction_kinetic_target": 1.0,
         "include_new": True,
+        # Enzyme-scaled diversity floor (see NetworkFlowModel.diversity_floor):
+        # minimal turnover per catalyst molecule (1/s) and the floor's upper clip
+        "diversity_k_cat_min": 5.0,
+        "diversity_max_floor": 1.0,
     }
 
     def __init__(self, parameters):
@@ -252,6 +256,7 @@ class MetabolismReduxClassic(Step):
             homeostatic_metabolites=self.homeostatic_metabolites,
             kinetic_reactions=self.kinetic_constraint_reactions,
             free_reactions=FREE_RXNS,
+            catalyzed_rxn_enzymes_idx=self.catalyzed_rxn_enzymes_idx,
         )
 
         # important bulk molecule names
@@ -563,7 +568,6 @@ class MetabolismReduxClassic(Step):
         objective_weights = self.parameters["objective_weights"]
         fraction_kinetic_target = self.parameters["fraction_kinetic_target"]
         self.include_new = self.parameters["include_new"]
-        print(self.include_new)
         solution: FlowResult = self.network_flow_model.solve(
             homeostatic_concs=homeostatic_metabolite_concentrations,
             homeostatic_dm_targets=target_homeostatic_dmdt,
@@ -576,6 +580,10 @@ class MetabolismReduxClassic(Step):
             include_new=self.include_new,
             new_reaction_idx=new_reaction_idx,
             solver=cp.GLOP,
+            catalyst_concs=current_catalyst_counts * self.counts_to_molar.asNumber(),
+            k_cat_min=self.parameters["diversity_k_cat_min"],
+            max_floor=self.parameters["diversity_max_floor"],
+            timestep=self.timestep,
         )
 
         self.reaction_fluxes = solution.velocities
@@ -706,6 +714,7 @@ class NetworkFlowModel:
         homeostatic_metabolites: list[str],
         kinetic_reactions: list[str],
         free_reactions: Optional[list[str]] = None,  # TODO Use free reactions
+        catalyzed_rxn_enzymes_idx: Optional[list[list[int]]] = None,
     ):
         self.S_orig = csr_matrix(stoich_arr.astype(np.int64))
         self.S_exch = csr_matrix([])
@@ -719,6 +728,49 @@ class NetworkFlowModel:
             if kinetic_reactions
             else None
         )
+
+        # Group each FBA reaction with its reverse partner (same id minus
+        # REVERSE_TAG) so the diversity floor applies to total flux through a
+        # reaction rather than to each direction separately.
+        group_keys = [
+            rxn[: -len(REVERSE_TAG)] if rxn.endswith(REVERSE_TAG) else rxn
+            for rxn in reactions
+        ]
+        group_index = {key: i for i, key in enumerate(dict.fromkeys(group_keys))}
+        self.pair_of_rxn = np.array([group_index[key] for key in group_keys])
+        self.direction_group_matrix = csr_matrix(
+            (
+                np.ones(self.n_orig_rxns),
+                (self.pair_of_rxn, np.arange(self.n_orig_rxns)),
+            ),
+            shape=(len(group_index), self.n_orig_rxns),
+        )
+
+        # Enzyme-scaled diversity floor: each catalyst's concentration is shared
+        # evenly across the reaction pairs it catalyzes, so a catalyst serving
+        # many pairs (e.g. outer-membrane porins) gives each only a fraction.
+        #   rxn_catalyst_share[i, e] = 1 / (pairs served by e)  if e catalyzes i
+        self.rxn_catalyst_incidence: Optional[csr_matrix] = None
+        self.rxn_catalyst_share: Optional[csr_matrix] = None
+        if catalyzed_rxn_enzymes_idx is not None:
+            assert len(catalyzed_rxn_enzymes_idx) == self.n_orig_rxns
+            rows, cols = [], []
+            for rxn_idx, enzymes_idx in enumerate(catalyzed_rxn_enzymes_idx):
+                rows.extend([rxn_idx] * len(enzymes_idx))
+                cols.extend(enzymes_idx)
+            self.n_catalysts = max(cols, default=-1) + 1
+            incidence = csr_matrix(
+                (np.ones(len(rows)), (rows, cols)),
+                shape=(self.n_orig_rxns, self.n_catalysts),
+            )
+            incidence.sum_duplicates()
+            incidence.data[:] = 1.0
+            pair_incidence = (self.direction_group_matrix @ incidence).tocsc()
+            pairs_per_catalyst = np.maximum(np.diff(pair_incidence.indptr), 1)
+            self.rxn_catalyst_incidence = incidence
+            self.rxn_catalyst_share = csr_matrix(
+                incidence.multiply(1.0 / pairs_per_catalyst[None, :])
+            )
 
         # steady state indices, secretion indices
         self.intermediates = list(set(self.mets) - set(homeostatic_metabolites))
@@ -764,6 +816,51 @@ class NetworkFlowModel:
 
         self.secretion_idx = np.array(secretion_idx, dtype=int)
 
+    def diversity_floor(
+        self,
+        target_minimal_flux: float,
+        catalyst_concs: Optional[npt.ArrayLike] = None,
+        k_cat_min: float = 5.0,
+        max_floor: float = 1.0,
+        timestep: float = 1.0,
+    ) -> npt.NDArray[np.float64]:
+        """Floor for each reaction pair (0 = no floor for that pair).
+
+        Without ``catalyst_concs``: every pair gets ``target_minimal_flux``.
+        With ``catalyst_concs`` (concentration of each catalyst, indexed like
+        ``catalyzed_rxn_enzymes_idx``), for FBA reactions with an expressed
+        catalyst::
+
+            floor_i = clip(k_cat_min * timestep * sum_e conc_e / pairs_served_e,
+                           target_minimal_flux, max_floor)
+            floor_r = max over the pair's reactions of floor_i
+
+        Pairs with no annotated or no expressed catalyst get no floor."""
+        n_pairs = self.direction_group_matrix.shape[0]
+        if target_minimal_flux <= 0:
+            return np.zeros(n_pairs)
+        if catalyst_concs is None:
+            warnings.warn(
+                "No catalyst_concs passed to NetworkFlowModel.solve; using a "
+                "uniform diversity floor instead of the enzyme-scaled one."
+            )
+            return np.full(n_pairs, float(target_minimal_flux))
+        if self.rxn_catalyst_share is None or self.rxn_catalyst_incidence is None:
+            raise ValueError(
+                "catalyst_concs requires NetworkFlowModel(catalyzed_rxn_enzymes_idx=...)"
+            )
+        concs = np.asarray(catalyst_concs, dtype=float)[: self.n_catalysts]
+        expressed = self.rxn_catalyst_incidence @ concs > 0
+        available = self.rxn_catalyst_share @ concs
+        rxn_floor = np.where(
+            expressed,
+            np.clip(k_cat_min * timestep * available, target_minimal_flux, max_floor),
+            0.0,
+        )
+        floor = np.zeros(n_pairs)
+        np.maximum.at(floor, self.pair_of_rxn, rxn_floor)
+        return floor
+
     def solve(
         self,
         homeostatic_concs: Iterable[float],
@@ -779,8 +876,17 @@ class NetworkFlowModel:
         include_new: bool = True,
         new_reaction_idx: Optional[Iterable[int]] = None,
         solver=cp.GLOP,
+        catalyst_concs: Optional[npt.ArrayLike] = None,
+        k_cat_min: float = 5.0,
+        max_floor: float = 1.0,
+        timestep: float = 1.0,
     ) -> FlowResult:
-        """Solve the network flow model for fluxes and dm/dt values."""
+        """Solve the network flow model for fluxes and dm/dt values.
+
+        The diversity term floors each reaction pair (forward + reverse) at
+        ``diversity_floor(...)``: enzyme-scaled when ``catalyst_concs`` is given
+        (requires ``catalyzed_rxn_enzymes_idx`` at init), otherwise a uniform
+        ``target_minimal_flux``."""
         # mypy fixes
         objective_weights = cast(Mapping[str, float], objective_weights)
 
@@ -839,8 +945,30 @@ class NetworkFlowModel:
             else 0
         )
 
-        # Heena's addition: minimize number of reactions with no flow
-        diversity_term = cp.sum(cp.pos(target_minimal_flux - v))
+        # Heena's addition: penalize reaction pairs (forward + reverse flux
+        # together) that run below their floor, normalized by that floor:
+        #   T_div = sum_r (1/floor_r) * max(0, floor_r - g_r)   over floor_r > 0
+        # Written as (1/floor) * pos(floor - g), identical to pos(1 - g/floor),
+        # so the 1/floor factor (~1e6) sits in the objective instead of the
+        # constraint matrix; the unscaled form made GLOP fail mid-sim.
+        group_flux = self.direction_group_matrix @ v
+        floor = self.diversity_floor(
+            target_minimal_flux, catalyst_concs, k_cat_min, max_floor, timestep
+        )
+        floored = np.flatnonzero(floor > 0)
+        if floored.size:
+            diversity_term = cp.sum(
+                cp.multiply(
+                    1.0 / floor[floored], cp.pos(floor[floored] - group_flux[floored])
+                )
+            )
+        else:
+            if "diversity" in objective_weights:
+                warnings.warn(
+                    "target_minimal_flux must be > 0 for the diversity floor; "
+                    "diversity term disabled for this solve."
+                )
+            diversity_term = cp.Constant(0)
         loss += (
             objective_weights["diversity"] * diversity_term
             if "diversity" in objective_weights

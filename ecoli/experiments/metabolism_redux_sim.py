@@ -62,7 +62,7 @@ def run_ecoli_with_metabolism_redux_classic(
     progress_bar=True,
     log_updates=False,
     emitter="timeseries",  # 'timeseries','parquet'
-    name="new_hom_only_stoich_adj",
+    name="post_pheno_stoich_adj",
     raw_output=False,
     save=False,
     save_times=[1],
@@ -114,9 +114,7 @@ def run_ecoli_with_metabolism_redux_classic(
 
     query = []
 
-    folder = (
-        f"out/phenotypic/{condition}_{name}_{max_duration}_{datetime.date.today()}/"
-    )
+    folder = f"out/objective_weight/enzymatic/{condition}_{name}_{max_duration}_{datetime.date.today()}/"
 
     if emitter == "timeseries":
         save_sim_output(folder, query, sim, save_model=True)
