@@ -25,8 +25,8 @@ import plotly.express.colors as pc
 import plotly.graph_objects as go
 import polars as pl
 
-OUT_DIR = "notebooks/Heena notebooks/Metabolism_New Genes/pareto_results_relationship_sep_v3_10000samples"
-TOYA_R2_MIN = 0.5
+OUT_DIR = "notebooks/Heena notebooks/Metabolism_New Genes/pareto_results_enzymatic_v3_10000samples"
+TOYA_R2_MIN = 0.6
 OBJ_HOMEO_NOISE_FLOOR = (
     1e-14  # empirically: obj_homeo deciles jump from ~1e-11 to ~2e-4
 )
