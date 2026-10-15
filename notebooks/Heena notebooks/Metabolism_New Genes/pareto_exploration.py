@@ -62,19 +62,17 @@ FLUX_UNITS = COUNTS_UNITS / VOLUME_UNITS / TIME_UNITS
 # Homeostatic weight is always fixed at 1.
 # ---------------------------------------------------------------------------
 WEIGHT_RANGES = {
-    "homeostatic": (1e-3, 1.0),
-    "secretion": (1e-7, 1e-4),  # 2.12E-4
-    "efficiency": (1e-7, 1e-4),  # 2.34E-5
+    "homeostatic": (1e-4, 1.0),
+    "secretion": (1e-8, 1e-4),  # 2.12E-4
+    "efficiency": (1e-8, 1e-4),  # 2.34E-5
     # Widened upper bound from 1e-3 to 1e-2: the previous range under-sampled
     # the large lambda_kin/lambda_hom ratios needed for a real (non-noise-floor)
     # trade-off between obj_kin and obj_homeo (see 20260723 re-analysis).
-    "kinetics": (1e-5, 1e-2),
-    "diversity": (1e-5, 1e-2),  # 8.53E-3
+    "kinetics": (1e-8, 1e-2),
+    "diversity": (1e-8, 1e-2),  # 8.53E-3
 }
 
-OUT_DIR = (
-    "notebooks/Heena notebooks/Metabolism_New Genes/pareto_results_jul_10000samples"
-)
+OUT_DIR = "notebooks/Heena notebooks/Metabolism_New Genes/pareto_results_enzymatic_oct_10000samples"
 os.makedirs(OUT_DIR, exist_ok=True)
 
 with open(f"{OUT_DIR}/weight_info.json", "w") as fp:
@@ -172,6 +170,7 @@ def solve_one(
     solver_choice=cp.GLOP,
     binary_kinetics_idx=None,
     fraction_kinetic_target: float = 1.0,
+    catalyst_concs=None,
 ) -> Optional[dict]:
     """
     Build and solve the NetworkFlowModel for one weight combination.
@@ -180,6 +179,10 @@ def solve_one(
     `fraction_kinetic_target` scales all kinetic targets uniformly (the
     global proxy for a kinetic-enzyme knockdown used throughout this
     project — see NetworkFlowModel.solve()); defaults to 1.0 (no knockdown).
+
+    `catalyst_concs` (time-averaged concentration per catalyst) switches the
+    diversity term to the enzyme-scaled floor (k_cat_min / max floor from the
+    process parameters); without it the diversity floor is uniform.
     """
     weights = {
         "homeostatic": lam_hom,
@@ -188,6 +191,12 @@ def solve_one(
         "kinetics": lam_kin,
         "diversity": lam_div,
     }
+    # Solve with the weights rescaled so the largest is 1. Scaling every weight
+    # by the same factor doesn't change the optimal fluxes, but GLOP fails when
+    # all weights are tiny (e.g. lambda_hom ~1e-3 with the rest ~1e-10). The
+    # reported lambdas, weighted terms and obj_total stay on the sampled scale.
+    weight_scale = 1.0 / max(weights.values())
+    scaled_weights = {k: v * weight_scale for k, v in weights.items()}
 
     try:
         model = NetworkFlowModel(
@@ -197,6 +206,7 @@ def solve_one(
             homeostatic_metabolites=metabolism.homeostatic_metabolites,
             kinetic_reactions=metabolism.kinetic_constraint_reactions,
             free_reactions=FREE_RXNS,
+            catalyzed_rxn_enzymes_idx=metabolism.catalyzed_rxn_enzymes_idx,
         )
         model.set_up_exchanges(
             exchanges=metabolism.exchange_molecules,
@@ -210,13 +220,17 @@ def solve_one(
             maintenance_target=maintenance,
             kinetic_targets=np.array(list(dict(kinetic).values())),
             binary_kinetic_idx=binary_kinetics_idx,
-            objective_weights=weights,
+            objective_weights=scaled_weights,
             upper_flux_bound=100,
             target_minimal_flux=counts_to_molar[-1],
             fraction_kinetic_target=fraction_kinetic_target,
             include_new=True,
             new_reaction_idx=metabolism.new_reaction_idx,
             solver=solver_choice,
+            catalyst_concs=catalyst_concs,
+            k_cat_min=metabolism.parameters["diversity_k_cat_min"],
+            max_floor=metabolism.parameters["diversity_max_floor"],
+            timestep=metabolism.parameters["time_step"],
         )
 
         return {
@@ -226,7 +240,7 @@ def solve_one(
             "lambda_kin": lam_kin,
             "lambda_div": lam_div,
             "fraction_kinetic_target": fraction_kinetic_target,
-            "obj_total": solution.objective,
+            "obj_total": solution.objective / weight_scale,
             "obj_homeo": solution.homeostatic_term,
             "obj_kin": solution.kinetics_term,
             "obj_eff": solution.efficiency_term,
@@ -700,6 +714,7 @@ def run(
     solver_choice=cp.GLOP,
     binary_kinetics_idx=None,
     sample_fn=log_uniform_sample,
+    catalyst_concs=None,
 ) -> pl.DataFrame:
     """
     Run Pareto exploration and generate all three plots.
@@ -729,6 +744,7 @@ def run(
         counts_to_molar=counts_to_molar,
         solver_choice=solver_choice,
         binary_kinetics_idx=binary_kinetics_idx,
+        catalyst_concs=catalyst_concs,
     )
 
     def _solve(i):
@@ -875,6 +891,7 @@ def load_problem_data(sim_out_dir: str):
             "listeners__fba_results__maintenance_target AS maintenance_target",
             "listeners__fba_results__target_kinetic_fluxes AS target_kinetic_fluxes",
             "listeners__enzyme_kinetics__counts_to_molar AS counts_to_molar",
+            "listeners__fba_results__catalyst_counts AS catalyst_counts",
         ],
         remove_first=True,  # first emitted timestep has empty placeholder targets
         conn=conn,
@@ -899,6 +916,14 @@ def load_problem_data(sim_out_dir: str):
     )
     kinetic_vals = np.mean(target_kinetic_fluxes * counts_to_molar[:, None], axis=0)
     maintenance = float(np.mean(maintenance_target_ts * counts_to_molar))
+    # Catalyst concentrations for the enzyme-scaled diversity floor (mean over time)
+    catalyst_counts_ts = ndlist_to_ndarray(raw["catalyst_counts"])
+    catalyst_concs = np.mean(catalyst_counts_ts * counts_to_molar[:, None], axis=0)
+    if len(catalyst_concs) != len(metabolism.catalyst_ids):
+        raise ValueError(
+            f"catalyst_counts has {len(catalyst_concs)} entries but the process "
+            f"has {len(metabolism.catalyst_ids)} catalysts."
+        )
 
     homeostatic_dm_targets = dict(
         zip(metabolism.homeostatic_metabolites, homeostatic_dm_targets_vals)
@@ -915,6 +940,7 @@ def load_problem_data(sim_out_dir: str):
         kinetic=kinetic,
         maintenance=maintenance,
         counts_to_molar=counts_to_molar,
+        catalyst_concs=catalyst_concs,
     )
 
 

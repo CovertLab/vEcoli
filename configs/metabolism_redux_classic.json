@@ -97,7 +97,11 @@
         },
         "ecoli-metabolism-redux-classic": {
             "objective_weights": {
-                "homeostatic": 1
+                "secretion": 1e-07,
+                "efficiency": 1e-07,
+                "kinetics": 1e-07,
+                "diversity": 1e-07,
+                "homeostatic": 1.0
             },
             "include_new": true
         }

@@ -170,13 +170,19 @@ def test_NetworkFlowModel(
                 kinetic[r] = v
 
     if remove_reaction is not None:
-        for r in remove_reaction:
-            r_idx = reaction_names.index(r)
-            S_new = np.delete(S_new, r_idx, axis=1)
-            reaction_names.remove(r)
-            if r in kinetic_reaction_ids:
-                kinetic_reaction_ids.remove(r)
-                del kinetic[r]
+        # One np.delete for all columns -- deleting one column at a time copied
+        # the full stoichiometry matrix once per removed reaction (~500 copies
+        # per solve early in a gene-accumulation trial).
+        to_remove = set(remove_reaction)
+        missing = to_remove.difference(reaction_names)
+        if missing:
+            raise ValueError(f"remove_reaction ids not in reaction_names: {missing}")
+        remove_idx = [i for i, r in enumerate(reaction_names) if r in to_remove]
+        S_new = np.delete(S_new, remove_idx, axis=1)
+        reaction_names = [r for r in reaction_names if r not in to_remove]
+        removed_kinetic = [r for r in kinetic_reaction_ids if r in to_remove]
+        kinetic_reaction_ids = [r for r in kinetic_reaction_ids if r not in to_remove]
+        kinetic = kinetic.drop(removed_kinetic)
 
     if force_reaction is not None:
         force_reaction_idx = np.array([reaction_names.index(r) for r in force_reaction])
@@ -232,13 +238,12 @@ def test_NetworkFlowModel(
         binary_kinetic_idx=None,  # pretend enzymes are available per condition
         force_flow_idx=force_reaction_idx,
         objective_weights=objective_weights,
-        target_minimal_flux=0,
+        target_minimal_flux=counts_to_molar,  # 1 molecule/s floor, as in the live sim
         include_new=metabolism.include_new,
         new_reaction_idx=metabolism.new_reaction_idx,
         upper_flux_bound=100,  # matches the live WC sim's scale now everything is in concentration units.
         solver=solver_choice,
     )
-    print(metabolism.include_new)
 
     # `solution` and `model` are appended (beyond the notebook's original 6-tuple)
     # so callers can read FlowResult fields (e.g. homeostatic_term, dm_dt) and
