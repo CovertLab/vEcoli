@@ -1,14 +1,18 @@
 {
   "emitter_arg": {
-    "out_dir": "out/objective_weights_jul/"
+    "out_dir": "out/objective_weight_parquet/enzymatic_div/"
   },
   "analysis_options": {
-    "experiment_id": ["bobv2_397_generic_kd_20260724-150447"],
-    "variant_data_dir": ["out/objective_weights_jul/bobv2_397_generic_kd_20260724-150447/variant_sim_data"],
-    "validation_data_path": ["out/objective_weights_jul/bobv2_397_generic_kd_20260724-150447/parca/kb/validationData.cPickle"],
-    "outdir": "out/objective_weights_jul/analysis/bobv2_397_generic_kd_20260724-150447/",
+    "experiment_id": ["enzymatic_div_v3_feasible_best_hom_toya_kin_20261015-193558"],
+    "variant_data_dir": ["out/objective_weight_parquet/enzymatic_div/enzymatic_div_v3_feasible_best_hom_toya_kin_20261015-193558/variant_sim_data"],
+    "validation_data_path": ["out/objective_weight_parquet/enzymatic_div/enzymatic_div_v3_feasible_best_hom_toya_kin_20261015-193558/parca/kb/validationData.cPickle"],
+    "outdir": "out/objective_weight_parquet/enzymatic_div/enzymatic_div_v3_feasible_best_hom_toya_kin_20261015-193558/analyses/plots",
     "cpus": 1,
+    "single": {
+      "centralCarbonMetabolismScatter": {}
+    },
     "multivariant": {
+      "new_gene_activation": {},
       "cell_mass": {},
       "doubling_time_hist": {
         "skip_n_gens": 0

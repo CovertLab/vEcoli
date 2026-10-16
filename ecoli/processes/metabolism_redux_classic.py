@@ -787,6 +787,30 @@ class NetworkFlowModel:
             else None
         )
 
+        # Diversity floor masks over reaction pairs:
+        #   kinetic_pair_mask     - pair contains a kinetic reaction; never floored,
+        #                           so the floor doesn't compete with the kinetics term
+        #   no_floor_pair_mask    - kinetic pairs plus the maintenance pair (pinned by
+        #                           its own constraint)
+        #   uncatalyzed_pair_mask - no member has an annotated catalyst; these get the
+        #                           uniform floor (target_minimal_flux)
+        n_pairs = self.direction_group_matrix.shape[0]
+        self.kinetic_pair_mask = np.zeros(n_pairs, dtype=bool)
+        if self.kinetic_rxn_idx is not None:
+            self.kinetic_pair_mask[self.pair_of_rxn[self.kinetic_rxn_idx]] = True
+        self.no_floor_pair_mask = self.kinetic_pair_mask.copy()
+        if self.maintenance_idx is not None:
+            self.no_floor_pair_mask[self.pair_of_rxn[self.maintenance_idx]] = True
+        self.uncatalyzed_pair_mask: Optional[npt.NDArray[np.bool_]] = None
+        if self.rxn_catalyst_incidence is not None:
+            pair_has_catalyst = np.zeros(n_pairs, dtype=bool)
+            np.logical_or.at(
+                pair_has_catalyst,
+                self.pair_of_rxn,
+                np.diff(self.rxn_catalyst_incidence.indptr) > 0,
+            )
+            self.uncatalyzed_pair_mask = ~pair_has_catalyst & ~self.no_floor_pair_mask
+
     def set_up_exchanges(self, exchanges: set[str], uptakes: set[str]):
         """Set up exchange reactions for the network flow model. Exchanges allow certain metabolites to have flow out of
         the system. Uptakes allow certain metabolites to also have flow into the system."""
@@ -826,16 +850,18 @@ class NetworkFlowModel:
     ) -> npt.NDArray[np.float64]:
         """Floor for each reaction pair (0 = no floor for that pair).
 
-        Without ``catalyst_concs``: every pair gets ``target_minimal_flux``.
         With ``catalyst_concs`` (concentration of each catalyst, indexed like
-        ``catalyzed_rxn_enzymes_idx``), for FBA reactions with an expressed
-        catalyst::
+        ``catalyzed_rxn_enzymes_idx``)::
 
-            floor_i = clip(k_cat_min * timestep * sum_e conc_e / pairs_served_e,
+            floor_r = 0                    pair has a kinetic reaction, or is maintenance
+                    = target_minimal_flux  no member of the pair has an annotated catalyst
+                    = max over the pair's expressed reactions of
+                      clip(k_cat_min * timestep * sum_e conc_e / pairs_served_e,
                            target_minimal_flux, max_floor)
-            floor_r = max over the pair's reactions of floor_i
+                    = 0                    catalysts annotated but none expressed
 
-        Pairs with no annotated or no expressed catalyst get no floor."""
+        Without ``catalyst_concs``: every pair gets ``target_minimal_flux``,
+        except kinetic pairs and the maintenance pair (0)."""
         n_pairs = self.direction_group_matrix.shape[0]
         if target_minimal_flux <= 0:
             return np.zeros(n_pairs)
@@ -844,7 +870,9 @@ class NetworkFlowModel:
                 "No catalyst_concs passed to NetworkFlowModel.solve; using a "
                 "uniform diversity floor instead of the enzyme-scaled one."
             )
-            return np.full(n_pairs, float(target_minimal_flux))
+            floor = np.full(n_pairs, float(target_minimal_flux))
+            floor[self.no_floor_pair_mask] = 0.0
+            return floor
         if self.rxn_catalyst_share is None or self.rxn_catalyst_incidence is None:
             raise ValueError(
                 "catalyst_concs requires NetworkFlowModel(catalyzed_rxn_enzymes_idx=...)"
@@ -859,6 +887,9 @@ class NetworkFlowModel:
         )
         floor = np.zeros(n_pairs)
         np.maximum.at(floor, self.pair_of_rxn, rxn_floor)
+        assert self.uncatalyzed_pair_mask is not None
+        floor[self.uncatalyzed_pair_mask] = float(target_minimal_flux)
+        floor[self.no_floor_pair_mask] = 0.0
         return floor
 
     def solve(
@@ -948,7 +979,8 @@ class NetworkFlowModel:
         # Heena's addition: penalize reaction pairs (forward + reverse flux
         # together) that run below their floor, normalized by that floor:
         #   T_div = sum_r (1/floor_r) * max(0, floor_r - g_r)   over floor_r > 0
-        # Written as (1/floor) * pos(floor - g), identical to pos(1 - g/floor),
+        # Kinetic pairs get no floor (see diversity_floor) so this term doesn't
+        # compete with the kinetics term. Written as (1/floor) * pos(floor - g), identical to pos(1 - g/floor),
         # so the 1/floor factor (~1e6) sits in the objective instead of the
         # constraint matrix; the unscaled form made GLOP fail mid-sim.
         group_flux = self.direction_group_matrix @ v

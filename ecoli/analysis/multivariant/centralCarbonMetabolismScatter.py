@@ -36,23 +36,20 @@ FLUX_UNITS = COUNTS_UNITS / VOLUME_UNITS / TIME_UNITS
 TIMESTEP = 1 * TIME_UNITS
 
 
-def plot(
+def compute_central_metabolism(
     params: dict[str, Any],
     conn: "DuckDBPyConnection",
     history_sql: str,
     config_sql: str,
-    success_sql: str,
     sim_data_dict: dict[str, dict[int, str]],
     validation_data_paths: list[str],
-    outdir: str,
-    variant_metadata: dict[str, dict[int, Any]],
-    variant_names: dict[str, str],
-):
-    experiment_id = next(iter(variant_metadata.keys()), None)
-    per_variant_params: dict[int, Any] = (
-        variant_metadata[experiment_id] if experiment_id else {}
-    )
+    per_variant_params: dict[int, Any],
+) -> tuple[pl.DataFrame, pl.DataFrame, dict[int, str]]:
+    """Per-variant mean simulated vs. Toya 2010 central carbon fluxes.
 
+    Returns (df_all: one row per variant x Toya reaction with toya_mean/stdev,
+    sim_mean/stdev and the variant's R^2 values; summary_df: one row per
+    variant with pearson_r2 and r_squared; variant id -> variant label)."""
     REDUXCLASSIC = params.get("is_redux", True)
 
     with open_arbitrary_sim_data(sim_data_dict) as f:
@@ -177,9 +174,35 @@ def plot(
             )
         )
 
-    df_all = pl.concat(all_dfs)
+    return pl.concat(all_dfs), pl.DataFrame(summary_rows), variant_label_by_id
 
-    summary_df = pl.DataFrame(summary_rows)
+
+def plot(
+    params: dict[str, Any],
+    conn: "DuckDBPyConnection",
+    history_sql: str,
+    config_sql: str,
+    success_sql: str,
+    sim_data_dict: dict[str, dict[int, str]],
+    validation_data_paths: list[str],
+    outdir: str,
+    variant_metadata: dict[str, dict[int, Any]],
+    variant_names: dict[str, str],
+):
+    experiment_id = next(iter(variant_metadata.keys()), None)
+    per_variant_params: dict[int, Any] = (
+        variant_metadata[experiment_id] if experiment_id else {}
+    )
+
+    df_all, summary_df, variant_label_by_id = compute_central_metabolism(
+        params,
+        conn,
+        history_sql,
+        config_sql,
+        sim_data_dict,
+        validation_data_paths,
+        per_variant_params,
+    )
     summary_df.write_csv(os.path.join(outdir, "central_metabolism_stats.csv"))
     flux_unit_str = FLUX_UNITS.strUnit()
 
@@ -229,8 +252,8 @@ def plot(
             groupby=["variant_label"],
         )
         .transform_calculate(
-            multiline_label="'Pearson R\u00b2 = ' + format(datum.pearson_r2, '.2f') + '\\n' + "
-            "'R\u00b2 to y=x is ' + format(datum.r_squared, '.2f')"
+            multiline_label="'Pearson R² = ' + format(datum.pearson_r2, '.2f') + '\\n' + "
+            "'R² to y=x is ' + format(datum.r_squared, '.2f')"
         )
         .encode(text="multiline_label:N")
     )
