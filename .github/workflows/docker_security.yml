@@ -17,16 +17,37 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.event.merge_group.head_sha || github.ref }}
   cancel-in-progress: true
 
+env:
+  # Grype is installed from a pinned release tarball verified against a
+  # hardcoded SHA256 instead of through a third-party action or install
+  # script, so a hijacked tag or release cannot change what runs here.
+  # To upgrade: pick a release that has been out for at least a week or two,
+  # verify the Sigstore signature on grype_<version>_checksums.txt, then copy
+  # the linux_amd64.tar.gz checksum from that file.
+  GRYPE_VERSION: "0.120.1"
+  GRYPE_SHA256: "0a9ee97ef5ae2ee953b0a80098105052e846cdbe319a57d808b519c33cd1343d"
+  GRYPE_CHECK_FOR_APP_UPDATE: "false"
+
 jobs:
-  buildx:
+  scan:
     permissions:
       contents: read
       actions: read            # Required for upload-sarif to get workflow run info
       security-events: write   # Required for uploading SARIF results
       pull-requests: write     # Required for PR comments summarizing vulnerabilities
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
+    env:
+      # Fork PRs get a read-only token, so they are scanned but cannot upload
+      # SARIF results or comment on the PR.
+      CAN_WRITE: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
     steps:
+      # The image is large and gets written to disk twice (archive + Grype's
+      # unpacked layers), so reclaim space from preinstalled toolchains.
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+          df -h /
+
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
         with:
@@ -35,35 +56,83 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd
 
+      # Export straight to a tarball rather than loading into the Docker
+      # daemon, so the scanner reads the archive without another docker save.
       - name: Build image
         uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294
         with:
           context: .
           file: runscripts/container/Dockerfile
-          load: true
           tags: vecoli:latest
+          outputs: type=docker,dest=${{ runner.temp }}/vecoli.tar
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Login to Docker Hub
-        uses: docker/login-action@b45d80f862d83dbcd57f89517bcf500b2ab88fb2
-        with:
-          username: ${{ vars.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Install Grype
+        run: |
+          tarball="$RUNNER_TEMP/grype.tar.gz"
+          curl -fsSL --proto '=https' --tlsv1.2 -o "$tarball" \
+            "https://github.com/anchore/grype/releases/download/v${GRYPE_VERSION}/grype_${GRYPE_VERSION}_linux_amd64.tar.gz"
+          echo "${GRYPE_SHA256}  ${tarball}" | sha256sum --check --strict
+          mkdir -p "$RUNNER_TEMP/grype-bin"
+          tar -xzf "$tarball" -C "$RUNNER_TEMP/grype-bin" grype
+          echo "$RUNNER_TEMP/grype-bin" >> "$GITHUB_PATH"
 
-      - name: Analyze for critical and high CVEs
-        id: docker-scout-cves
-        uses: docker/scout-action@8910519cee8ac046f3ee99686b0dc6654d5ba1a7
-        with:
-          command: cves,recommendations
-          image: vecoli:latest
-          sarif-file: sarif.output.json
-          summary: true
-          only-severities: critical,high,medium
-          only-fixed: true
+      - name: Scan image for vulnerabilities
+        run: |
+          grype "docker-archive:$RUNNER_TEMP/vecoli.tar" \
+            --name vecoli:latest \
+            --only-fixed \
+            -o table \
+            -o json=grype.json \
+            -o sarif=grype-all.sarif
+          rm -f "$RUNNER_TEMP/vecoli.tar"
+          # Keep critical/high (error) and medium (warning); drop low/negligible (note)
+          jq '.runs[].results |= map(select(.level != "note"))' grype-all.sarif > grype.sarif
 
+      - name: Write job summary
+        env:
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          jq -r '
+            [.matches[] | select(.vulnerability.severity | IN("Critical","High","Medium"))]
+            | sort_by({"Critical":0,"High":1,"Medium":2}[.vulnerability.severity], .artifact.name)
+            | if length == 0 then "No fixable critical, high, or medium vulnerabilities found."
+              else
+                "| Severity | Vulnerability | Package | Installed | Fixed in |",
+                "|---|---|---|---|---|",
+                (.[] | "| \(.vulnerability.severity) | [\(.vulnerability.id)](\(.vulnerability.dataSource)) | \(.artifact.name) (\(.artifact.type)) | \(.artifact.version) | \(.vulnerability.fix.versions | join(", ")) |")
+              end' grype.json > table.md
+          {
+            echo "## Grype vulnerability scan (fixable only)"
+            echo
+            # PR comments are capped at 65536 characters
+            head -c 60000 table.md
+            echo
+            echo "[Full scan output]($RUN_URL)"
+          } > summary.md
+          cat summary.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Comment on PR
+        if: github.event_name == 'pull_request' && env.CAN_WRITE == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          marker='<!-- grype-image-scan -->'
+          printf '%s\n' "$marker" | cat - summary.md > comment.md
+          comment_id=$(gh api --paginate "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/comments" \
+            --jq ".[] | select(.user.login == \"github-actions[bot]\" and (.body | startswith(\"$marker\"))) | .id" | head -n 1)
+          if [ -n "$comment_id" ]; then
+            gh api -X PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$comment_id" -F body=@comment.md > /dev/null
+          else
+            gh api -X POST "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/comments" -F body=@comment.md > /dev/null
+          fi
+
+      # Merge queue refs are ephemeral; master results come from push/schedule
       - name: Upload SARIF result
-        id: upload-sarif
-        uses: github/codeql-action/upload-sarif@7434149006143a4d75b82a2f411ef15b03ccc2d7
+        if: github.event_name != 'merge_group' && env.CAN_WRITE == 'true'
+        uses: github/codeql-action/upload-sarif@38697555549f1db7851b81482ff19f1fa5c4fedc
         with:
-          sarif_file: sarif.output.json
+          sarif_file: grype.sarif
+          category: grype-image-scan
