@@ -10,12 +10,18 @@ import warnings
 from vivarium.core.process import Step
 
 from ecoli.processes.registries import topology_registry
-from ecoli.library.schema import bulk_name_to_idx, attrs, numpy_schema
+from ecoli.library.schema import (
+    bulk_name_to_idx,
+    attrs,
+    numpy_schema,
+    listener_schema,
+)
 
 # Register default topology for this process, associating it with process name
 NAME = "ecoli-tf-unbinding"
 TOPOLOGY = {
     "bulk": ("bulk",),
+    "listeners": ("listeners",),
     "promoters": (
         "unique",
         "promoter",
@@ -49,6 +55,17 @@ class TfUnbinding(Step):
         return {
             "bulk": numpy_schema("bulk"),
             "promoters": numpy_schema("promoters", emit=self.parameters["emit_unique"]),
+            "listeners": {
+                "rna_synth_prob": listener_schema(
+                    {
+                        # TFs released from DNA at the start of this timestep
+                        "n_actual_unbound": (
+                            [0] * len(self.tf_ids),
+                            list(self.tf_ids),
+                        ),
+                    }
+                )
+            },
             "global_time": {"_default": 0.0},
             "timestep": {"_default": self.parameters["time_step"]},
             "next_update_time": {
@@ -97,6 +114,7 @@ class TfUnbinding(Step):
                 # Reset bound_TF attribute of promoters
                 "set": {"bound_TF": np.zeros_like(bound_TF)}
             },
+            "listeners": {"rna_synth_prob": {"n_actual_unbound": n_bound_TF}},
         }
 
         # Add mass_diffs array to promoter submass

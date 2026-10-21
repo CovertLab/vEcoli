@@ -53,6 +53,7 @@ class RnaSynthProb(Step):
                     "promoter_copy_number": ([0] * self.n_TU, self.rna_ids),
                     "gene_copy_number": ([0] * self.n_TU, self.gene_ids),
                     "bound_TF_indexes": ([], self.tf_ids),
+                    "n_actual_bound": ([0] * self.n_TF, self.tf_ids),
                     "bound_TF_coordinates": [],
                     "bound_TF_domains": [],
                     "target_rna_synth_prob": ([0.0] * self.n_TU, self.rna_ids),
@@ -122,6 +123,10 @@ class RnaSynthProb(Step):
                     cistron_indexes, minlength=self.n_cistron
                 ),
                 "bound_TF_indexes": TF_indexes,
+                # TFs currently bound to promoters (recorded here so the
+                # initial timestep of each generation is correct, as in
+                # wcEcoli #1472; tf_binding's value is overwritten)
+                "n_actual_bound": bound_TFs.sum(axis=0),
                 "bound_TF_coordinates": all_coordinates[bound_promoter_indexes],
                 "bound_TF_domains": all_domains[bound_promoter_indexes],
                 "expected_rna_init_per_cistron": expected_rna_init_per_cistron,

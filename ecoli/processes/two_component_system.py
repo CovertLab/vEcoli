@@ -11,7 +11,12 @@ and back in response to counts of ligand stimulants.
 
 import numpy as np
 
-from ecoli.library.schema import numpy_schema, bulk_name_to_idx, counts
+from ecoli.library.schema import (
+    numpy_schema,
+    bulk_name_to_idx,
+    counts,
+    listener_schema,
+)
 
 from wholecell.utils import units
 from ecoli.processes.registries import topology_registry
@@ -73,7 +78,19 @@ class TwoComponentSystem(PartitionedProcess):
     def ports_schema(self):
         return {
             "bulk": numpy_schema("bulk"),
-            "listeners": {"mass": {"cell_mass": {"_default": 0}}},
+            "listeners": {
+                "mass": {"cell_mass": {"_default": 0}},
+                # Net count change of each TCS molecule from the ODE solve this
+                # timestep (rows of the TCS stoichiometry matrix)
+                "two_component_system_listener": listener_schema(
+                    {
+                        "molecule_changes": (
+                            [0] * len(self.moleculeNames),
+                            self.moleculeNames,
+                        ),
+                    }
+                ),
+            },
             "timestep": {"_default": self.parameters["time_step"]},
         }
 
@@ -126,6 +143,13 @@ class TwoComponentSystem(PartitionedProcess):
                 jit=self.jit,
             )
         # Increment changes in molecule counts
-        update = {"bulk": [(self.molecule_idx, self.all_molecule_changes.astype(int))]}
+        update = {
+            "bulk": [(self.molecule_idx, self.all_molecule_changes.astype(int))],
+            "listeners": {
+                "two_component_system_listener": {
+                    "molecule_changes": self.all_molecule_changes.astype(int)
+                }
+            },
+        }
 
         return update

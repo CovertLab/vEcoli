@@ -399,6 +399,16 @@ class PolypeptideElongation(PartitionedProcess):
                         "process_elongation_rate": 0.0,
                     }
                 ),
+                # Per-monomer count of proteins whose elongation completed
+                # (i.e. new free monomers released into bulk) this timestep
+                "monomer_events": listener_schema(
+                    {
+                        "monomers_elongated": (
+                            [0] * len(self.proteinIds),
+                            self.proteinIds,
+                        ),
+                    }
+                ),
             },
             "bulk": numpy_schema("bulk"),
             "bulk_total": numpy_schema("bulk"),
@@ -540,7 +550,14 @@ class PolypeptideElongation(PartitionedProcess):
         """
 
         update = {
-            "listeners": {"ribosome_data": {}, "growth_limits": {}},
+            "listeners": {
+                "ribosome_data": {},
+                "growth_limits": {},
+                # Zeros in case of early return (listener updater is "set")
+                "monomer_events": {
+                    "monomers_elongated": np.zeros(len(self.proteinIds), dtype=int)
+                },
+            },
             "polypeptide_elongation": {},
             "active_ribosome": {},
             "bulk": [],
@@ -661,6 +678,7 @@ class PolypeptideElongation(PartitionedProcess):
 
         update["bulk"].append((self.monomer_idx, terminatedProteins))
         states["bulk"][self.monomer_idx] += terminatedProteins
+        update["listeners"]["monomer_events"]["monomers_elongated"] = terminatedProteins
 
         nTerminated = didTerminate.sum()
         nInitialized = didInitialize.sum()

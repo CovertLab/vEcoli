@@ -92,7 +92,12 @@ class Equilibrium(PartitionedProcess):
                             "reaction_rates": (
                                 [0.0] * len(self.reaction_ids),
                                 self.reaction_ids,
-                            )
+                            ),
+                            # Net reaction events (+ formation, - dissociation)
+                            "complexation_events": (
+                                [0] * len(self.reaction_ids),
+                                self.reaction_ids,
+                            ),
                         }
                     )
                 },
@@ -175,7 +180,8 @@ class Equilibrium(PartitionedProcess):
             "listeners": {
                 "equilibrium_listener": {
                     "reaction_rates": deltaMolecules[self.product_indices]
-                    / states["timestep"]
+                    / states["timestep"],
+                    "complexation_events": rxnFluxes.astype(int),
                 }
             },
         }
