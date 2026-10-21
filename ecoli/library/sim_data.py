@@ -1493,6 +1493,7 @@ class LoadSimData:
             # Get IDs of replisome subunits
             "replisome_trimer_subunits": self.sim_data.molecule_groups.replisome_trimer_subunits,
             "replisome_monomer_subunits": self.sim_data.molecule_groups.replisome_monomer_subunits,
+            "mechanistic_replisome": self.mechanistic_replisome,
             # Get the IDs of transcription factors:
             "tf_ids": [
                 tf_id + f"[{self.sim_data.getter.get_compartment(tf_id)[0]}]"
