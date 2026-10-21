@@ -2,8 +2,8 @@
 """
 Extracts half-lives of RNAs from Supplementary Table S4 of Chen et al.,
 "Genome-wide study of mRNA degradation and transcript elongation in Escherichia
-coli" (2014) and Supporting Table 5 of Bernstein et al., "Global analysis of
-mRNA decay and abundance in Escherichi coli at single gene resoluation using
+coli" (2015) and Supporting Table 5 of Bernstein et al., "Global analysis of
+mRNA decay and abundance in Escherichia coli at single gene resolution using
 two-color fluorescent DNA microarrays" (2002). Optionally generates a comparison
 plot for degradation rates reported for the same gene from these two sources.
 """

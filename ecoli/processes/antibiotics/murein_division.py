@@ -29,7 +29,7 @@ class MureinDivision(Step):
     topology = TOPOLOGY
 
     defaults = {
-        "murein_name": "CPD-12261[p]",
+        "murein_name": "C6[p]",
     }
 
     def __init__(self, parameters=None):
@@ -86,7 +86,7 @@ class MureinDivision(Step):
         # Only run right after division (cell has half of mother lattice)
         # TODO: Calculate porosity, hole size/strand length dists
         # Note: This mechanism does not perfectly conserve murein mass between
-        # mother and daughter cells (can at most gain the mass of 1 CPD-12261).
+        # mother and daughter cells (can at most gain the mass of 1 C6).
         if states["first_update"] and states["wall_state"]["lattice"] is not None:
             accounted_murein_monomers = sum(states["murein_state"].values())
             # When run in an EngineProcess, this Step sets the incorporated
@@ -95,17 +95,15 @@ class MureinDivision(Step):
                 incorporated_murein = np.sum(states["wall_state"]["lattice"])
                 update["murein_state"]["incorporated_murein"] = incorporated_murein
                 accounted_murein_monomers += incorporated_murein
-            remainder = accounted_murein_monomers % 4
-            if remainder != 0:
-                # Bulk murein is a tetramer. Add extra unincorporated murein
-                # monomers until divisible by 4
-                update["murein_state"]["unincorporated_murein"] = 4 - remainder
-                accounted_murein_monomers += 4 - remainder
-            accounted_murein = accounted_murein_monomers // 4
+
+            # TODO: Edited 7/14 while swapping peptidoglycan biomass component from CPD-12261
+            # (outdated ID used for C6 tetramer) to the monomeric C6 unit.
+            # Has not been tested, since we're not actively using this process currently,
+            # so treat with caution.
             total_murein = counts(states["bulk"], self.murein_idx)
-            if accounted_murein != total_murein:
+            if accounted_murein_monomers != total_murein:
                 update["bulk"].append(
-                    (self.murein_idx, (accounted_murein - total_murein))
+                    (self.murein_idx, (accounted_murein_monomers - total_murein))
                 )
         update["first_update"] = False
         return update

@@ -59,7 +59,6 @@ dependencies = [
     "arviz-plots>=0.7.0",
     "arviz>=0.23.0",
     "s3fs>=2025.5.1",
-    "vegafusion>=2.0.3",
 ]
 
 [project.optional-dependencies]
@@ -76,6 +75,7 @@ dev = [
     "google-cloud-compute",
     "boto3>=1.41.5",
     "botocore[crt]>=1.41.5",
+    "vegafusion>=2.0.3",
 ]
 docs = [
     "Sphinx",

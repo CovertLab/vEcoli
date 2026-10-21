@@ -20,7 +20,7 @@ class MoleculeIds(object):
             "DnaA": "PD03831[c]",
             "DnaA_ATP_complex": "MONOMER0-160[c]",
             "LPS": "CPD0-939[c]",
-            "murein": "CPD-12261[p]",
+            "murein": "C6[p]",
             "glycogen": "glycogen-monomer[c]",
             "ppGpp": "GUANOSINE-5DP-3DP[c]",
             "oriC_site": "G0-10506",

@@ -1,0 +1,3 @@
+# Modified half-lives values for proteins in the model
+"id"	"half life (units.min)"	"_comments"
+"UDP-NACMURALA-GLU-LIG-MONOMER"	1914.725051971764	"UDP-N-acetylmuramoyl-L-alanine--D-glutamate ligase (MurD); set absolute half-life to a stable value from Gupta et al. 2024 (carbon-limited) data."

@@ -29,11 +29,11 @@ the outer simulation process (here, process ``A``) expects the data to be
 .. code-block:: text
 
              ________________
-            /      |         \    EngineProcess
+            ╱      |         ╲    EngineProcess
     dummy_store  +---+    +-------------------------+
         :  :.....| A |    |                         |
-        :        +---+    |        /\               |
-        :                 |       /  \              |
+        :        +---+    |        ╱╲               |
+        :                 |       ╱  ╲              |
         :                 |  +---+    store1        |
         :                 |  | B |       ^          |
         :                 |  +---+       |          |
@@ -57,12 +57,12 @@ the outer simulation and what paths those outer simulation stores have.
 
 .. code-block:: text
 
-         /\\
-        /  \        EngineProcess
-       /    +-------------------------+
+         ╱╲
+        ╱  ╲        EngineProcess
+       ╱    +-------------------------+
     store2  |                         |
-      :     |        /\               |
-      :     |       /  \              |
+      :     |        ╱╲               |
+      :     |       ╱  ╲              |
       :     |  +---+    dummy_store   |
    ...:     |  | B |.......:    ^     |
    :        |  +---+            |     |
