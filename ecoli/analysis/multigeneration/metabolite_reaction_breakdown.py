@@ -393,6 +393,16 @@ def _run_metabolite(
         return
     met_rxns = list(met_coeffs.keys())
 
+    # Reactions flagged TRANSPORT: any touching reaction whose stoichiometry also
+    # includes a boundary/medium exchange molecule. These are how a
+    # cytoplasmic pool is actually fed from the medium -- the boundary exchange
+    # flux itself is emitted on the periplasmic species, not this one, so the
+    # importer reaction is the visible "uptake from media" term in a [c] run.
+    exch_set = set(exch_ids)
+    transport_rxns = {
+        r for r in met_rxns if any(m in exch_set for m in stoich.get(r, {}))
+    }
+
     # The kinetically-constrained subset: these get their own kcat band, target
     # trace, and override strip; the rest are FBA-only.
     met_kin = [r for r in met_rxns if r in kin_set]
@@ -506,6 +516,7 @@ def _run_metabolite(
             met_coeffs,
             met_rxns,
             met_kin,
+            transport_rxns,
             rxn_to_base,
             reaction_catalysts,
             kcat_of,
@@ -528,6 +539,7 @@ def _plot_seed(
     met_coeffs,
     met_rxns,
     met_kin,
+    transport_rxns,
     rxn_to_base,
     reaction_catalysts,
     kcat_of,
@@ -630,6 +642,10 @@ def _plot_seed(
             entry["contrib"] = entry["contrib"] + contrib
         # Union the catalysts across every instantiation folded into this series:
         entry["catalysts"].update(reaction_catalysts.get(r, []))
+        # Flag the series as a membrane transporter if any instantiation couples
+        # this pool to a medium exchange molecule (see transport_rxns above):
+        if r in transport_rxns:
+            entry["transport"] = True
 
     # Exchange with the environment as its own series: flip the outward sign
     # so uptake is a positive (producing) contribution, and convert
@@ -827,22 +843,16 @@ def _plot_seed(
         f"{np.nanstd(net_counts):,.0f} molec/step"
     )
 
-    # Mean signed contribution of each kept series over the plotted time window,
-    # in both units (mM/s and molecules/step). This is the simple time-average of
-    # the already-computed signed contribution array ``series[k]["contrib"]`` (and
-    # its counts/step conversion), so the reader can read a reaction's average
-    # realized flux straight off the legend. Sign convention matches the stack:
-    # positive = net producer of the metabolite, negative = net consumer:
-    def _mean_annot(k):
-        c = series[k]["contrib"]
-        m_mM = float(np.nanmean(c))
-        m_cnt = float(np.nanmean(c * to_counts))
-        return f"<{m_mM:+.3g} mM/s, {m_cnt:+,.0f} mol/step>"
-
-    mean_annot = {k: _mean_annot(k) for k in kept}
-
-    # Legend label for each series in the top mM/s stack: short id + mean annot.
-    series_lbl = {k: f"{_shorten(k)}  {mean_annot[k]}" for k in kept}
+    # Legend label for each series in the top stacks: short id, plus a
+    # [TRANSPORT] marker for membrane transporters coupling this pool to a medium
+    # exchange molecule (e.g. an ABC importer feeding a cytoplasmic pool from the
+    # periplasm). Per-reaction average fluxes are intentionally left off here --
+    # they are read off the per-reaction panels below -- so the legend stays
+    # uncluttered and doesn't get clipped.
+    series_lbl = {
+        k: _shorten(k) + ("  [TRANSPORT]" if series[k].get("transport") else "")
+        for k in kept
+    }
 
     # Context panel 1: contributions in mM/s
     ax_top1 = fig.add_subplot(gs[0, :])
@@ -883,7 +893,7 @@ def _plot_seed(
         pad = 0.08 * max(hi - lo, a_hi - a_lo, 1e-30)
         ax_top2.set_ylim(min(lo, a_lo - pad), max(hi, a_hi + pad))
     ax_top2.set_title(
-        "Actual pool change (black = net of reactions) vs targeted change (red dotted)",
+        "Actual vs. targeted pool change by FBA",
         fontsize=10,
     )
     if check_msg is not None:
@@ -936,22 +946,25 @@ def _plot_seed(
         else None
     )
 
-    # Average deviation is now measured POST-FBA vs target (+ = pool ends the
-    # step below target), i.e. the residual homeostatic error after FBA has
-    # acted -- the meaningful "how close did we end up?" number. (The pre-FBA
-    # trace only shows the demand entering the solve; per-step FBA success is
-    # already visible in the estimated-vs-target dm/dt panel above.)
-    dev_txt = ""
-    if post_conc is not None and tconc is not None:
+    # Average deviation vs target, reported both PRE-FBA (the demand entering the
+    # solve, before FBA acts) and POST-FBA (the residual homeostatic error after
+    # FBA has acted -- the "how close did we end up?" number). + = pool sits below
+    # target, - = above.
+    def _dev_txt(conc, label):
+        if conc is None or tconc is None:
+            return ""
         valid = tconc > 0
-        if bool(np.any(valid)):
-            dev = 100.0 * (tconc[valid] - post_conc[valid]) / tconc[valid]
-            mean_dev, std_dev = float(np.nanmean(dev)), float(np.nanstd(dev))
-            side = "below" if mean_dev >= 0 else "above"
-            dev_txt = (
-                f"  ·  post-FBA avg deviation {abs(mean_dev):.1f}% ± "
-                f"{std_dev:.1f}% {side} target"
-            )
+        if not bool(np.any(valid)):
+            return ""
+        dev = 100.0 * (tconc[valid] - conc[valid]) / tconc[valid]
+        mean_dev, std_dev = float(np.nanmean(dev)), float(np.nanstd(dev))
+        side = "below" if mean_dev >= 0 else "above"
+        return (
+            f"  ·  {label} avg deviation {abs(mean_dev):.1f}% ± "
+            f"{std_dev:.1f}% {side} target"
+        )
+
+    dev_txt = _dev_txt(pre_conc, "pre-FBA") + _dev_txt(post_conc, "post-FBA")
     # Draw order matters here: pre-FBA (widest) at the bottom, then the slightly
     # thinner black post-FBA actual, then the red-dotted target ON TOP so its
     # dots stay visible where the black actual sits right on the target.
@@ -989,9 +1002,7 @@ def _plot_seed(
         )
     ax_top3.set_ylabel(f"{metabolite}\nconc (mM)")
     ax_top3.set_title(
-        f"Homeostatic objective  "
-        f"(red dotted = target, black = post-FBA, grey dashed = pre-FBA)"
-        f"{dev_txt}",
+        f"Homeostatic objective performance{dev_txt}",
         fontsize=10,
     )
     ax_top3.legend(
@@ -1022,6 +1033,10 @@ def _plot_seed(
             if v["kinetic"]
             else ("EXCHANGE" if v.get("exchange") else "FBA-only")
         )
+        # TRANSPORT is orthogonal to the kinetic/FBA/exchange split, so append it
+        # rather than replace the base tag (e.g. "FBA-only/TRANSPORT"):
+        if v.get("transport"):
+            tag += "/TRANSPORT"
         cats = sorted(c.split("[")[0] for c in v.get("catalysts", set()))
         if v.get("exchange"):
             cat_str = "medium exchange (not in reaction_fluxes)"
