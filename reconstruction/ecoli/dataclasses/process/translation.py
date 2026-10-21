@@ -129,11 +129,11 @@ class Translation(object):
             for p in raw_data.protein_half_lives_measured
         }
 
-        # Get degradation rates from pulsed-SILAC data (Nagar et al. 2021)
-        pulsed_silac_deg_rates = {
-            p["id"]: (np.log(2) / p["half_life"]).asNumber(deg_rate_units)
-            for p in raw_data.protein_half_lives_pulsed_silac
-        }
+        # # Get degradation rates from pulsed-SILAC data (Nagar et al. 2021)
+        # pulsed_silac_deg_rates = {
+        #     p["id"]: (np.log(2) / p["half_life"]).asNumber(deg_rate_units)
+        #     for p in raw_data.protein_half_lives_pulsed_silac
+        # }
 
         # Get degradation rate for MurD from carbon-limited data (Gupta et al. 2024)
         modified_deg_rates = {
@@ -152,9 +152,6 @@ class Translation(object):
             # Use measured degradation rates if available:
             elif protein["id"] in measured_deg_rates:
                 deg_rate[i] = measured_deg_rates[protein["id"]]
-            # Use pulsed-SILAC degradation rates if available:
-            elif protein["id"] in pulsed_silac_deg_rates:
-                deg_rate[i] = pulsed_silac_deg_rates[protein["id"]]
             # If measured rates are unavailable, use N-end rule:
             else:
                 seq = protein["seq"]
