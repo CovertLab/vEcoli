@@ -46,6 +46,9 @@ class MonomerCounts(Step):
         "rnap_subunits": [],
         "replisome_trimer_subunits": [],
         "replisome_monomer_subunits": [],
+        # Only count replisome subunits as in active replisomes if replication
+        # actually removed them from the bulk pool (see chromosome_replication)
+        "mechanistic_replisome": False,
         "tf_ids": [],
         "complexation_stoich": [],
         "equilibrium_stoich": [],
@@ -93,6 +96,7 @@ class MonomerCounts(Step):
         self.replisome_subunit_ids = (
             replisome_trimer_subunits + replisome_monomer_subunits
         )
+        self.mechanistic_replisome = self.parameters["mechanistic_replisome"]
 
         # Get the IDs of transcription factor subunits for unpacking active TFs
         self.tf_subunit_ids = self.parameters["tf_ids"]
@@ -204,9 +208,12 @@ class MonomerCounts(Step):
             np.int32
         )
         bulkMoleculeCounts[self.rnap_subunit_idx] += n_rnap_subunit.astype(np.int32)
-        bulkMoleculeCounts[self.replisome_subunit_idx] += n_replisome_subunit.astype(
-            np.int32
-        )
+        # With mechanistic_replisome off, replisomes are created without
+        # removing any subunits from the bulk pool, so they contain none
+        if self.mechanistic_replisome:
+            bulkMoleculeCounts[self.replisome_subunit_idx] += (
+                n_replisome_subunit.astype(np.int32)
+            )
         bulkMoleculeCounts[self.tf_subunit_idx] += n_bound_TF_subunit.astype(np.int32)
 
         # Account for subunits that make up TCS complexes
