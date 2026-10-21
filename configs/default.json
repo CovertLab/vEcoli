@@ -82,7 +82,7 @@
     "spatial_environment": false,
     "spatial_environment_config": {},
     "fixed_media": "minimal",
-    "condition": "basal",
+    "condition": null,
 
     "save": false,
     "save_times": [],
