@@ -2,9 +2,13 @@
 # TODOs:
 # TODO: confirm how tRNA are implemented post maturation (double check that the
  maturation process is the same for tRNA and rRNA on more time)
-# TODO: decide whether or not to include rRNAs in ribosomal complexes within
-the total counts on the plots (this might be interesting to include as it would
-give an idea on how many ribosomes are present in each sim)
+# NOTE: rRNA in ribosomal complexes can now be added to rRNA totals via
+the include_ribosomal_rrna param (default False). It folds the 30S/50S subunit-
+complex counts + active-ribosome counts into each MAIN rRNA cistron's total
+(16S -> RRSA, 23S -> RRLA, 5S -> RRFA -- the forms the ribosome recipe consumes
+and that rna_maturation consolidates variant-operon rRNAs into). See the
+"RIBOSOME-BOUND rRNA" note below and build_ribosome_rrna_stoich /
+read_active_ribosome_mean.
 # TODO: fix the output folder location logic
 # TODO: figure out why new sims still say plotted 4537/4538 total (where is
 ftsO being listed? dont want it to forever say plotted 4537/4538 total, might
@@ -37,7 +41,7 @@ removed from the unique "RNAs" store and have counts added as bulk molecules,
 whereas full-length mRNAs REMAIN unique molecules (so translation/degradation
 can act on them individually). mRNAs are therefore never tracked in bulk.
 Every TU with is_mRNA == False is moved to bulk when its transcript
-terminates -- tRNA TUs, rRNA TUs, and standalone miscRNA TUs after transcription.
+terminates--tRNA TUs, rRNA TUs, and standalone miscRNA TUs after transcription.
 tRNA/rRNA are then cleaved by RNA maturation into mature per-cistron species,
 and a standalone miscRNA is counted as is. Each experiment's sim_data is
 loaded separately to enumerate the non-mRNA RNAs, their types, and their bulk
@@ -57,7 +61,7 @@ Cistron IDs are the EcoCyc gene RNA ids (e.g. murD = EG10620_RNA) saved
 within the sim_data that aligns with the values in the RNA_counts listener.
 Non-mRNA RNAs are labeled by their bulk id (e.g. cysT = cysT-tRNA[c]).
 
-All non-mRNA RNAs (tRNA / rRNA / miscRNA / "other") are read from the bulk
+All non-mRNA RNAs (tRNA/rRNA/miscRNA/"other") are read from the bulk
 container and each type is handled differently based how the model processes it:
 
 1. tRNA and rRNA: These transcribed (often as polycistronic operons) and then
@@ -69,6 +73,9 @@ container and each type is handled differently based how the model processes it:
   and its plotted count is the total across both forms (mature + unprocessed).
   Note: a monocistronic tRNA/rRNA transcribed directly as mature simply has an
   unprocessed count of 0.
+  Charged (aminoacylated) tRNA is NOT included in these tRNA totals: the charged
+  form is a separate bulk species (see item 5 below), so the tRNA points here are
+  the uncharged mature + unprocessed pools only.
 
 2. mRNA: mRNA are not processed the same way as non-mRNAs. They do not have
   any unprocessed-vs-mature split and their counts are recorded in the unique
@@ -82,6 +89,21 @@ container and each type is handled differently based how the model processes it:
 
 4. "other" (pseudo/phantom RNAs): If they existed, these would be read from
   their single whole bulk entry (one count, no split).
+
+5. charged tRNA: each uncharged mature tRNA has a corresponding charged
+  (aminoacylated) form that the model stores as its OWN bulk species, distinct
+  from the uncharged tRNA. tRNA charging moves counts from the uncharged bulk id
+  to the charged bulk id each timestep (and back when the amino acid is consumed
+  in translation), so at steady state a large fraction of a tRNA can sit in the
+  charged pool. These are plotted as a separate "charged tRNA" series (one point
+  per tRNA, read from the charged bulk species, one count with no maturation
+  split), NOT added into the tRNA totals. The uncharged/charged pairing is taken
+  from transcription.uncharged_trna_names / .charged_trna_names (index-aligned,
+  one-to-one); each charged point resolves its gene/operon hover fields through
+  the uncharged mature cistron it derives from, since a charged form is not
+  itself a cistron. Plotting the charged series alongside the (uncharged) tRNA
+  series lets you see the charged-vs-uncharged split per species instead of the
+  uncharged pool alone.
 
 Another thing to note about how these plots are constructed is that mRNA cistrons
 and non-mRNA RNAs are aligned by ID across the two sims, never by array
@@ -105,6 +127,27 @@ while all other RNAs are one color. The scatter is otherwise constructed the
 same way as the first plot (same set of plotted RNAs).
 
 OTHER NOTES:
+
+RIBOSOME-BOUND rRNA (include_ribosomal_rrna, opt-in, default False):
+By default the rRNA points show only the FREE mature + unprocessed bulk pool, so
+they read far below total cellular rRNA -- essentially all rRNA is assembled into
+ribosomes, and an assembled rRNA leaves the free bulk pool. With this option on,
+each rRNA cistron's total gains the copies sequestered in ribosomes:
+    ribosome-bound = stoich_in_30S * (30S subunit-complex count + active ribosomes)
+                   + stoich_in_50S * (50S subunit-complex count + active ribosomes)
+The stoich and subunit identity come from the complexation recipe
+(build_ribosome_rrna_stoich): a 30S carries one 16S (RRSA-RRNA), a 50S carries
+one 23S (RRLA-RRNA) + one 5S (RRFA-RRNA), and an active ribosome (30S+50S, a
+unique molecule read from listeners__unique_molecule_counts__active_ribosome)
+carries one of each. Because rna_maturation consolidates the variant-operon rRNAs
+(RRSB-H, etc.) into these MAIN A-operon forms and the ribosome recipe consumes
+only the main forms, the ribosome pool attributes entirely to RRSA/RRLA/RRFA (the
+variant rRNA cistrons stay near their small free counts). The free 70S bulk
+complex (CPLX0-3964) is NOT added -- the model forms translating ribosomes as
+unique active_ribosome molecules, mirroring the repo's ribosome_components.py.
+When on, the rRNA points rise by orders of magnitude and the hover shows an "in
+ribosomes (30S/50S + active)" line; leave it off to compare the free/unincorporated
+rRNA pool.
 
 Why miscRNAs usually read as zero counts always (dataset note):
 As June 2026, no miscRNA gene has a measured value in the experimental
@@ -163,6 +206,7 @@ This analysis may need to be updated for the following reasons if ever applicabl
 
 import os
 import pickle
+import warnings
 from typing import Any, cast
 
 import numpy as np
@@ -184,6 +228,7 @@ RNA_TYPE_COLORS = {
     "mRNA": "lightseagreen",
     "miscRNA": "violet",
     "tRNA": "orange",
+    "charged tRNA": "darkgoldenrod",
     "rRNA": "orangered",
     "other": "#7f7f7f",
 }
@@ -192,6 +237,7 @@ RNA_TYPE_SIZES = {
     "mRNA": 3,
     "miscRNA": 6,
     "tRNA": 5,
+    "charged tRNA": 5,
     "rRNA": 5,
     "other": 8,
 }
@@ -200,6 +246,7 @@ RNA_TYPE_OPACITIES = {
     "mRNA": 0.4,
     "miscRNA": 0.7,
     "tRNA": 0.7,
+    "charged tRNA": 0.7,
     "rRNA": 0.7,
     "other": 0.8,
 }
@@ -315,6 +362,115 @@ def build_non_mrna_bulk_records(sim_data):
     return id_to_record, resolve_interest
 
 
+def build_charged_trna_records(sim_data):
+    """Return {charged_base_id: (charged_bulk_idx, uncharged_cistron_id)}.
+
+    Charged (aminoacylated) tRNAs are stored as their own bulk species, distinct
+    from the uncharged mature tRNA that the tRNA points in this plot are keyed on
+    (see build_non_mrna_bulk_records). The uncharged mature species is
+    ``{cistron_id}[c]`` and its charged form is that tRNA's aminoacylated
+    modified form; the two lists are one-to-one and index-aligned in transcription
+    (transcription.uncharged_trna_names / .charged_trna_names, built in
+    reconstruction/ecoli/dataclasses/process/transcription.py:_build_charged_trna).
+
+    Because the charged pool lives in a separate bulk id, the tRNA points in this
+    plot (mature uncharged + unprocessed) OMIT it. This helper enumerates the
+    charged species so they can be plotted as their own "charged tRNA" series.
+
+    charged_base_id is the charged species id with the compartment tag stripped
+    (its identity used to reconcile the two sims, mirroring the other RNA points).
+    uncharged_cistron_id is the mature/uncharged tRNA cistron the charged form is
+    derived from; it is only used for hover gene/operon resolution, since a
+    charged form is not itself a cistron and would not otherwise resolve a name.
+    """
+    transcription = sim_data.process.transcription
+    bulk_ids = sim_data.internal_state.bulk_molecules.bulk_data["id"].tolist()
+    bulk_id_to_idx = {bid: i for i, bid in enumerate(bulk_ids)}
+
+    records: dict[str, tuple[int, str]] = {}
+    for unc_id, chg_id in zip(
+        transcription.uncharged_trna_names, transcription.charged_trna_names
+    ):
+        chg_idx = bulk_id_to_idx.get(chg_id)
+        if chg_idx is None:
+            continue
+        # uncharged_trna_names entries are "{cistron_id}[c]", so stripping the
+        # compartment tag yields the mature tRNA cistron id used for name lookup:
+        records[_strip_compartment(chg_id)] = (chg_idx, _strip_compartment(unc_id))
+    return records
+
+
+def build_ribosome_rrna_stoich(sim_data):
+    """Return ({mature_rRNA_id: (stoich_in_30S, stoich_in_50S)}, s30_id, s50_id).
+
+    Used by the OPT-IN include_ribosomal_rrna feature to add ribosome-sequestered
+    rRNA back into each rRNA cistron's total. The per-subunit rRNA composition is
+    read from the complexation recipe (``complexation.get_monomers``) rather than
+    hardcoded, so it tracks the sim's own reconstruction. In the standard model
+    the 30S full complex (``molecule_ids.s30_full_complex``) carries one 16S
+    (RRSA-RRNA[c]) and the 50S full complex (``s50_full_complex``) carries one 23S
+    (RRLA-RRNA[c]) + one 5S (RRFA-RRNA[c]). Variant-operon rRNAs (RRSB-H, etc.)
+    are consolidated into these "main" A-operon forms by rna_maturation, and the
+    ribosome recipe consumes exactly the main forms, so ribosome-bound rRNA
+    attributes to the main rRNA cistrons (the variant cistrons sit near zero).
+
+    An active (translating) ribosome is a 30S + 50S, so it carries one copy of
+    each rRNA; the caller adds active-ribosome counts on top of the free bulk
+    subunit-complex counts (see read_active_ribosome_mean and the plot() usage).
+    """
+    mg = sim_data.molecule_groups
+    rrna_ids = set(mg.s30_16s_rRNA) | set(mg.s50_23s_rRNA) | set(mg.s50_5s_rRNA)
+    s30_id = sim_data.molecule_ids.s30_full_complex
+    s50_id = sim_data.molecule_ids.s50_full_complex
+    complexation = sim_data.process.complexation
+
+    stoich: dict[str, list[float]] = {}
+    for complex_id, slot in ((s30_id, 0), (s50_id, 1)):
+        info = complexation.get_monomers(complex_id)
+        for sub_id, sub_stoich in zip(info["subunitIds"], info["subunitStoich"]):
+            if sub_id in rrna_ids:
+                stoich.setdefault(sub_id, [0.0, 0.0])[slot] = float(sub_stoich)
+    return {k: tuple(v) for k, v in stoich.items()}, s30_id, s50_id
+
+
+def read_active_ribosome_mean(
+    conn: DuckDBPyConnection,
+    history_sql: str,
+    experiment_id: str,
+    gen_floor: int,
+) -> float:
+    """Two-stage mean active-ribosome count for one experiment (0.0 if absent).
+
+    Mirrors read_bulk_rna_means_for_experiment's averaging (per-cell mean over
+    timepoints with generation >= gen_floor, then mean across cells) for the
+    unique-molecule active_ribosome count. Returns 0.0 if the column is missing
+    or the experiment has no post-skip cells so the caller can proceed without it.
+    """
+    col = "listeners__unique_molecule_counts__active_ribosome"
+    exp_literal = experiment_id.replace("'", "''")
+    try:
+        subquery = cast(
+            str, read_stacked_columns(history_sql, [col], order_results=False)
+        )
+        per_cell = conn.sql(
+            f"""
+            SELECT avg("{col}") AS m
+            FROM ({subquery})
+            WHERE generation >= {gen_floor} AND experiment_id = '{exp_literal}'
+            GROUP BY variant, lineage_seed, generation, agent_id
+            """
+        ).pl()
+    except Exception as e:
+        print(
+            f"  NOTE: could not read {col} for {experiment_id} "
+            f"({type(e).__name__}); active-ribosome rRNA omitted."
+        )
+        return 0.0
+    if per_cell.height == 0:
+        return 0.0
+    return float(per_cell["m"].mean())
+
+
 def build_name_lookup(sim_data):
     """Return lookup(point_id) -> (gene_name, description, operons) for
     hoverdata."""
@@ -325,6 +481,16 @@ def build_name_lookup(sim_data):
     cistron_id_to_idx = {c: i for i, c in enumerate(cistron_data["id"])}
     tu_ids = list(transcription.rna_data["id"])
     tu_id_to_idx = {t: j for j, t in enumerate(tu_ids)}
+    # Charged tRNA base id -> the uncharged mature tRNA cistron it derives from.
+    # A charged form is not itself a cistron, so its point id is translated to
+    # the underlying cistron here to resolve gene name / description / operons
+    # (its hover type still reads "charged tRNA", set from the point's type):
+    charged_to_cistron = {
+        _strip_compartment(chg): _strip_compartment(unc)
+        for unc, chg in zip(
+            transcription.uncharged_trna_names, transcription.charged_trna_names
+        )
+    }
     # (n_cistrons, n_tus): row = cistron, nonzero columns = TUs containing it:
     mapping = transcription.cistron_tu_mapping_matrix
     # Cistrons per TU; only polycistronic TUs (>1) are treated as real operons:
@@ -373,13 +539,17 @@ def build_name_lookup(sim_data):
         return [f"monocistronic TU: {_tu_label(tu_ids[j])}"]
 
     def lookup(point_id: str) -> tuple[str, str, list[str]]:
-        base = _strip_compartment(point_id)
-        gene_id = cistron_id_to_gene.get(point_id) or cistron_id_to_gene.get(base)
+        # Translate a charged tRNA point id to its underlying mature cistron so
+        # gene/description/operon resolution works (a charged form is not a
+        # cistron); non-charged ids pass through unchanged:
+        resolved = charged_to_cistron.get(point_id, point_id)
+        base = _strip_compartment(resolved)
+        gene_id = cistron_id_to_gene.get(resolved) or cistron_id_to_gene.get(base)
         gene_name = common.get_common_name(gene_id) if gene_id else ""
         # Only keep the RNA's common name if it is different from the id and symbol:
         rna_name = common.get_common_name(base)
-        description = rna_name if rna_name not in (base, point_id, gene_name) else "NA"
-        operons = operon_field(point_id, base)
+        description = rna_name if rna_name not in (base, resolved, gene_name) else "NA"
+        operons = operon_field(resolved, base)
         return gene_name, description, operons
 
     return lookup
@@ -516,13 +686,14 @@ def mrna_cistron_ids_for_experiment(
 def build_by_type_figure(
     point_types, sim1_log, sim2_log, hover_texts, stats, title, xlabel, ylabel
 ):
-    """Scatter colored by RNA type, with per-type counts in the legend.
+    """
+    Scatter colored by RNA type, with per-type counts in the legend.
 
     This function generates plot #1.
     """
     point_types_arr = np.array(point_types, dtype=object)
     present = set(point_types)
-    type_order = ["mRNA", "tRNA", "rRNA", "miscRNA", "other"]
+    type_order = ["mRNA", "tRNA", "charged tRNA", "rRNA", "miscRNA", "other"]
 
     fig = go.Figure()
     for rna_type in [t for t in type_order if t in present]:
@@ -629,10 +800,26 @@ def plot(
                 # RNAs to highlight in red. If omitted/empty, every RNA is
                 # plotted in a single color (nothing highlighted):
                 "highlight_rnas": list[str] (default: []),
+                # If True, add rRNA sequestered in ribosomes (30S/50S subunit
+                # complexes + active ribosomes) into each main rRNA cistron's
+                # total. Default False. See the module docstring's rRNA note --
+                # this greatly raises the rRNA points (most rRNA is in ribosomes):
+                "include_ribosomal_rrna": bool (default: False),
             }
     """
     skip_gens = params.get("skip_n_gens", 2)
     cistrons_of_interest = params.get("highlight_rnas", [])
+    # OPT-IN (default False): add rRNA sequestered inside ribosomes (30S/50S bulk
+    # subunit complexes + active translating ribosomes) into each rRNA cistron's
+    # total. Off by default because it dramatically raises the rRNA points (most
+    # rRNA is in ribosomes), changing what the rRNA axis means; see the module
+    # docstring. Attributed to the "main" rRNA cistrons the ribosome recipe uses.
+    include_ribosomal_rrna = params.get("include_ribosomal_rrna", False)
+    # Optionally specify explicitly what simulation to have on the x-axis. The
+    # sim_data_paths dict order is not reliably the config's experiment_id order
+    # (a set-based variant filter in the runner scrambles it), so use this for a
+    # reproducible x/y assignment:
+    x_axis_experiment_id = params.get("x_axis_experiment_id")
 
     # "skip the first skip_gens generations of each seed" -> keep generations
     # whose index is at least skip_gens ABOVE the minimum. Generations in the
@@ -685,11 +872,24 @@ def plot(
             f"{unique_exp_ids}. Make sure both experiment_ids are in the config."
         )
 
-    # x-axis = the first experiment_id in the config, y-axis = the second
-    # (config order, via sim_data_paths):
+    # Decide which experiment is x (exp_id_1) and which is y (exp_id_2). The
+    # runner's set-based variant filter rebuilds that dict from an unordered
+    # set, so its order is not the config's experiment_id order and can flip
+    # between runs (silently swapping the axes and the filenames). So: (1)
+    # if x_axis_experiment_id is given and present, it is x; (2) else fall
+    # back to sorted() so the orientation is at least stable:
     present = set(unique_exp_ids)
-    ordered_exp_ids = [e for e in sim_data_paths if e in present] or unique_exp_ids
-    exp_id_1, exp_id_2 = ordered_exp_ids[0], ordered_exp_ids[1]
+    if x_axis_experiment_id is not None and x_axis_experiment_id in present:
+        exp_id_1 = x_axis_experiment_id
+        exp_id_2 = next(e for e in sorted(present) if e != exp_id_1)
+    else:
+        if x_axis_experiment_id is not None:
+            warnings.warn(
+                f"CISTRON COUNT COMPARISON: x_axis_experiment_id="
+                f"{x_axis_experiment_id!r} not among the two experiments present "
+                f"{sorted(present)}; falling back to sorted order."
+            )
+        exp_id_1, exp_id_2 = sorted(present)[0], sorted(present)[1]
 
     print(f"Comparing {exp_id_1} (Sim 1; x-axis) vs {exp_id_2} (Sim 2; y-axis)")
 
@@ -773,6 +973,13 @@ def plot(
     id_to_record_1, resolve_interest = build_non_mrna_bulk_records(sim_data_1)
     id_to_record_2, _ = build_non_mrna_bulk_records(sim_data_2)
 
+    # Charged (aminoacylated) tRNA records per sim. The charged pool is a
+    # separate bulk species from the uncharged mature tRNA that the tRNA points
+    # use, so it is plotted as its own "charged tRNA" series rather than folded
+    # into the tRNA totals (see build_charged_trna_records):
+    charged_1 = build_charged_trna_records(sim_data_1)
+    charged_2 = build_charged_trna_records(sim_data_2)
+
     # Read each sim's bulk container from its own indices and gather
     # every index a record references (mature species + unprocessed TU
     # transcripts), then split each count into mature / unprocessed / total:
@@ -784,12 +991,80 @@ def plot(
             idxs.update(unproc_idxs)
         return sorted(idxs)
 
+    # Ribosome-bound rRNA (opt-in): the 30S/50S full-complex bulk indices are
+    # added to the means read below so their averaged counts come through the same
+    # per-cell averaging; the rRNA->subunit stoich and the active-ribosome mean are
+    # combined into a per-sim {rRNA base id: ribosome-bound mean} in a moment.
+    ribo_stoich_1: dict[str, tuple[float, float]] = {}
+    ribo_stoich_2: dict[str, tuple[float, float]] = {}
+    s30_s50_idx_1: list[int] = []
+    s30_s50_idx_2: list[int] = []
+    if include_ribosomal_rrna:
+        ribo_stoich_1, s30_id_1, s50_id_1 = build_ribosome_rrna_stoich(sim_data_1)
+        ribo_stoich_2, s30_id_2, s50_id_2 = build_ribosome_rrna_stoich(sim_data_2)
+        bulk_idx_map_1 = {b: i for i, b in enumerate(bulk_ids_1)}
+        bulk_idx_map_2 = {b: i for i, b in enumerate(bulk_ids_2)}
+        s30_s50_idx_1 = [
+            bulk_idx_map_1[m] for m in (s30_id_1, s50_id_1) if m in bulk_idx_map_1
+        ]
+        s30_s50_idx_2 = [
+            bulk_idx_map_2[m] for m in (s30_id_2, s50_id_2) if m in bulk_idx_map_2
+        ]
+
+    # Include the charged tRNA bulk indices (and, when enabled, the 30S/50S
+    # subunit-complex indices) in each sim's single means read so all of these
+    # counts come from the same per-cell averaging as everything else:
+    bulk_indices_1 = sorted(
+        set(all_bulk_indices(id_to_record_1))
+        | {idx for idx, _ in charged_1.values()}
+        | set(s30_s50_idx_1)
+    )
+    bulk_indices_2 = sorted(
+        set(all_bulk_indices(id_to_record_2))
+        | {idx for idx, _ in charged_2.values()}
+        | set(s30_s50_idx_2)
+    )
     means_1 = read_bulk_rna_means_for_experiment(
-        conn, history_sql, exp_id_1, all_bulk_indices(id_to_record_1), gen_floor
+        conn, history_sql, exp_id_1, bulk_indices_1, gen_floor
     )
     means_2 = read_bulk_rna_means_for_experiment(
-        conn, history_sql, exp_id_2, all_bulk_indices(id_to_record_2), gen_floor
+        conn, history_sql, exp_id_2, bulk_indices_2, gen_floor
     )
+
+    # Per-sim {rRNA base id: mean copies sequestered in ribosomes}. Each 30S
+    # subunit-complex holds its 16S; each 50S holds its 23S + 5S; each active
+    # (translating) ribosome is a 30S+50S, so it holds one of each. Empty (all
+    # points get 0.0) unless include_ribosomal_rrna is on.
+    def build_ribo_bound(stoich, means, bulk_ids, s30_id, s50_id, active_mean):
+        idx = {b: i for i, b in enumerate(bulk_ids)}
+        s30_mean = float(means.get(idx.get(s30_id), 0.0) or 0.0)
+        s50_mean = float(means.get(idx.get(s50_id), 0.0) or 0.0)
+        out: dict[str, float] = {}
+        for rid, (st30, st50) in stoich.items():
+            out[_strip_compartment(rid)] = st30 * (s30_mean + active_mean) + st50 * (
+                s50_mean + active_mean
+            )
+        return out
+
+    ribo_bound_1: dict[str, float] = {}
+    ribo_bound_2: dict[str, float] = {}
+    if include_ribosomal_rrna:
+        active_mean_1 = read_active_ribosome_mean(
+            conn, history_sql, exp_id_1, gen_floor
+        )
+        active_mean_2 = read_active_ribosome_mean(
+            conn, history_sql, exp_id_2, gen_floor
+        )
+        ribo_bound_1 = build_ribo_bound(
+            ribo_stoich_1, means_1, bulk_ids_1, s30_id_1, s50_id_1, active_mean_1
+        )
+        ribo_bound_2 = build_ribo_bound(
+            ribo_stoich_2, means_2, bulk_ids_2, s30_id_2, s50_id_2, active_mean_2
+        )
+        print(
+            f"Including ribosomal rRNA: Sim 1 active ribosomes ~{active_mean_1:.0f}, "
+            f"Sim 2 ~{active_mean_2:.0f} (added to each main rRNA cistron's total)"
+        )
 
     def mature_unproc(records, means, rid):
         """(mature, unprocessed) bulk counts for one record in one sim.
@@ -849,6 +1124,9 @@ def plot(
     point_unproc_1: list[float] = []
     point_mature_2: list[float] = []
     point_unproc_2: list[float] = []
+    # Ribosome-bound rRNA per point (0.0 for non-rRNA and when the option is off):
+    point_ribo_1: list[float] = []
+    point_ribo_2: list[float] = []
     # RNAs whose counts are stored in different sources across the two sims
     # (e.g. mRNA listener in one sim, bulk in the other). Collected here and
     # reported below; the point is still plotted, but its hover type is taken
@@ -859,19 +1137,57 @@ def plot(
         v2, rtype_2, m2, u2, source_2 = lookup_2[bid]
         if source_1 != source_2:
             source_mismatches.append((bid, source_1, source_2, rtype, rtype_2))
+        # Ribosome-bound rRNA (0.0 unless this is a main rRNA cistron and the
+        # option is on); added on top of the mature + unprocessed bulk total:
+        r1 = ribo_bound_1.get(bid, 0.0)
+        r2 = ribo_bound_2.get(bid, 0.0)
         point_types.append(rtype)
-        point_avg_1.append(v1)
-        point_avg_2.append(v2)
+        point_avg_1.append(v1 + r1)
+        point_avg_2.append(v2 + r2)
         point_mature_1.append(m1)
         point_unproc_1.append(u1)
         point_mature_2.append(m2)
         point_unproc_2.append(u2)
+        point_ribo_1.append(r1)
+        point_ribo_2.append(r2)
+
+    # Charged tRNA points: plotted as their own series, keyed by the charged
+    # species base id, and (like every other point) only plotted when retrievable
+    # in both sims. Charged tRNA has no mature/unprocessed split, so its single
+    # count is carried in the "mature" slot with unprocessed = 0 (this makes the
+    # hover show one "count:" line, consistent with miscRNA/other):
+    charged_plotted = [b for b in charged_1 if b in charged_2]
+    charged_not_plotted_1 = [b for b in charged_1 if b not in charged_2]
+    charged_not_plotted_2 = [b for b in charged_2 if b not in charged_1]
+    for b in charged_plotted:
+        idx1, _ = charged_1[b]
+        idx2, _ = charged_2[b]
+        v1 = float(means_1.get(idx1, 0.0) or 0.0)
+        v2 = float(means_2.get(idx2, 0.0) or 0.0)
+        point_ids.append(b)
+        point_types.append("charged tRNA")
+        point_avg_1.append(v1)
+        point_avg_2.append(v2)
+        point_mature_1.append(v1)
+        point_unproc_1.append(0.0)
+        point_mature_2.append(v2)
+        point_unproc_2.append(0.0)
+        point_ribo_1.append(0.0)
+        point_ribo_2.append(0.0)
+    # Fold charged tRNAs into the plotted/total tallies so the subtitle counts
+    # and the by-type legend stay consistent with what is drawn:
+    n_total += (
+        len(charged_plotted) + len(charged_not_plotted_1) + len(charged_not_plotted_2)
+    )
+
     point_avg_1 = np.array(point_avg_1)
     point_avg_2 = np.array(point_avg_2)
     point_mature_1 = np.array(point_mature_1)
     point_unproc_1 = np.array(point_unproc_1)
     point_mature_2 = np.array(point_mature_2)
     point_unproc_2 = np.array(point_unproc_2)
+    point_ribo_1 = np.array(point_ribo_1)
+    point_ribo_2 = np.array(point_ribo_2)
     n_by_type: dict[str, int] = {}
     for t in point_types:
         n_by_type[t] = n_by_type.get(t, 0) + 1
@@ -910,6 +1226,19 @@ def plot(
         )
         for msg in not_plotted_msgs:
             print(f"  {msg}")
+
+    # Charged tRNAs retrievable in only one sim (same drop rule as above, but
+    # reported separately since their counts always live in bulk):
+    if charged_not_plotted_1 or charged_not_plotted_2:
+        print(
+            f"NOTE: {len(charged_not_plotted_1) + len(charged_not_plotted_2)} "
+            "charged tRNA(s) not plotted (charged bulk species retrievable in "
+            "only one sim):"
+        )
+        for b in charged_not_plotted_1:
+            print(f"  - charged tRNA {b}: only in {exp_id_1}, not in {exp_id_2}.")
+        for b in charged_not_plotted_2:
+            print(f"  - charged tRNA {b}: only in {exp_id_2}, not in {exp_id_1}.")
 
     # RNAs plotted but have counts recorded in different containers across sims:
     # There is a chance that cistron could be present in both sims but have its
@@ -969,7 +1298,12 @@ def plot(
         return [f"{indent}Transcription units:"] + [f"{indent}  - {e}" for e in entries]
 
     def count_lines(
-        rna_type: str, total: float, mature: float, unproc: float, indent="  "
+        rna_type: str,
+        total: float,
+        mature: float,
+        unproc: float,
+        ribo: float = 0.0,
+        indent="  ",
     ) -> list[str]:
         # tRNA/rRNA exist as a mature pool plus the unprocessed full-length
         # transcript(s) they are cleaved from, so report both and their total
@@ -980,11 +1314,17 @@ def plot(
                 if unproc > 0
                 else "n/a (no unprocessed pool; monocistronic)"
             )
-            return [
+            lines = [
                 f"{indent}mature RNA count: {mature:.2f}",
                 f"{indent}unprocessed count within operons: {unproc:.2f}",
-                f"{indent}total count: {total:.2f} (ratio m/u = {ratio})",
             ]
+            # Only present for rRNA when include_ribosomal_rrna is on: copies of
+            # this rRNA sequestered in 30S/50S subunit complexes + active ribosomes
+            # (folded into the total below):
+            if ribo > 0:
+                lines.append(f"{indent}in ribosomes (30S/50S + active): {ribo:.2f}")
+            lines.append(f"{indent}total count: {total:.2f} (ratio m/u = {ratio})")
+            return lines
         return [f"{indent}count: {total:.2f}"]
 
     hover_texts = []
@@ -999,14 +1339,22 @@ def plot(
             f"<b>Sim 1</b> ({exp_id_1})",
             *tu_lines(operons_1),
             *count_lines(
-                point_types[i], point_avg_1[i], point_mature_1[i], point_unproc_1[i]
+                point_types[i],
+                point_avg_1[i],
+                point_mature_1[i],
+                point_unproc_1[i],
+                point_ribo_1[i],
             ),
             f"  log: {sim1_log[i]:.3f}",
             "",
             f"<b>Sim 2</b> ({exp_id_2})",
             *tu_lines(operons_2),
             *count_lines(
-                point_types[i], point_avg_2[i], point_mature_2[i], point_unproc_2[i]
+                point_types[i],
+                point_avg_2[i],
+                point_mature_2[i],
+                point_unproc_2[i],
+                point_ribo_2[i],
             ),
             f"  log: {sim2_log[i]:.3f}",
         ]
