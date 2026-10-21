@@ -56,6 +56,7 @@ THINGS TO ADD TO THE DOCSTRING STILL:
      could probably check this easily by just doing something like set(sim 1 reaction IDs + sim 2 reaction IDs)?
 
 # TODOs:
+# TODO: if a user passes through a molecule ID that is not used in any reactions or is not inthe model, print out something about it becuase rn it silently passes
 # TODO: finish making detailed docstring above
 # TODO: consider making the unique plots a config option
 # TODO: maybe exclude reactions that are 0 in both from the plot (and have how many are on each level in the legend instead?)
