@@ -51,7 +51,17 @@ jobs:
 
       - name: Apply package updates
         run: |
-          ./apply_security_upgrades.sh
+          # Advisory workflow: the generated script runs `uv lock -P pkg==ver ...`
+          # for the recommended security upgrades. When those pins cannot be
+          # co-resolved against the project's constraints, `uv lock` exits
+          # non-zero ("No solution found when resolving dependencies"), which used
+          # to red the repo even though this job only audits + opens a remediation
+          # PR. Treat an unresolvable auto-upgrade as a warning, not a failure:
+          # the vulnerability report is still produced, the Create Pull Request
+          # step opens a PR only if uv.lock actually changed, and the repo stays
+          # green. A genuine resolvable upgrade still applies and still PRs.
+          ./apply_security_upgrades.sh \
+            || echo "::warning::some recommended security upgrades could not be auto-resolved (version conflicts); see the vulnerability report and resolve manually"
 
       - name: Create Pull Request
         env:
