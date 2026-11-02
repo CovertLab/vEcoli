@@ -89,24 +89,31 @@ Container Vulnerability Scanning
 ================================
 
 The ``.github/workflows/docker_security.yml`` workflow builds a Docker image using
-``runscripts/container/Dockerfile`` and scans it for vulnerabilities using Docker Scout.
-This workflow is scheduled to run daily, and also runs on PRs and changes to ``master``.
+``runscripts/container/Dockerfile`` and scans it for vulnerabilities using
+`Grype <https://github.com/anchore/grype>`_. This workflow is scheduled to run daily, and also
+runs on PRs and changes to ``master``. Only vulnerabilities with available fixes are reported.
 
-When run on PRs from branches in the main vEcoli repository, a comment will be added to the
-PR with a summary of the vulnerabilities found, including the severity and CVE identifiers as well
-as available fixes. We strongly recommend that you review this information and update the base
-container image (see below) if any vulnerabilities are found with available fixes.
+When run on PRs from branches in the main vEcoli repository, a comment will be added (and updated
+on later pushes) with a summary of the critical, high, and medium severity vulnerabilities found,
+including their identifiers and fixed versions. We strongly recommend that you review this
+information and update the base container image (see below) if any vulnerabilities are found with
+available fixes.
 
 The daily runs on the ``master`` branch will generate a report that can be viewed by clicking on the
 "Actions" tab, "Docker Build and Security Scan" in the left sidebar, then a particular workflow run.
 Alternatively, members of the lab can view all detected vulnerabilities by clicking on the "Security
 and quality" tab, then "Code scanning" in the left sidebar.
 
-.. warning::
-  PRs from forks will not be able to run the Docker build and security scan workflow because it requires
-  access to repository secrets (DockerHub credentials) not accessible to forks. Therefore, it is especially
-  important to be wary of Docker image changes or dependency changes in PRs from forks, and to check the
-  results of the daily runs on master for any vulnerabilities with available fixes.
+.. note::
+  PRs from forks are also scanned, but because they only receive a read-only token, the results
+  are only shown in the workflow run summary (no PR comment or code scanning upload). Be wary of
+  Docker image or dependency changes in PRs from forks and check the run summary before merging.
+
+Grype is installed from a pinned release whose SHA256 checksum is hardcoded in the workflow,
+rather than through a third-party action. To upgrade it, choose a release that has been public
+for at least a week or two, verify the Sigstore signature of ``grype_<version>_checksums.txt``
+(signed by ``https://github.com/anchore/grype/.github/workflows/release.yaml@refs/heads/main``),
+then update ``GRYPE_VERSION`` and ``GRYPE_SHA256`` with the ``linux_amd64.tar.gz`` checksum.
 
 Update Container Base Image
 ============================
