@@ -93,3 +93,7 @@ packages = [
     "validation",
     "wholecell"
 ]
+
+[tool.ruff.lint]
+# Ruff 0.16 expanded the default rule set; keep the pre-0.16 defaults.
+select = ["E4", "E7", "E9", "F"]
