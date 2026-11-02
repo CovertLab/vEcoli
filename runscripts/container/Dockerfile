@@ -2,7 +2,7 @@
 #
 # Use runscripts/container/build-image.sh to build.
 
-FROM ghcr.io/astral-sh/uv@sha256:2702577da32d9c3d55c8073e07d4476cd7402c085efbf71921104548c851d96a
+FROM ghcr.io/astral-sh/uv@sha256:2a4b12b30aa1a0f1d1f420ad3f4ac27716d5c2962302ac8a7af67ac3287bf36c
 
 LABEL application="Whole Cell Model of Escherichia coli" \
     email="wholecellteam@lists.stanford.edu" \
