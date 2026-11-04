@@ -16,6 +16,8 @@
     "seed": 0,
     "mar_regulon": false,
     "amp_lysis": false,
+    "directional_mrna_decay": false,
+    "keep_mrnas_with_active_ribosomes": false,
 
     "SIM_CPUS": 1,
     "HYPERQUEUE": false,
