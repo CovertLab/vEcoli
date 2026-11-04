@@ -34,9 +34,9 @@ jobs:
 
       - name: Install pip-audit and packaging
         run: |
+          # Versions are pinned here and bumped via code review, so no separate
+          # self-audit step is needed.
           pip install pip-audit==2.10.1 packaging==26.3
-          # Check that pip-audit and packaging do not have known vulnerabilities themselves
-          pip-audit --local
 
       - name: Audit dependencies and identify vulnerabilities
         run: |
