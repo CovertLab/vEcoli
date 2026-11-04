@@ -13,7 +13,7 @@ build-backend = "setuptools.build_meta"
 name = "vEcoli"
 version = "1.1.0"
 description = "Whole Cell E. coli Model"
-requires-python = "==3.12.12"
+requires-python = "==3.12.16"
 dependencies = [
     "numpy",
     "scipy",
