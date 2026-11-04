@@ -36,7 +36,7 @@ jobs:
         run: |
           pip install pip-audit==2.10.1 packaging==26.3
           # Check that pip-audit and packaging do not have known vulnerabilities themselves
-          pip-audit -v
+          pip-audit --local
 
       - name: Audit dependencies and identify vulnerabilities
         run: |
