@@ -66,6 +66,7 @@ class PolypeptideInitiation(PartitionedProcess):
         "ribosome50S": "ribosome50S",
         "seed": 0,
         "monomer_ids": [],
+        "directional_mrna_decay": False,
         "emit_unique": False,
         "time_step": 1,
     }
@@ -118,6 +119,7 @@ class PolypeptideInitiation(PartitionedProcess):
         }
 
         self.monomer_ids = self.parameters["monomer_ids"]
+        self.directional_mrna_decay = self.parameters["directional_mrna_decay"]
 
         # Helper indices for Numpy indexing
         self.ribosome30S_idx = None
@@ -234,20 +236,39 @@ class PolypeptideInitiation(PartitionedProcess):
         length_mRNAs = transcript_lengths[can_translate]
         unique_index_mRNAs = unique_index_RNAs[can_translate]
         is_full_transcript_mRNAs = is_full_transcript[can_translate]
-        is_incomplete_transcript_mRNAs = np.logical_not(is_full_transcript_mRNAs)
+        # Position of the 5' degradation front of each mRNA. Cistrons that start
+        # upstream of this position cannot bind new ribosomes. Set to -1 for
+        # mRNAs that are not being degraded.
+        if self.directional_mrna_decay:
+            is_decaying, decay_front = attrs(
+                states["RNA"], ["is_decaying", "decay_front"]
+            )
+            is_decaying_mRNAs = is_decaying[can_translate]
+            decay_front_mRNAs = np.where(
+                is_decaying_mRNAs, decay_front[can_translate], -1
+            )
+        else:
+            is_decaying_mRNAs = np.zeros_like(is_full_transcript_mRNAs)
+            decay_front_mRNAs = np.full_like(TU_index_mRNAs, -1)
 
         # Calculate counts of each mRNA cistron from fully transcribed
-        # transcription units
-        TU_index_full_mRNAs = TU_index_mRNAs[is_full_transcript_mRNAs]
+        # transcription units that are not being degraded
+        is_intact_full_mRNAs = is_full_transcript_mRNAs & ~is_decaying_mRNAs
+        TU_index_full_mRNAs = TU_index_mRNAs[is_intact_full_mRNAs]
         TU_counts_full_mRNAs = np.bincount(TU_index_full_mRNAs, minlength=self.n_TUs)
         cistron_counts = self.cistron_tu_mapping_matrix.dot(TU_counts_full_mRNAs)
 
         # Calculate counts of each mRNA cistron from partially transcribed
-        # transcription units
-        TU_index_incomplete_mRNAs = TU_index_mRNAs[is_incomplete_transcript_mRNAs]
-        length_incomplete_mRNAs = length_mRNAs[is_incomplete_transcript_mRNAs]
+        # transcription units and from transcription units that are being
+        # degraded
+        is_other_mRNAs = ~is_intact_full_mRNAs
+        TU_index_other_mRNAs = TU_index_mRNAs[is_other_mRNAs]
+        length_other_mRNAs = length_mRNAs[is_other_mRNAs]
+        decay_front_other_mRNAs = decay_front_mRNAs[is_other_mRNAs]
 
-        for TU_index, length in zip(TU_index_incomplete_mRNAs, length_incomplete_mRNAs):
+        for TU_index, length, front in zip(
+            TU_index_other_mRNAs, length_other_mRNAs, decay_front_other_mRNAs
+        ):
             cistron_indexes = self.rna_id_to_cistron_indexes(self.tu_ids[TU_index])
             cistron_start_positions = np.array(
                 [
@@ -256,7 +277,9 @@ class PolypeptideInitiation(PartitionedProcess):
                 ]
             )
 
-            cistron_counts[cistron_indexes] += length > cistron_start_positions
+            cistron_counts[cistron_indexes] += (length > cistron_start_positions) & (
+                cistron_start_positions >= front
+            )
 
         # Calculate initiation probabilities for ribosomes based on mRNA counts
         # and associated mRNA translational efficiencies
@@ -387,16 +410,21 @@ class PolypeptideInitiation(PartitionedProcess):
                 cistron_start_position = self.cistron_start_end_pos_in_tu[
                     (cistron_index, TU_index)
                 ][0]
-                is_transcript_long_enough = (
+                # Cistron must be transcribed and not yet passed by the
+                # degradation front
+                is_cistron_available = (
                     length_mRNAs[attribute_indexes_this_TU] >= cistron_start_position
+                ) & (
+                    decay_front_mRNAs[attribute_indexes_this_TU]
+                    <= cistron_start_position
                 )
 
                 attribute_indexes.extend(
-                    attribute_indexes_this_TU[is_transcript_long_enough]
+                    attribute_indexes_this_TU[is_cistron_available]
                 )
                 cistron_start_positions.extend(
                     [cistron_start_position]
-                    * len(attribute_indexes_this_TU[is_transcript_long_enough])
+                    * len(attribute_indexes_this_TU[is_cistron_available])
                 )
 
             n_mRNAs = len(attribute_indexes)
