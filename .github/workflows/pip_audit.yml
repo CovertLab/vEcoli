@@ -8,6 +8,8 @@ on:
     - cron: '00 00 * * *'
   push:
     branches: [master]
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
