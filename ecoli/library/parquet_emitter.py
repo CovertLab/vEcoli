@@ -237,16 +237,27 @@ def quote_columns(columns: str | list[str]) -> str | list[str]:
     return [cast(str, quote_columns(col)) for col in columns]
 
 
+def fetchone(conn: duckdb.DuckDBPyConnection, query: str) -> tuple:
+    """
+    Return the first row of a DuckDB query. Any remaining rows are discarded
+    without being computed so the connection is free for further queries.
+    """
+    try:
+        return cast(tuple, conn.execute(query).fetchone())
+    finally:
+        conn.abort()
+
+
 def num_cells(conn: duckdb.DuckDBPyConnection, subquery: str) -> int:
     """
     Return cell count in DuckDB subquery containing ``experiment_id``,
     ``variant``, ``lineage_seed``, ``generation``, and ``agent_id`` columns.
     """
-    return cast(
-        tuple,
-        conn.sql(f"""SELECT count(
+    return fetchone(
+        conn,
+        f"""SELECT count(
         DISTINCT (experiment_id, variant, lineage_seed, generation, agent_id)
-        ) FROM ({subquery})""").fetchone(),
+        ) FROM ({subquery})""",
     )[0]
 
 
@@ -459,11 +470,8 @@ def field_metadata(
         config_subquery: DuckDB query containing sim config data
         field: Name of field to get metadata for
     """
-    metadata = cast(
-        tuple,
-        conn.sql(
-            f'SELECT first("{METADATA_PREFIX + field}") FROM ({config_subquery})'
-        ).fetchone(),
+    metadata = fetchone(
+        conn, f'SELECT first("{METADATA_PREFIX + field}") FROM ({config_subquery})'
     )[0]
     if isinstance(metadata, list):
         return metadata
@@ -484,10 +492,7 @@ def config_value(
         config_subquery: DuckDB query containing sim config data
         field: Name of configuration option to get value of
     """
-    return cast(
-        tuple,
-        conn.sql(f'SELECT first("{field}") FROM ({config_subquery})').fetchone(),
-    )[0]
+    return fetchone(conn, f'SELECT first("{field}") FROM ({config_subquery})')[0]
 
 
 def plot_metadata(
@@ -508,22 +513,16 @@ def plot_metadata(
         "description": config_value(conn, config_subquery, "description"),
         "variant_function": variant_name,
         "variant_index": conn.sql(f"SELECT DISTINCT variant FROM ({config_subquery})")
-        .arrow()
+        .to_arrow_table()
         .to_pydict()["variant"],
         "seed": conn.sql(f"SELECT DISTINCT lineage_seed FROM ({config_subquery})")
-        .arrow()
+        .to_arrow_table()
         .to_pydict()["lineage_seed"],
-        "total_gens": cast(
-            tuple,
-            conn.sql(
-                f"SELECT count(DISTINCT generation) FROM ({config_subquery})"
-            ).fetchone(),
+        "total_gens": fetchone(
+            conn, f"SELECT count(DISTINCT generation) FROM ({config_subquery})"
         )[0],
-        "total_variants": cast(
-            tuple,
-            conn.sql(
-                f"SELECT count(DISTINCT variant) FROM ({config_subquery})"
-            ).fetchone(),
+        "total_variants": fetchone(
+            conn, f"SELECT count(DISTINCT variant) FROM ({config_subquery})"
         )[0],
     }
 
