@@ -5,6 +5,7 @@ Functions to initialize molecule states from sim_data.
 import numpy as np
 import numpy.typing as npt
 from numpy.lib import recfunctions as rfn
+import scipy.stats
 from typing import Any
 from unum import Unum
 import warnings
@@ -91,6 +92,156 @@ def create_bulk_container(
     sim_data.condition = old_condition
     average_container["count"] = average_container["count"] / n_seeds
     return average_container
+
+
+class _ExpectedDraws:
+    """Stands in for a RandomState so that multinomial draws return their expected values."""
+
+    def multinomial(self, n, pvals):
+        return n * np.asarray(pvals)
+
+
+def _expected_whole_complexes(subunit_counts, subunit_stoich):
+    """
+    Expected number of complexes per cell, given that complexes form only from
+    whole subunits and that subunit counts vary between cells. Each subunit
+    count is treated as an independent Poisson variable.
+
+    Args:
+        subunit_counts: expected count of each subunit
+        subunit_stoich: copies of each subunit in one complex
+
+    Returns:
+        Sum over k >= 1 of the probability of forming at least k complexes
+    """
+    limit = np.min(subunit_counts / subunit_stoich)
+    k = np.arange(1, int(limit + 8 * np.sqrt(limit + 1) + 20) + 1)
+    p_at_least_k = np.ones_like(k, dtype=float)
+    for count, stoich in zip(subunit_counts, subunit_stoich):
+        p_at_least_k *= scipy.stats.poisson.sf(k * stoich - 1, count)
+    return p_at_least_k.sum()
+
+
+def create_expected_bulk_container(
+    sim_data,
+    condition=None,
+    ppgpp_regulation=True,
+    trna_attenuation=True,
+    mass_coeff=1,
+):
+    """
+    Calculates average bulk molecule counts without sampling cells. Tiny numerical
+    differences in expression can change which cells create_bulk_container() samples,
+    shifting low count enzymes by a few percent. These counts instead change smoothly
+    with their inputs, so fits that depend on them are more reproducible across
+    machines (and if the ParCa assumptions and sim machinery are well aligned,
+    it should be ok to not stochastically sample).
+
+    Monomer and RNA counts are set to the expected values of their multinomial draws.
+    Complexes are formed from those counts with the same complexation code used to
+    initialize cells, using scaled up counts to keep fractions and a fixed seed.
+    Complexes with low expected counts are then corrected, since they cannot form from
+    a fraction of a subunit.
+
+    Args:
+        sim_data: simulation data
+        condition: condition to calculate counts for, defaults to sim_data.condition
+        ppgpp_regulation: if True, uses ppGpp regulated expression
+        trna_attenuation: if True, adjusts expression for tRNA attenuation
+        mass_coeff: scales the cell mass
+
+    Returns:
+        Structured array with fields "id" and "count", with float counts
+    """
+    complexation_scale = (
+        100  # keeps fractions of a molecule through integer complexation
+    )
+    complexation_seed = 0
+    low_count_limit = 50  # correction is negligible for complexes above this count
+
+    old_condition = sim_data.condition
+    if condition is not None:
+        sim_data.condition = condition
+    try:
+        bulk_ids = sim_data.internal_state.bulk_molecules.bulk_data["id"]
+        media_id = sim_data.conditions[sim_data.condition]["nutrients"]
+        exchange_data = sim_data.external_state.exchange_data_from_media(media_id)
+        import_molecules = set(
+            exchange_data["importUnconstrainedExchangeMolecules"]
+        ) | set(exchange_data["importConstrainedExchangeMolecules"])
+        bulk_counts = np.zeros(len(bulk_ids), dtype=np.float64)
+        expected_draws = _ExpectedDraws()
+        initialize_protein_monomers(
+            bulk_counts,
+            sim_data,
+            expected_draws,
+            mass_coeff,
+            ppgpp_regulation,
+            trna_attenuation,
+        )
+        initialize_rna(
+            bulk_counts,
+            sim_data,
+            expected_draws,
+            mass_coeff,
+            ppgpp_regulation,
+            trna_attenuation,
+        )
+        initialize_mature_RNA(bulk_counts, sim_data)
+        set_small_molecule_counts(
+            bulk_counts, sim_data, media_id, import_molecules, mass_coeff
+        )
+    except Exception:
+        raise RuntimeError(
+            "sim_data might not be fully initialized. "
+            "Make sure all attributes have been set before "
+            "using this function."
+        )
+    finally:
+        sim_data.condition = old_condition
+
+    # Form complexes, which assigns subunits shared between complexes
+    complexation = sim_data.process.complexation
+    uncomplexed_counts = dict(zip(bulk_ids, bulk_counts))
+    molecule_names = complexation.molecule_names
+    molecule_idx = bulk_name_to_idx(molecule_names, bulk_ids)
+    scaled_counts = np.round(bulk_counts[molecule_idx] * complexation_scale).astype(
+        np.int64
+    )
+    stoich_matrix = complexation.stoich_matrix().astype(np.int64, order="F")
+    scaled_counts, _ = mccFormComplexesWithPrebuiltMatrices(
+        scaled_counts,
+        complexation_seed,
+        stoich_matrix,
+        *complexation.prebuilt_matrices,
+    )
+    counts = scaled_counts / complexation_scale
+
+    # Correct low count complexes for the need for whole subunits
+    molecule_index = {molecule: i for i, molecule in enumerate(molecule_names)}
+    for complex_id in complexation.ids_complexes:
+        monomers = complexation.get_monomers(complex_id)
+        subunits = [
+            (m, s)
+            for m, s in zip(monomers["subunitIds"], monomers["subunitStoich"])
+            if m in uncomplexed_counts
+        ]
+        if not subunits:
+            continue
+        subunit_counts = np.array([uncomplexed_counts[m] for m, _ in subunits])
+        subunit_stoich = np.array([s for _, s in subunits], dtype=float)
+        limit = np.min(subunit_counts / subunit_stoich)
+        if limit >= low_count_limit:
+            continue
+        expected = _expected_whole_complexes(subunit_counts, subunit_stoich)
+        i = molecule_index[complex_id]
+        counts[i] = counts[i] * expected / limit if limit > 0 else expected
+    bulk_counts[molecule_idx] = counts
+
+    return np.array(
+        list(zip(bulk_ids, bulk_counts)),
+        dtype=[("id", bulk_ids.dtype), ("count", np.float64)],
+    )
 
 
 def initialize_bulk_counts(
@@ -986,8 +1137,13 @@ def initialize_transcription(
             ppgpp_conc, sim_data.process.replication.get_average_copy_number
         )
         ppgpp_scale = basal_prob[TU_index]
-        # Use original delta prob if no ppGpp basal prob
-        ppgpp_scale[ppgpp_scale == 0] = 1
+        # Delta prob is only an absolute probability change for TUs without
+        # basal prob. For other TUs, it is relative to basal prob, so a scale
+        # of 1 would overexpress them.
+        no_basal_prob = (
+            sim_data.process.transcription_regulation.basal_prob[TU_index] == 0
+        )
+        ppgpp_scale[(ppgpp_scale == 0) & no_basal_prob] = 1
     else:
         basal_prob = sim_data.process.transcription_regulation.basal_prob.copy()
         ppgpp_scale = 1

@@ -20,7 +20,7 @@ import numpy as np
 import scipy.optimize
 import scipy.sparse
 
-from ecoli.library.initial_conditions import create_bulk_container
+from ecoli.library.initial_conditions import create_expected_bulk_container
 from ecoli.library.schema import bulk_name_to_idx, counts
 from reconstruction.ecoli.simulation_data import SimulationDataEcoli
 from wholecell.utils import parallelization, units
@@ -496,9 +496,9 @@ def final_adjustments(sim_data, cell_specs, **kwargs):
     sim_data.process.transcription.adjust_ppgpp_expression_for_tfs(sim_data)
 
     # Set supply constants for amino acids based on condition supply requirements
-    average_basal_container = create_bulk_container(sim_data, n_seeds=200)
-    average_with_aa_container = create_bulk_container(
-        sim_data, condition="with_aa", n_seeds=200
+    average_basal_container = create_expected_bulk_container(sim_data)
+    average_with_aa_container = create_expected_bulk_container(
+        sim_data, condition="with_aa"
     )
     sim_data.process.metabolism.set_phenomological_supply_constants(sim_data)
     sim_data.process.metabolism.set_mechanistic_supply_constants(
