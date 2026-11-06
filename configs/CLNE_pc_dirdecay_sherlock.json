@@ -1,0 +1,35 @@
+{
+    "experiment_id": "CLNE_dirdecay",
+    "suffix_time": false,
+    "parca_options": {
+        "cpus": 4,
+        "memory_gb": 8
+    },
+    "sim_data_path": null,
+    "fail_at_max_duration": true,
+    "generations": 32,
+    "n_init_sims": 32,
+    "single_daughters": true,
+    "directional_mrna_decay": true,
+    "keep_mrnas_with_active_ribosomes": true,
+    "emitter": "parquet",
+    "emitter_arg": {
+        "out_dir": "out",
+        "threaded": false
+    },
+    "analysis_options": {
+        "single": {
+            "mass_fraction_summary": {}
+        },
+        "multiseed": {
+            "ecocyc_table": {
+                "ignore_first_n_gens": 0
+            },
+            "doubling_time_trajectories": {},
+            "protein_counts_validation": {},
+            "subgenerational_expression_table": {
+                "ignore_first_n_gens": 0
+            }
+        }
+    }
+}
