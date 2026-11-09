@@ -15,10 +15,16 @@ Writes one folder per skip value, <analysis outdir>/skip_<N>/, with:
                                 every copy in a complex, including active
                                 ribosomes, RNAP, replisomes and bound TFs) and
                                 free (bulk count) of each monomer;
-                                mean_in_complexes = mean_total - mean_free
+                                mean_in_complexes = mean_total - mean_free;
+                                plus both as concentrations (mM)
     free_complex_counts.tsv     bulk count of each complexation, equilibrium
                                 and two-component system complex (a complex
-                                inside a larger complex is not counted)
+                                inside a larger complex is not counted), and
+                                its concentration (mM)
+    metabolite_counts.tsv       count and concentration (mM) of each FBA
+                                metabolite with a nonzero average count, from
+                                listeners__enzyme_kinetics__metabolite_counts_
+                                final (counts after the metabolism update)
     mrna_tu_counts.tsv          total, full, partial and decaying mRNA per TU
     mrna_cistron_counts.tsv     total, full, partial and available mRNA per
                                 cistron
@@ -74,6 +80,11 @@ Writes one folder per skip value, <analysis outdir>/skip_<N>/, with:
                                 divided by the time step)
     cells.tsv                   the cells used
 
+Concentrations are count times listeners__enzyme_kinetics__counts_to_molar
+(1 / (Avogadro * cell volume), in mmol/L) at each time step, then averaged
+like the counts, so they are not mean count / mean volume. They are per
+whole-cell volume.
+
 Columns a run did not record (e.g. available or decaying mRNA counts in older
 runs) are written as nan. Cells are read by params["workers"] processes in
 parallel (default: the Slurm job's CPUs).
@@ -102,7 +113,10 @@ from ecoli.library.parquet_emitter import (
 )
 
 RNA_COUNTS = "listeners__rna_counts__"
+ENZYME_KINETICS = "listeners__enzyme_kinetics__"
 SYNTH = "listeners__rna_synth_prob__"
+# Count columns that also get a concentration column (key + "_conc")
+CONC_KEYS = ("protein_total", "protein_free", "bulk", "metabolite_counts")
 ELONGATION = "listeners__transcript_elongation_listener__"
 UNIQUE = "listeners__unique_molecule_counts__"
 
@@ -272,6 +286,8 @@ def read_cell(cell):
         "attenuation_probability": ELONGATION + "attenuation_probability",
         "counts_attenuated": ELONGATION + "counts_attenuated",
         "reactionFluxes": "listeners__fba_results__reaction_fluxes",
+        "metabolite_counts": ENZYME_KINETICS + "metabolite_counts_final",
+        "counts_to_molar": ENZYME_KINETICS + "counts_to_molar",
     }
     selects.update(RNA_COLUMNS)
     for name in worker["unique_names"]:
@@ -295,14 +311,21 @@ def read_cell(cell):
         return values.to_numpy().astype(np.float64)
 
     time_steps = np.diff(column("time"))
+    # mmol/L per count at each step (1 / (Avogadro * cell volume)), so each
+    # concentration is averaged per step rather than mean count / mean volume
+    counts_to_molar = (
+        column("counts_to_molar")[1:] if "counts_to_molar" in selects else None
+    )
     values = {}
     for key in selects:
-        if key == "time" or key.startswith("unique__"):
+        if key in ("time", "counts_to_molar") or key.startswith("unique__"):
             continue
         array = column(key)[1:]
         if key == "counts_attenuated":
             array = array / time_steps[:, None]
         values[key] = array.mean(axis=0) if key != "total_rna_init" else array
+        if key in CONC_KEYS and counts_to_molar is not None:
+            values[f"{key}_conc"] = (array * counts_to_molar[:, None]).mean(axis=0)
 
     # Per-cistron values from the per-TU columns, as RnaSynthProb computes them
     mapping = worker["cistron_tu_mapping"]
@@ -384,11 +407,17 @@ def write_outputs(
                 "mean_in_complexes",
                 stats.mean["protein_total"] - stats.mean["protein_free"],
             )
-        ],
+        ]
+        + mean_sd("protein_total_conc", "total_conc_mM")
+        + mean_sd("protein_free_conc", "free_conc_mM"),
     )
 
     n_complexes = len(complexes)
     bulk_mean, bulk_sd = stats.mean["bulk"], stats.sd("bulk")
+    conc_columns = [
+        (name, None if values is None else values[:n_complexes])
+        for name, values in mean_sd("bulk_conc", "free_conc_mM")
+    ]
     table(
         "free_complex_counts.tsv",
         "complex_id",
@@ -397,8 +426,23 @@ def write_outputs(
             ("source", [s for _, s in complexes]),
             ("mean_free", bulk_mean[:n_complexes]),
             ("sd_free", bulk_sd[:n_complexes]),
-        ],
+        ]
+        + conc_columns,
     )
+
+    # Metabolites with a nonzero average count
+    if "metabolite_counts" in stats.mean:
+        nonzero = np.nonzero(stats.mean["metabolite_counts"] > 0)[0]
+        table(
+            "metabolite_counts.tsv",
+            "metabolite_id",
+            [ids["metabolite"][i] for i in nonzero],
+            [
+                (name, None if values is None else values[nonzero])
+                for name, values in mean_sd("metabolite_counts", "count")
+                + mean_sd("metabolite_counts_conc", "conc_mM")
+            ],
+        )
 
     rna_mean, rna_sd = bulk_mean[n_complexes:], bulk_sd[n_complexes:]
     rrna_rows = [i for i, r in enumerate(rnas) if "rRNA" in r[1]]
@@ -675,6 +719,11 @@ def plot(
             field_metadata(conn, config_sql, "listeners__fba_results__reaction_fluxes")
         ),
         "unique": sorted(c[len(UNIQUE) :] for c in present if c.startswith(UNIQUE)),
+        "metabolite": list(
+            field_metadata(
+                conn, config_sql, ENZYME_KINETICS + "metabolite_counts_final"
+            )
+        ),
     }
     settings = {
         "history_dir": history_dir_from_sql(history_sql, experiment_id, variant),
