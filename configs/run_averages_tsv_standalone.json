@@ -1,0 +1,21 @@
+{
+    "emitter_arg": {
+        "out_dir": "out"
+    },
+    "analysis_options": {
+        "experiment_id": ["CLNE_dirdecay_baseline"],
+        "variant_data_dir": ["out/CLNE_dirdecay_baseline/variant_sim_data"],
+        "validation_data_path": ["out/CLNE_dirdecay_baseline/parca/kb/validationData.cPickle"],
+        "outdir": "out/run_averages_tsv/CLNE_dirdecay_baseline",
+        "cpus": 1,
+
+        "single": {},
+        "multidaughter": {},
+        "multigeneration": {},
+        "multiseed": {
+            "run_averages_tsv": {"skip_gens": [0, 4, 8]}
+        },
+        "multivariant": {},
+        "multiexperiment": {}
+    }
+}
