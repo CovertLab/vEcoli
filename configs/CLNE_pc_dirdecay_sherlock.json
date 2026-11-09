@@ -14,9 +14,20 @@
     "keep_mrnas_with_active_ribosomes": true,
     "emitter": "parquet",
     "emitter_arg": {
-        "out_dir": "out",
-        "threaded": false
+        "out_dir": "/scratch/users/aj0204"
     },
+
+    "variants": {
+        "condition": {"condition": {"value": ["with_aa"]}}
+    },
+
+    "sherlock": {
+        "build_image": true,
+        "container_image": "vecoli",
+        "hyperqueue": true,
+        "jenkins": false
+    },
+
     "analysis_options": {
         "single": {
             "mass_fraction_summary": {}
