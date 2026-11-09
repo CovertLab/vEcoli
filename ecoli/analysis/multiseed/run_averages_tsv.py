@@ -21,10 +21,17 @@ Writes one folder per skip value, <analysis outdir>/skip_<N>/, with:
                                 and two-component system complex (a complex
                                 inside a larger complex is not counted), and
                                 its concentration (mM)
-    metabolite_counts.tsv       count and concentration (mM) of each FBA
-                                metabolite with a nonzero average count, from
+    metabolite_counts.tsv       count and concentration (mM) of each small
+                                molecule with a nonzero average count. source
+                                fba_target: FBA homeostatic targets, from
                                 listeners__enzyme_kinetics__metabolite_counts_
-                                final (counts after the metabolism update)
+                                final (counts after the metabolism update).
+                                source bulk_not_fba: other bulk molecules that
+                                are not proteins, complexes or RNAs, from bulk
+                                counts (e.g. ppGpp when ppGpp regulation is on,
+                                since FBA then has no ppGpp target; the
+                                polymerized_* entries are nucleotides and amino
+                                acids built into polymers, not free molecules)
     mrna_tu_counts.tsv          total, full, partial and decaying mRNA per TU
     mrna_cistron_counts.tsv     total, full, partial and available mRNA per
                                 cistron
@@ -116,7 +123,13 @@ RNA_COUNTS = "listeners__rna_counts__"
 ENZYME_KINETICS = "listeners__enzyme_kinetics__"
 SYNTH = "listeners__rna_synth_prob__"
 # Count columns that also get a concentration column (key + "_conc")
-CONC_KEYS = ("protein_total", "protein_free", "bulk", "metabolite_counts")
+CONC_KEYS = (
+    "protein_total",
+    "protein_free",
+    "bulk",
+    "metabolite_counts",
+    "small_molecules",
+)
 ELONGATION = "listeners__transcript_elongation_listener__"
 UNIQUE = "listeners__unique_molecule_counts__"
 
@@ -289,6 +302,10 @@ def read_cell(cell):
         "metabolite_counts": ENZYME_KINETICS + "metabolite_counts_final",
         "counts_to_molar": ENZYME_KINETICS + "counts_to_molar",
     }
+    if worker["small_molecule_bulk_idx"]:
+        selects["small_molecules"] = (
+            f"list_select(bulk, {worker['small_molecule_bulk_idx']})"
+        )
     selects.update(RNA_COLUMNS)
     for name in worker["unique_names"]:
         selects[f"unique__{name}"] = UNIQUE + name
@@ -430,17 +447,30 @@ def write_outputs(
         + conc_columns,
     )
 
-    # Metabolites with a nonzero average count
-    if "metabolite_counts" in stats.mean:
-        nonzero = np.nonzero(stats.mean["metabolite_counts"] > 0)[0]
+    # Metabolites with a nonzero average count: FBA targets first, then other
+    # small bulk molecules (e.g. ppGpp when ppGpp regulation is on)
+    metabolite_ids, sources, metabolite_columns = [], [], {}
+    for key, id_key, source in (
+        ("metabolite_counts", "metabolite", "fba_target"),
+        ("small_molecules", "small_molecule", "bulk_not_fba"),
+    ):
+        if key not in stats.mean:
+            continue
+        nonzero = np.nonzero(stats.mean[key] > 0)[0]
+        metabolite_ids += [ids[id_key][i] for i in nonzero]
+        sources += [source] * len(nonzero)
+        for name, values in mean_sd(key, "count") + mean_sd(f"{key}_conc", "conc_mM"):
+            part = np.full(len(nonzero), np.nan) if values is None else values[nonzero]
+            metabolite_columns.setdefault(name, []).append(part)
+    if metabolite_ids:
         table(
             "metabolite_counts.tsv",
             "metabolite_id",
-            [ids["metabolite"][i] for i in nonzero],
-            [
-                (name, None if values is None else values[nonzero])
-                for name, values in mean_sd("metabolite_counts", "count")
-                + mean_sd("metabolite_counts_conc", "conc_mM")
+            metabolite_ids,
+            [("source", sources)]
+            + [
+                (name, np.concatenate(parts))
+                for name, parts in metabolite_columns.items()
             ],
         )
 
@@ -725,12 +755,29 @@ def plot(
             )
         ),
     }
+    # Bulk small molecules that are not FBA targets: everything in bulk except
+    # monomers, complexes, RNAs and the FBA targets themselves
+    transcription = sim_data.process.transcription
+    groups = sim_data.molecule_groups
+    not_small = (
+        set(ids["monomer"])
+        | {c for c, _ in complexes}
+        | set(transcription.rna_data["id"])
+        | set(transcription.charged_trna_names)
+        | set(transcription.uncharged_trna_names)
+        | set(groups.s30_16s_rRNA)
+        | set(groups.s50_23s_rRNA)
+        | set(groups.s50_5s_rRNA)
+        | set(ids["metabolite"])
+    )
+    ids["small_molecule"] = [name for name in bulk_index if name not in not_small]
     settings = {
         "history_dir": history_dir_from_sql(history_sql, experiment_id, variant),
         "present_columns": present,
         "monomer_bulk_idx": [bulk_index[m] for m in ids["monomer"]],
         "other_bulk_idx": [bulk_index[c] for c, _ in complexes]
         + [bulk_index[r[0]] for r in rnas],
+        "small_molecule_bulk_idx": [bulk_index[m] for m in ids["small_molecule"]],
         "unique_names": ids["unique"],
         "cistron_tu_mapping": sim_data.process.transcription.cistron_tu_mapping_matrix,
     }
