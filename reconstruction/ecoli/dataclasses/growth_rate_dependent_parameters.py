@@ -513,7 +513,8 @@ class Mass(object):
         is shorter than the fastest measured condition. Raises below
         MIN_EXTRAPOLATED_DOUBLING_TIME.
         """
-        if not self._extrapolate_fast_growth:
+        # sim_data pickled before this option existed has no attribute
+        if not getattr(self, "_extrapolate_fast_growth", False):
             return False
         if doubling_time >= min(self._doubling_time_vector):
             return False
