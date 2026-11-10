@@ -668,9 +668,8 @@ def initialize_replication(
     critical_mass = sim_data.mass.get_dna_critical_mass(tau)
     replication_rate = sim_data.process.replication.basal_elongation_rate
 
-    # Calculate length of replichore
-    genome_length = sim_data.process.replication.genome_length
-    replichore_length = np.ceil(0.5 * genome_length) * units.nt
+    # Lengths of the right and left replichores (they are not equal)
+    replichore_length = units.nt * sim_data.process.replication.replichore_lengths
 
     # Calculate the maximum number of replisomes that could be formed with
     # the existing counts of replisome subunits. If mechanistic_replisome option
@@ -2010,8 +2009,9 @@ def determine_chromosome_state(
 
     Args:
         tau: the doubling time of the cell (with Unum time unit)
-        replichore_length: the amount of DNA to be replicated per fork, usually
-            half of the genome, in base-pairs (with Unum nucleotide unit)
+        replichore_length: lengths of the right and left replichores, the
+            amount of DNA to be replicated by each fork, in base-pairs (with
+            Unum nucleotide unit)
         n_max_replisomes: the maximum number of replisomes that can be formed
             given the initial counts of replisome subunits
         place_holder: placeholder value for chromosome domains without child
@@ -2050,9 +2050,12 @@ def determine_chromosome_state(
 
     # All inputs must be positive numbers
     unitless_tau = tau.asNumber(units.s)
-    unitless_replichore_length = replichore_length.asNumber(units.nt)
+    unitless_replichore_length = np.asarray(replichore_length.asNumber(units.nt))
     assert unitless_tau >= 0, "tau value can't be negative."
-    assert unitless_replichore_length > 0, "replichore_length must be positive."
+    assert unitless_replichore_length.shape == (2,), (
+        "replichore_length must hold the right and left replichore lengths."
+    )
+    assert np.all(unitless_replichore_length > 0), "replichore_length must be positive."
 
     # Convert to unitless
     unitless_cell_mass = cell_mass.asNumber(units.fg)
@@ -2105,10 +2108,12 @@ def determine_chromosome_state(
         )
         # TODO: this should handle completed replication (instead of taking min)
         # for accuracy but will likely never start with multiple chromosomes
-        fork_location = min(
-            np.floor(replication_time * replication_rate),
-            unitless_replichore_length - 1,
-        )
+        # Each fork is capped one base short of the end of its own replichore.
+        # The two replichores differ in length, and a fork placed past the end
+        # of its replichore can never terminate.
+        fork_location = np.floor(replication_time * replication_rate)
+        right_fork_location = min(fork_location, unitless_replichore_length[0] - 1)
+        left_fork_location = min(fork_location, unitless_replichore_length[1] - 1)
 
         # Add 2^n initiation events per round. A single initiation event
         # generates two replication forks.
@@ -2118,7 +2123,9 @@ def determine_chromosome_state(
         coordinates[
             2 * n_events_before_this_round(round_idx) : 2
             * n_events_before_this_round(round_idx + 1)
-        ] = np.tile(np.array([fork_location, -fork_location]), n_events_this_round)
+        ] = np.tile(
+            np.array([right_fork_location, -left_fork_location]), n_events_this_round
+        )
 
         right_replichore_replisome[
             2 * n_events_before_this_round(round_idx) : 2
