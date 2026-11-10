@@ -14,7 +14,8 @@ Failed cells are excluded, except cells that reached ``max_duration``. Those are
 counted at their doubling time even if ``fail_at_max_duration`` marked them as
 failed, because they were still alive at the time limit.
 
-All panels mark the variant's target doubling time from its sim_data.
+All panels mark the target doubling time of the condition the cells ran in
+(the config ``condition`` if set, otherwise the variant's sim_data condition).
 
 Optional params:
     skip_n_gens: leave this many initial generations out of the histogram and of
@@ -48,13 +49,36 @@ TARGET_COLOR = "#52514e"
 GRID_COLOR = "#e6e5e1"
 
 
-def get_target_doubling_time(sim_data_dict: dict[str, dict[int, str]]) -> float | None:
-    """Return the variant's target doubling time in minutes, if available."""
+def get_config_condition(conn: DuckDBPyConnection, config_sql: str) -> str | None:
+    """Return the ``condition`` set in the sim config, if any."""
+    try:
+        row = conn.sql(
+            f"SELECT DISTINCT condition FROM ({config_sql}) WHERE condition IS NOT NULL"
+        ).fetchone()
+    except Exception:
+        # Config has no condition column
+        return None
+    return None if row is None else str(row[0])
+
+
+def get_target_doubling_time(
+    sim_data_dict: dict[str, dict[int, str]], condition: str | None
+) -> float | None:
+    """
+    Return the target doubling time in minutes of the condition the cells ran
+    in, if available. ``sim_data.doubling_time`` is always the basal doubling
+    time, so the target is looked up by condition instead: the ``condition``
+    from the sim config if set, otherwise the condition of the variant's
+    sim_data.
+    """
     for variants in sim_data_dict.values():
         for sim_data_path in variants.values():
             with open(sim_data_path, "rb") as f:
                 sim_data = pickle.load(f)
-            return float(sim_data.doubling_time.asNumber(units.min))
+            condition = condition or sim_data.condition
+            return float(
+                sim_data.condition_to_doubling_time[condition].asNumber(units.min)
+            )
     return None
 
 
@@ -153,7 +177,9 @@ def plot(
         else "too few cells for an average"
     )
 
-    target = get_target_doubling_time(sim_data_dict)
+    target = get_target_doubling_time(
+        sim_data_dict, get_config_condition(conn, config_sql)
+    )
     observed_min = cast(float, per_seed["doubling_time"].min())
     observed_max = cast(float, per_seed["doubling_time"].max())
     y_max = params.get("max_doubling_time")
@@ -298,7 +324,7 @@ def plot(
         ax.set_axisbelow(True)
         ax.legend(fontsize=8, frameon=False, loc="upper right")
 
-    ax_seeds.set_title(f"Doubling time, one line per seed: {summary}", loc="left")
+    ax_seeds.set_title(f"Doubling time per seed: {summary}", loc="left")
     ax_mean.set_title("Mean and SD across seeds", loc="left")
     ax_mean.set_xlabel("generation")
     ax_mean.xaxis.get_major_locator().set_params(integer=True)
