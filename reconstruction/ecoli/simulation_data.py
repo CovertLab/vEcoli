@@ -64,6 +64,9 @@ class SimulationDataEcoli(object):
 
         self.operons_on = raw_data.operons_on
         self.stable_rrna = raw_data.stable_rrna
+        self.extrapolate_fast_growth = getattr(
+            raw_data, "extrapolate_fast_growth", False
+        )
 
         self._add_condition_data(raw_data)
         self.condition = "basal"

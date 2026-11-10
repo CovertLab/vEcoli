@@ -53,6 +53,7 @@
         "remove_rrna_operons": false,
         "remove_rrff": false,
         "stable_rrna": false,
+        "extrapolate_fast_growth": false,
         "new_genes": "off",
         "debug_parca": false,
         "load_intermediate": null,

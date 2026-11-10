@@ -181,9 +181,11 @@ class KnowledgeBaseEcoli(object):
         remove_rrff: bool,
         stable_rrna: bool,
         new_genes_option: str = "off",
+        extrapolate_fast_growth: bool = False,
     ):
         self.operons_on = operons_on
         self.stable_rrna = stable_rrna
+        self.extrapolate_fast_growth = extrapolate_fast_growth
         self.new_genes_option = new_genes_option
 
         if not operons_on and remove_rrna_operons:

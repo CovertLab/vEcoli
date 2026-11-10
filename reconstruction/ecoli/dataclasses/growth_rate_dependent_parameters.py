@@ -12,6 +12,9 @@ from wholecell.utils import fitting, units
 
 NORMAL_CRITICAL_MASS = 975 * units.fg
 SLOW_GROWTH_FACTOR = 1.2  # adjustment for smaller cells
+# Shortest doubling time allowed when extrapolating composition past the
+# fastest measured condition (24 min)
+MIN_EXTRAPOLATED_DOUBLING_TIME = 20 * units.min
 
 
 class Mass(object):
@@ -19,6 +22,7 @@ class Mass(object):
 
     def __init__(self, raw_data, sim_data):
         self._doubling_time = sim_data.doubling_time
+        self._extrapolate_fast_growth = sim_data.extrapolate_fast_growth
 
         self._build_constants(raw_data, sim_data)
         self._build_submasses(raw_data, sim_data)
@@ -121,6 +125,19 @@ class Mass(object):
             raw_data.dry_mass_composition, "inorganicIonMassFraction"
         )
 
+        # RNA/protein ratio as a linear function of growth rate (1 / doubling
+        # time), the bacterial growth law (Scott et al. 2010). Used only to
+        # extrapolate composition to doubling times shorter than the data.
+        rna = np.array(
+            [float(x["rnaMassFraction"]) for x in raw_data.dry_mass_composition]
+        )
+        protein = np.array(
+            [float(x["proteinMassFraction"]) for x in raw_data.dry_mass_composition]
+        )
+        self._rna_protein_ratio_params = np.polyfit(
+            1.0 / self._doubling_time_vector.asNumber(units.min), rna / protein, 1
+        )
+
         self.chromosome_sequence_mass = (
             sim_data.getter.get_mass(sim_data.molecule_ids.full_chromosome)
             / sim_data.constants.n_avogadro
@@ -220,6 +237,8 @@ class Mass(object):
         dnaMassFraction.checkNoUnit()
         D["dna"] = dnaMassFraction.asNumber()
 
+        extrapolate = self._use_fast_growth_extrapolation(doubling_time)
+        unclipped_doubling_time = doubling_time
         doubling_time = self._clipTau_d(doubling_time)
         D["protein"] = float(
             interpolate.splev(
@@ -231,6 +250,16 @@ class Mass(object):
                 doubling_time.asNumber(units.min), self._rnaMassFractionParams[0]
             )
         )
+        if extrapolate:
+            # Keep the other components at the fastest measured values and
+            # split protein + RNA by the growth-law RNA/protein ratio
+            ratio = np.polyval(
+                self._rna_protein_ratio_params,
+                1.0 / unclipped_doubling_time.asNumber(units.min),
+            )
+            protein_plus_rna = D["protein"] + D["rna"]
+            D["protein"] = protein_plus_rna / (1.0 + ratio)
+            D["rna"] = protein_plus_rna * ratio / (1.0 + ratio)
         D["lipid"] = float(
             interpolate.splev(
                 doubling_time.asNumber(units.min), self._lipidMassFractionParams[0]
@@ -478,6 +507,24 @@ class Mass(object):
             )
         )
 
+    def _use_fast_growth_extrapolation(self, doubling_time):
+        """
+        True when the extrapolate_fast_growth option is on and doubling_time
+        is shorter than the fastest measured condition. Raises below
+        MIN_EXTRAPOLATED_DOUBLING_TIME.
+        """
+        if not self._extrapolate_fast_growth:
+            return False
+        if doubling_time >= min(self._doubling_time_vector):
+            return False
+        if doubling_time < MIN_EXTRAPOLATED_DOUBLING_TIME:
+            raise ValueError(
+                f"Doubling time {doubling_time.asNumber(units.min)} min is"
+                f" shorter than the extrapolation limit of"
+                f" {MIN_EXTRAPOLATED_DOUBLING_TIME.asNumber(units.min)} min."
+            )
+        return True
+
     def _clipTau_d(self, doubling_time):
         # Clip values to be in the range that we have data for
         if hasattr(doubling_time, "dtype"):
@@ -527,6 +574,12 @@ class Mass(object):
         assert isinstance(doubling_time.asNumber(), float)
         growth_rate = 1 / doubling_time
         growth_rate = growth_rate.asNumber(1 / units.h)
+        if self._use_fast_growth_extrapolation(doubling_time):
+            # The tRNA data are too noisy to extrapolate, so faster growth
+            # uses the distribution at the fastest measured growth rate
+            growth_rate = min(
+                growth_rate, self._trna_growth_rates.asNumber(1 / units.h).max()
+            )
 
         trna_abundance_interpolation_functions = [
             interpolate.interp1d(
