@@ -810,6 +810,9 @@ def plot(
 
     for skip in skip_gens:
         folder = os.path.join(outdir, f"skip_{skip}")
+        if stats[skip].n == 0:
+            print(f"skipping {folder}: no completed cells past generation {skip}")
+            continue
         write_outputs(
             folder,
             stats[skip],
