@@ -1,2 +1,3 @@
 "Gene"	"_comments"
 "argH"	"Interactions with ArgR regulation can lead to no Arg production with low ppGpp"
+"relA"	"As of 11/10/26, no evidence found that ppGpp activates relA. relA changed -0.36 log2 during isoleucine starvation with native RelA (Traxler et al. 2008 Mol Microbiol, Table S2) and less than 2.8-fold during the SHX stringent response (Durfee et al. 2008 J Bacteriol); downstream mazE/mazF on the same operon changed +0.06/+0.25 log2 (Sanchez-Vazquez et al. 2019, category E). The curated activation used the average activator fold change, which made relA expression about 27x higher when ppGpp-bound and created an unsupported ppGpp -> RelA -> ppGpp loop"
