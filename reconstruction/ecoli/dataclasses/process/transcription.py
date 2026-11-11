@@ -1611,6 +1611,13 @@ class Transcription(object):
                         aa = "MET"
                     trna_kms[aa] = trna_kms.get(aa, []) + [km]
 
+        # Curated synthetase KMs (Dykeman 2025, trna_synthetase_kms.tsv) replace
+        # the averages above for the amino acids they cover
+        for row in raw_data.trna_synthetase_kms:
+            aa = row["amino acid"]
+            aa_kms[aa] = [row["KM, amino acid"]]
+            trna_kms[aa] = [row["KM, tRNA"]]
+
         # Save average KM values and use the default value if no data is available
         km_units = units.umol / units.L
         average_aa_kms = []
