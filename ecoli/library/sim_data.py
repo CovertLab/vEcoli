@@ -1070,6 +1070,10 @@ class LoadSimData:
             "KD_RelA": transcription.KD_RelA.asNumber(MICROMOLAR_UNITS),
             "k_RelA": constants.k_RelA_ppGpp_synthesis.asNumber(1 / units.s),
             "k_SpoT_syn": constants.k_SpoT_ppGpp_synthesis.asNumber(1 / units.s),
+            # sim_data pickled before this option existed has no attribute
+            "k_SpoT_syn_media_factors": getattr(
+                transcription, "spot_synthesis_media_factors", {}
+            ),
             "k_SpoT_deg": constants.k_SpoT_ppGpp_degradation.asNumber(
                 1 / (MICROMOLAR_UNITS * units.s)
             ),

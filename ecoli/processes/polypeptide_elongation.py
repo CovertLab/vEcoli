@@ -172,6 +172,8 @@ class PolypeptideElongation(PartitionedProcess):
         "KD_RelA": 0.26,
         "k_RelA": 75.0,
         "k_SpoT_syn": 2.6,
+        # Multiplier on k_SpoT_syn by media ID (unlisted media use 1)
+        "k_SpoT_syn_media_factors": {},
         "k_SpoT_deg": 0.23,
         "KI_SpoT": 20.0,
         "aa_supply_scaling": lambda aa_conc, aa_in_media: 0,
@@ -897,6 +899,9 @@ class SteadyStateElongationModel(TranslationSupplyElongationModel):
             "synthesis_index": self.parameters["synthesis_index"],
             "degradation_index": self.parameters["degradation_index"],
         }
+        self.spot_syn_media_factors = self.parameters.get(
+            "k_SpoT_syn_media_factors", {}
+        )
 
         # Amino acid supply calculations
         self.aa_supply_scaling = self.parameters["aa_supply_scaling"]
@@ -930,6 +935,21 @@ class SteadyStateElongationModel(TranslationSupplyElongationModel):
         else:
             rate = super().elongation_rate(states)
         return rate
+
+    def ppgpp_params_for_media(self, states: dict) -> dict[str, Any]:
+        """
+        ppGpp reaction parameters with the SpoT synthesis rate constant scaled
+        for the current medium (Murray and Bremer 1996: basal ppGpp differences
+        between media come mainly from SpoT synthesis). Media without a listed
+        factor use the unscaled rate constant.
+        """
+        factor = self.spot_syn_media_factors.get(states["environment"]["media_id"], 1.0)
+        if factor == 1.0:
+            return self.ppgpp_params
+        return {
+            **self.ppgpp_params,
+            "k_SpoT_syn": self.ppgpp_params["k_SpoT_syn"] * factor,
+        }
 
     def request(
         self, states: dict, aasInSequences: npt.NDArray[np.int64]
@@ -1135,7 +1155,7 @@ class SteadyStateElongationModel(TranslationSupplyElongationModel):
                 self.counts_to_molar,
                 v_rib,
                 self.charging_params,
-                self.ppgpp_params,
+                self.ppgpp_params_for_media(states),
                 states["timestep"],
                 request=True,
                 random_state=self.process.random_state,
@@ -1333,7 +1353,7 @@ class SteadyStateElongationModel(TranslationSupplyElongationModel):
                 self.counts_to_molar,
                 v_rib,
                 self.charging_params,
-                self.ppgpp_params,
+                self.ppgpp_params_for_media(states),
                 states["timestep"],
                 random_state=self.process.random_state,
                 limits=limits,
