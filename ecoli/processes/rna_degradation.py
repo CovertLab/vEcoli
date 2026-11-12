@@ -298,6 +298,10 @@ class RnaDegradation(PartitionedProcess):
         endoRNase_counts = counts(states["bulk"], self.endoRNase_idx)
         total_kcat_endoRNase = units.dot(self.Kcat_endoRNases, endoRNase_counts)
 
+        # ExoRNases are catalysts and are not requested, so evolve_state only
+        # sees zero allocated counts for them. Read their counts here instead.
+        self.n_exoRNases = counts(states["bulk"], self.exoRNase_idx)
+
         # Calculate the fraction of active endoRNases for each RNA based on
         # Michaelis-Menten kinetics
         frac_endoRNase_saturated = (
@@ -599,7 +603,7 @@ class RnaDegradation(PartitionedProcess):
         # 3 NMP + 3 H(+)
         # Note: Lack of -OH on 3' end of chain
 
-        n_exoRNases = counts(states["bulk"], self.exoRNase_idx)
+        n_exoRNases = self.n_exoRNases
         n_fragment_bases = fragment_bases
         n_fragment_bases_sum = n_fragment_bases.sum()
 
