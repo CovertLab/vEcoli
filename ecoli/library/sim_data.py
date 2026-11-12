@@ -59,6 +59,7 @@ class LoadSimData:
         disable_ppgpp_elongation_inhibition: bool = False,
         directional_mrna_decay: bool = False,
         keep_mrnas_with_active_ribosomes: bool = False,
+        credit_recycled_aa: bool = False,
         emit_unique: bool = False,
         **kwargs,
     ):
@@ -150,6 +151,12 @@ class LoadSimData:
                 all ribosomes already translating them have finished. If
                 ``False``, deactivated full-length mRNAs are deleted immediately
                 and the polypeptides being translated on them are lost.
+            credit_recycled_aa: Add amino acids released by
+                :py:class:`~ecoli.processes.protein_degradation.ProteinDegradation`
+                to the amino acid concentration targets in
+                :py:class:`~ecoli.processes.metabolism.Metabolism` when
+                ``trna_charging`` is ``True``. If ``False``, the targets follow
+                supply minus amino acids charged only.
         """
         self.seed = seed
         self.max_duration = max_duration
@@ -179,6 +186,7 @@ class LoadSimData:
         self.recycle_stalled_elongation = recycle_stalled_elongation
         self.directional_mrna_decay = directional_mrna_decay
         self.keep_mrnas_with_active_ribosomes = keep_mrnas_with_active_ribosomes
+        self.credit_recycled_aa = credit_recycled_aa
         self.emit_unique = emit_unique
 
         # NEW to vivarium-ecoli: Whether to lump miscRNA with mRNAs
@@ -1055,7 +1063,18 @@ class LoadSimData:
             "rela": molecule_ids.RelA,
             "spot": molecule_ids.SpoT,
             "ppgpp": molecule_ids.ppGpp,
-            "kS": constants.synthetase_charging_rate.asNumber(1 / units.s),
+            # Per-synthetase rate constants when the ParCa charging fit set them
+            "kS": (
+                transcription.synthetase_kcats.asNumber(1 / units.s)
+                if getattr(transcription, "synthetase_kcats", None) is not None
+                else constants.synthetase_charging_rate.asNumber(1 / units.s)
+            ),
+            # Charged tRNA inhibition of synthetases, when the ParCa fit set it
+            "KI_charged_trna": (
+                transcription.charged_trna_kis.asNumber(MICROMOLAR_UNITS)
+                if getattr(transcription, "charged_trna_kis", None) is not None
+                else None
+            ),
             "KMaa": transcription.aa_kms.asNumber(MICROMOLAR_UNITS),
             "KMtf": transcription.trna_kms.asNumber(MICROMOLAR_UNITS),
             "krta": constants.Kdissociation_charged_trna_ribosome.asNumber(
@@ -1330,6 +1349,7 @@ class LoadSimData:
             "nutrientToDoublingTime": self.sim_data.nutrient_to_doubling_time,
             "aa_names": aa_names,
             "aa_targets_not_updated": aa_targets_not_updated,
+            "credit_recycled_aa": self.credit_recycled_aa,
             "import_constraint_threshold": self.sim_data.external_state.import_constraint_threshold,
             "exchange_molecules": self.sim_data.external_state.all_external_exchange_molecules,
             # these are options given to the wholecell.sim.simulation
