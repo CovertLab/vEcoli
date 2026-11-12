@@ -21,6 +21,7 @@ import scipy.optimize
 import scipy.sparse
 
 from ecoli.library.initial_conditions import create_expected_bulk_container
+from reconstruction.ecoli.fit_trna_charging import fit_charging_attenuation_and_ppgpp
 from ecoli.library.schema import bulk_name_to_idx, counts
 from reconstruction.ecoli.simulation_data import SimulationDataEcoli
 from wholecell.utils import parallelization, units
@@ -84,6 +85,10 @@ def fitSimData_1(raw_data, **kwargs):
                     if None, use legacy raw_data.rna_seq_data tables
             rnaseq_basal_dataset_id (str or None) - dataset_id from manifest to
                     use as basal transcriptome; required if rnaseq_manifest_path is set
+            trna_charging_fitting (bool) - if True, solve tRNA charging,
+                    attenuation and amino acid supply together and set the SpoT
+                    synthesis factor of each fitted condition's media so ppGpp
+                    reaches its target (see reconstruction/ecoli/fit_trna_charging.py)
             basal_expression_condition (str) - modeled condition name for
                     the baseline growth state (default: "M9 Glucose minus AAs",
                     defined in configs/default.json)
@@ -487,13 +492,20 @@ def set_conditions(sim_data, cell_specs, **kwargs):
 
 
 @save_state
-def final_adjustments(sim_data, cell_specs, **kwargs):
+def final_adjustments(sim_data, cell_specs, trna_charging_fitting=False, **kwargs):
     # Adjust expression for RNA attenuation
     sim_data.process.transcription.calculate_attenuation(sim_data, cell_specs)
 
     # Adjust ppGpp regulated expression after conditions have been fit for physiological constraints
     sim_data.process.transcription.adjust_polymerizing_ppgpp_expression(sim_data)
     sim_data.process.transcription.adjust_ppgpp_expression_for_tfs(sim_data)
+
+    # Solve for charging, attenuation and amino acid supply together, then the
+    # SpoT synthesis factor for each fitted condition's media set from its
+    # target ppGpp. Includes the supply and ppGpp kinetics calls below:
+    if trna_charging_fitting:
+        fit_charging_attenuation_and_ppgpp(sim_data, cell_specs)
+        return sim_data, cell_specs
 
     # Set supply constants for amino acids based on condition supply requirements
     average_basal_container = create_expected_bulk_container(sim_data)
