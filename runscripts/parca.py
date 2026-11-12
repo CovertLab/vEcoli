@@ -67,6 +67,7 @@ def run_parca(config):
         rnaseq_basal_dataset_id=config["rnaseq_basal_dataset_id"],
         basal_expression_condition=config["basal_expression_condition"],
         rnaseq_fill_missing_genes_from_ref=config["rnaseq_fill_missing_genes_from_ref"],
+        trna_charging_fitting=config.get("trna_charging_fitting", False),
     )
     print(f"{time.ctime()}: Saving sim_data")
     # Serialize to bytes first so we can compute hash
