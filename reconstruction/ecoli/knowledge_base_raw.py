@@ -72,6 +72,7 @@ LIST_OF_DICT_FILENAMES = [
     "sequence_motifs.tsv",
     "transcription_factors.tsv",
     "trna_synthetase_kms.tsv",
+    "trna_synthetase_kcats.tsv",
     # "transcription_units.tsv",  # special cased in the constructor
     "transcription_units_added.tsv",
     "transcription_units_removed.tsv",
