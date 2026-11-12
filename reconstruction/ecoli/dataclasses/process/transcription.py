@@ -1642,6 +1642,47 @@ class Transcription(object):
         self.aa_kms = km_units * np.array(average_aa_kms)
         self.trna_kms = km_units * np.array(average_trna_kms)
 
+        # Use measured synthetase kcats and optimized copies per cell (Dykeman 2025,
+        # trna_synthetase_kcats.tsv) so the ParCa charging fit can set
+        # individual synthetase rate constants. Rows follow aa_names_without_tag, with
+        # NaN for amino acids not listed.
+        kcat_rows = {
+            row["amino acid"]: row
+            for row in getattr(raw_data, "trna_synthetase_kcats", [])
+        }
+        copy_growth_rates = [0.41, 0.69, 1.04, 1.73]
+        self.synthetase_kcat_data = {
+            "growth_rates_per_h": np.array(copy_growth_rates),
+            "kcat": np.array(
+                [
+                    kcat_rows[aa]["kcat"].asNumber(1 / units.s)
+                    if aa in kcat_rows
+                    else np.nan
+                    for aa in aa_names_without_tag
+                ]
+            ),
+            "copies": np.array(
+                [
+                    [
+                        kcat_rows[aa][f"copies at {mu} per h"]
+                        if aa in kcat_rows
+                        else np.nan
+                        for mu in copy_growth_rates
+                    ]
+                    for aa in aa_names_without_tag
+                ],
+                dtype=float,
+            ),
+        }
+        # Initialize the individual synthetase charging rate constants
+        # (1/s, in amino acid order). None uses the shared
+        # constants.synthetase_charging_rate (the ParCa charging fit sets these):
+        self.synthetase_kcats = None
+        # Initialize inhibition constants of synthetases by their charged tRNA
+        # (umol/L, amino acid order). None means no inhibition (just like above,
+        # the ParCa charging fit sets these):
+        self.charged_trna_kis = None
+
         # Save matrices and related lists of names
         self._stoich_matrix_i = np.array(stoich_matrix_i)
         self._stoich_matrix_j = np.array(stoich_matrix_j)
@@ -1726,13 +1767,36 @@ class Transcription(object):
             idx: loc for idx, loc in zip(self.attenuated_rna_indices, locations)
         }
 
-    def calculate_attenuation(self, sim_data, cell_specs):
+    def calculate_attenuation(
+        self, sim_data, cell_specs, charged_fraction=None, volume_from_counts=False
+    ):
         """
         Calculate constants for each attenuated gene.
 
-        TODO:
-                Calculate estimated charged tRNA concentration to use instead of all tRNA
+        The simulation sets stop probabilities from charged tRNA
+        concentrations, so the constants here are calibrated on charged tRNA
+        when estimates are given.
+
+        Args:
+            sim_data: SimulationDataEcoli object
+            cell_specs: cell specifications from the fitted conditions
+            charged_fraction (dict[str, ndarray] | None): fraction of tRNA
+                charged for each amino acid (sim_data.molecule_groups.amino_acids
+                order), keyed by media ID. Conditions whose media are not
+                listed (or None) treat all tRNA as charged.
+            volume_from_counts: if True, cell volume comes from the dry mass of
+                the average bulk counts (as in the simulation, where volume
+                follows the mass of every molecule present) instead of the
+                fitted initial dry mass
         """
+        aa_from_trna = self.aa_from_trna
+        bulk_masses = None
+        if volume_from_counts:
+            molecule_masses = sim_data.internal_state.bulk_molecules.bulk_data[
+                "mass"
+            ].asNumber(units.fg / units.count)
+            water_index = sim_data.submass_name_to_index["water"]
+            bulk_masses = molecule_masses.sum(axis=1) - molecule_masses[:, water_index]
 
         def get_trna_conc(condition):
             spec = cell_specs[condition]
@@ -1744,13 +1808,26 @@ class Transcription(object):
                 spec["bulkAverageContainer"], unprocessed_trna_idx
             )
             trna_counts = self.tRNA_cistron_tu_mapping_matrix.dot(unprocessed_counts)
+            if bulk_masses is None:
+                dry_mass = spec["avgCellDryMassInit"]
+            else:
+                dry_mass = (
+                    spec["bulkAverageContainer"]["count"] @ bulk_masses
+                ) * units.fg
             volume = (
-                spec["avgCellDryMassInit"]
+                dry_mass
                 / sim_data.constants.cell_density
                 / sim_data.mass.cell_dry_mass_fraction
             )
             # Order of operations for conc (counts last) is to get units to work well
             conc = 1 / sim_data.constants.n_avogadro / volume * trna_counts
+
+            # If using charged fraction, calculate the conc with it (since only
+            # charged tRNA blocks attenuation in the simulation):
+            if charged_fraction is not None:
+                nutrients = sim_data.conditions[condition]["nutrients"]
+                if nutrients in charged_fraction:
+                    conc = conc * (aa_from_trna.T @ charged_fraction[nutrients])
             return conc
 
         k_units = units.umol / units.L
