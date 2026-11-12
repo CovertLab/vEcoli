@@ -874,6 +874,7 @@ class SteadyStateElongationModel(TranslationSupplyElongationModel):
         # Parameters for tRNA charging, ribosome elongation and ppGpp reactions
         self.charging_params = {
             "kS": self.parameters["kS"],
+            "KI_charged_trna": self.parameters.get("KI_charged_trna"),
             "KMaa": self.parameters["KMaa"],
             "KMtf": self.parameters["KMtf"],
             "krta": self.parameters["krta"],
@@ -1735,7 +1736,7 @@ def calculate_trna_charging(
             n_aas_masked,
             n_aas,
             mask,
-            params["kS"],
+            synthetase_rate,
             synthetase_conc,
             params["KMaa"],
             params["KMtf"],
@@ -1747,6 +1748,7 @@ def calculate_trna_charging(
             limit_v_rib,
             aa_rate_limit,
             v_rib_max,
+            charged_trna_ki,
         )
 
         if supply is None:
@@ -1776,6 +1778,18 @@ def calculate_trna_charging(
     else:
         mask = params["charging_mask"]
     synthetase_conc = synthetase_conc[mask]
+    # Charged tRNA inhibition constants (in amino acid order, and none means
+    # no inhibition):
+    charged_trna_ki = params.get("KI_charged_trna")
+    if charged_trna_ki is None:
+        charged_trna_ki = np.full(n_total_aas, np.inf)
+    else:
+        charged_trna_ki = np.asarray(charged_trna_ki, dtype=float)
+
+    # Shared rate constant, or one per synthetase (amino acid order)
+    synthetase_rate = params["kS"]
+    if np.ndim(synthetase_rate):
+        synthetase_rate = np.asarray(synthetase_rate, dtype=float)[mask]
     original_uncharged_trna_conc = uncharged_trna_conc[mask]
     original_charged_trna_conc = charged_trna_conc[mask]
     original_aa_conc = aa_conc[mask]
@@ -1872,23 +1886,27 @@ def dcdt_jit(
     limit_v_rib,
     aa_rate_limit,
     v_rib_max,
+    KI_charged_trna,
 ):
     uncharged_trna_conc = c[:n_aas_masked]
     charged_trna_conc = c[n_aas_masked : 2 * n_aas_masked]
     aa_conc = c[2 * n_aas_masked : 2 * n_aas_masked + n_aas]
     masked_aa_conc = aa_conc[mask]
 
+    # Charged tRNA competes with uncharged tRNA for the synthetase, raising the
+    # apparent tRNA KM (KI_charged_trna of inf gives no inhibition)
+    KMtf_apparent = KMtf[mask] * (1 + charged_trna_conc / KI_charged_trna[mask])
     v_charging = (
         kS
         * synthetase_conc
         * uncharged_trna_conc
         * masked_aa_conc
-        / (KMaa[mask] * KMtf[mask])
+        / (KMaa[mask] * KMtf_apparent)
         / (
             1
-            + uncharged_trna_conc / KMtf[mask]
+            + uncharged_trna_conc / KMtf_apparent
             + masked_aa_conc / KMaa[mask]
-            + uncharged_trna_conc * masked_aa_conc / KMtf[mask] / KMaa[mask]
+            + uncharged_trna_conc * masked_aa_conc / KMtf_apparent / KMaa[mask]
         )
     )
     numerator_ribosome = 1 + np.sum(
