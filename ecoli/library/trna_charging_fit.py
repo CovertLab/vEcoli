@@ -12,6 +12,9 @@ are in uM and all rates in uM/s.
 The ParCa fit (:py:func:`fit_condition_charging`) inverts these: for a target
 ppGpp concentration it finds one scale factor on all synthetases at which the
 resulting steady-state charging puts ppGpp synthesis and loss in balance.
+
+# TODO (mia): consider removing steady_state_uncharged, fit_condition_charging,
+    ppgpp_net_rate
 """
 
 from typing import Any, Optional
