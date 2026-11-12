@@ -44,6 +44,7 @@ TOPOLOGY = {
     },
     "boundary": ("boundary",),
     "polypeptide_elongation": ("process_state", "polypeptide_elongation"),
+    "protein_degradation": ("process_state", "protein_degradation"),
     "global_time": ("global_time",),
     "timestep": ("timestep",),
     "next_update_time": ("next_update_time", "metabolism"),
@@ -74,6 +75,7 @@ class Metabolism(Step):
         "mechanistic_aa_transport": False,
         "aa_names": [],
         "aa_targets_not_updated": set(),
+        "credit_recycled_aa": False,
         "import_constraint_threshold": 0,
         "exchange_molecules": [],
         "current_timeline": None,
@@ -134,6 +136,12 @@ class Metabolism(Step):
         self.aa_targets = {}
         self.aa_targets_not_updated = self.parameters["aa_targets_not_updated"]
         self.aa_names = self.parameters["aa_names"]
+        # Add amino acids released by protein degradation to the amino acid
+        # targets. The ParCa fits amino acid supply for dilution only and
+        # assumes degradation returns the rest of what translation uses. When
+        # False, targets follow supply minus charging only, so FBA makes fewer
+        # amino acids by the amount released and the free pool does not rise.
+        self.credit_recycled_aa = self.parameters["credit_recycled_aa"]
         # Comparing two values with units is faster than converting units
         # and comparing magnitudes
         self.import_constraint_threshold = (
@@ -378,6 +386,14 @@ class Metabolism(Step):
                     "_divider": "set",
                 },
             },
+            "protein_degradation": {
+                "aa_released": {
+                    "_default": [0] * len(self.aa_names),
+                    "_emit": False,
+                    "_updater": "set",
+                    "_divider": "set",
+                },
+            },
             "global_time": {"_default": 0.0},
             "timestep": {"_default": self.parameters["time_step"]},
             "next_update_time": {
@@ -473,15 +489,17 @@ class Metabolism(Step):
             )
 
         if self.use_trna_charging:
+            aa_count_diff = np.asarray(
+                states["polypeptide_elongation"]["aa_count_diff"], dtype=float
+            )
+            if self.credit_recycled_aa:
+                aa_count_diff = aa_count_diff + np.asarray(
+                    states["protein_degradation"]["aa_released"], dtype=float
+                )
             conc_updates.update(
                 self.update_amino_acid_targets(
                     counts_to_molar,
-                    dict(
-                        zip(
-                            self.aa_names,
-                            states["polypeptide_elongation"]["aa_count_diff"],
-                        )
-                    ),
+                    dict(zip(self.aa_names, aa_count_diff)),
                     dict(zip(self.aa_names, counts(states["bulk_total"], self.aa_idx))),
                 )
             )

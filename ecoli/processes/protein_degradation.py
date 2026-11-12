@@ -36,6 +36,7 @@ NAME = "ecoli-protein-degradation"
 TOPOLOGY = {
     "bulk": ("bulk",),
     "listeners": ("listeners",),
+    "protein_degradation": ("process_state", "protein_degradation"),
     "timestep": ("timestep",),
 }
 topology_registry.register(NAME, TOPOLOGY)
@@ -105,6 +106,14 @@ class ProteinDegradation(PartitionedProcess):
                     }
                 ),
             },
+            "protein_degradation": {
+                "aa_released": {
+                    "_default": [0] * len(self.amino_acid_ids),
+                    "_emit": False,
+                    "_updater": "set",
+                    "_divider": "set",
+                },
+            },
             "timestep": {"_default": self.parameters["time_step"]},
         }
 
@@ -155,6 +164,11 @@ class ProteinDegradation(PartitionedProcess):
             ],
             "listeners": {
                 "monomer_events": {"monomers_degraded": allocated_proteins},
+            },
+            # Amino acids released this time step, in amino_acid_ids order,
+            # read by metabolism when credit_recycled_aa is on
+            "protein_degradation": {
+                "aa_released": metabolites_delta[self.amino_acid_indexes],
             },
         }
 
