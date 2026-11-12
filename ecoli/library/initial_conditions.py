@@ -488,9 +488,24 @@ def initialize_rna(
         )
         rna_expression /= rna_expression.sum()
 
+    # Count rRNA and tRNA transcription units by their mature rRNA/tRNA mass,
+    # as the ParCa does when it fits expression (totalCountIdDistributionRNA).
+    # The full precursor mass (spacers and other cistrons included) would give
+    # fewer rRNAs than the ParCa sized ribosomal proteins for if not counted
+    # by their mature mass:
+    rna_mws = transcription.rna_data["mw"].asNumber(units.g / units.mol).copy()
+    is_rRNA = transcription.rna_data["is_rRNA"]
+    is_tRNA = transcription.rna_data["is_tRNA"]
+    rna_mws[is_rRNA] = transcription.rna_data["rRNA_mw"][is_rRNA].asNumber(
+        units.g / units.mol
+    )
+    rna_mws[is_tRNA] = transcription.rna_data["tRNA_mw"][is_tRNA].asNumber(
+        units.g / units.mol
+    )
+
     n_rnas = countsFromMassAndExpression(
         rna_mass.asNumber(units.g),
-        transcription.rna_data["mw"].asNumber(units.g / units.mol),
+        rna_mws,
         rna_expression,
         sim_data.constants.n_avogadro.asNumber(1 / units.mol),
     )
@@ -2293,7 +2308,17 @@ def initialize_trna_charging(
         else constants.ribosome_elongation_rate_basal
     )
     charging_params = {
-        "kS": constants.synthetase_charging_rate.asNumber(1 / units.s),
+        # ParCa charging fit individual synthetase rate constants
+        "kS": (
+            transcription.synthetase_kcats.asNumber(1 / units.s)
+            if getattr(transcription, "synthetase_kcats", None) is not None
+            else constants.synthetase_charging_rate.asNumber(1 / units.s)
+        ),
+        "KI_charged_trna": (
+            transcription.charged_trna_kis.asNumber(MICROMOLAR_UNITS)
+            if getattr(transcription, "charged_trna_kis", None) is not None
+            else None
+        ),
         "KMaa": transcription.aa_kms.asNumber(MICROMOLAR_UNITS),
         "KMtf": transcription.trna_kms.asNumber(MICROMOLAR_UNITS),
         "krta": constants.Kdissociation_charged_trna_ribosome.asNumber(
