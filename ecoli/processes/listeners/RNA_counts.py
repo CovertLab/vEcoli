@@ -30,8 +30,10 @@ class RNACounts(Step):
     mRNAs that are being degraded in the 5' to 3' direction (see
     ``directional_mrna_decay`` in
     :py:class:`~ecoli.library.sim_data.LoadSimData`) are counted separately in
-    ``decaying_mRNA_counts``. Cistron counts are calculated from transcription
-    unit counts, so all cistrons of a partial transcript are counted.
+    ``decaying_mRNA_counts``, including those that can no longer bind
+    ribosomes but are kept until transcription and ribosomes on them finish.
+    Cistron counts are calculated from transcription unit counts, so all
+    cistrons of a partial transcript are counted.
     ``available_mRNA_cistron_counts`` instead counts only the cistrons that can
     bind new ribosomes: cistrons that have been transcribed and have not been
     passed by the degradation front.
@@ -149,8 +151,11 @@ class RNACounts(Step):
         full_mRNA_counts = full_TU_counts[self.mRNA_indexes]
         partial_TU_counts = all_TU_counts - full_TU_counts
         partial_mRNA_counts = mRNA_counts - full_mRNA_counts
+        # Includes decaying mRNAs whose fronts have passed every cistron
+        # (can_translate is False) but that are kept until transcription and
+        # ribosomes on them finish
         decaying_mRNA_counts = np.bincount(
-            TU_indexes[can_translate & is_decaying],
+            TU_indexes[is_decaying],
             minlength=len(self.all_TU_ids),
         )[self.mRNA_indexes]
         # All unique rRNAs are partially transcribed
