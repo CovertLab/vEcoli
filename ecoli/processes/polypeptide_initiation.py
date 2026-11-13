@@ -360,6 +360,18 @@ class PolypeptideInitiation(PartitionedProcess):
                     ).asNumber()
                 )
 
+                # Overcrowding cannot be resolved with even one ribosome, so
+                # activate none this time step (as when no ribosomes are
+                # available above) to avoid a divide by zero:
+                if n_ribosomes_to_activate == 0:
+                    return {
+                        "listeners": {
+                            "ribosome_data": zero_listener(
+                                states["listeners"]["ribosome_data"]
+                            )
+                        }
+                    }
+
                 # Update maximum probabilities based on new number of activated
                 # ribosomes.
                 max_p = (
