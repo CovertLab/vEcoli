@@ -10,8 +10,9 @@ import hashlib
 from tqdm import tqdm
 import zipfile
 
-from vivarium.library.dict_utils import get_value_from_path
-from vivarium.core.emitter import data_from_database, get_experiment_database
+import duckdb
+import polars as pl
+from ecoli.library.parquet_emitter import dataset_sql, ndlist_to_ndarray, field_metadata
 
 from ecoli.processes.metabolism import (
     COUNTS_UNITS,
@@ -61,29 +62,47 @@ def get_safe_name(s):
     return fname
 
 
-def array_timeseries(data, path, timeseries):
-    """Converts data of the format {time: {path: value}}} to timeseries of the
-    format {path: [value_1, value_2,...]}. Modifies timeseries in place."""
-    path_timeseries = timeseries
-    for key in path[:-1]:
-        path_timeseries = path_timeseries.setdefault(key, {})
-    accumulated_data = []
-    for datum in data.values():
-        path_data = get_value_from_path(datum, path)
-        accumulated_data.append(path_data)
-    path_timeseries[path[-1]] = np.array(accumulated_data)
+def convert_dynamics(
+    seriesOutDir,
+    sim_data,
+    node_list,
+    edge_list,
+    experiment_id,
+    out_dir,
+    max_timepoints=150,
+    variant=0,
+    lineage_seed=0,
+    generation=1,
+    agent_id="0",
+):
+    """Convert the sim's dynamics data to a Causality seriesOut.zip file.
 
+    Reads simulation output from the Parquet ``history`` dataset with DuckDB
+    (see :mod:`ecoli.library.parquet_emitter`) rather than the legacy in-database
+    emitter.
 
-def convert_dynamics(seriesOutDir, sim_data, node_list, edge_list, experiment_id):
-    """Convert the sim's dynamics data to a Causality seriesOut.zip file."""
+    ``max_timepoints`` downsamples to at most that many evenly-spaced timesteps
+    (0 = keep all). Long simulations emit thousands of sub-second timesteps and
+    some listeners are 2-D per step (e.g. TF binding is cistrons x TFs), so the
+    full-resolution arrays can be many GB; the viewer only needs a smooth
+    cell-cycle trace.
+
+    Args:
+        seriesOutDir: directory to write ``seriesOut.zip`` into.
+        sim_data: the simulation data object.
+        node_list, edge_list: outputs of :meth:`BuildNetwork.build_nodes_and_edges`.
+        experiment_id: experiment id used to scope the Parquet dataset.
+        out_dir: root output directory containing the ``history``/``configuration``
+            Hive-partitioned Parquet folders.
+        variant, lineage_seed, generation, agent_id: select a single cell's history
+            (a Causality network is per-cell); defaults to the founder cell. Pass
+            ``None`` for any of these to leave that partition key unfiltered.
+    """
 
     if not experiment_id:
         experiment_id = input("Please provide an experiment id: ")
 
-    # TODO: Convert to use DuckDB
-    raise NotImplementedError("Still need to convert to use DuckDB!")
-    # Retrieve the data directly from database
-    db = get_experiment_database()
+    # Columns (store paths) of simulation output needed to build node dynamics.
     query = [
         ("bulk",),
         ("listeners", "mass", "cell_mass"),
@@ -103,13 +122,56 @@ def convert_dynamics(seriesOutDir, sim_data, node_list, edge_list, experiment_id
         ("listeners", "equilibrium_listener", "reaction_rates"),
         ("listeners", "growth_limits", "net_charged"),
     ]
-    data, config = data_from_database(experiment_id, db, query=query)
-    del data[0.0]
 
+    # Read all needed columns from the Parquet history in one time-ordered pass,
+    # downsampling to at most ``max_timepoints`` evenly-spaced rows to bound memory.
+    conn = duckdb.connect()
+    history_sql, config_sql, _ = dataset_sql(out_dir, [experiment_id])
+
+    # A Causality network is built for a single cell, so scope the dataset to one
+    # (variant, lineage_seed, generation, agent_id) partition (default: founder).
+    cell = []
+    if variant is not None:
+        cell.append(f"variant = {int(variant)}")
+    if lineage_seed is not None:
+        cell.append(f"lineage_seed = {int(lineage_seed)}")
+    if generation is not None:
+        cell.append(f"generation = {int(generation)}")
+    if agent_id is not None and agent_id != "":
+        cell.append(f"agent_id = '{agent_id}'")
+    if cell:
+        where = " AND ".join(cell)
+        history_sql = f"SELECT * FROM ({history_sql}) WHERE {where}"
+        config_sql = f"SELECT * FROM ({config_sql}) WHERE {where}"
+
+    col_names = ["__".join(path) for path in query]
+    select = ", ".join([f'"{c}"' for c in col_names] + ["time"])
+
+    n_rows = conn.sql(f"SELECT count(*) FROM ({history_sql})").fetchone()[0]
+    stride = max(1, -(-n_rows // max_timepoints)) if max_timepoints else 1
+    numbered = (
+        f"SELECT {select}, row_number() OVER (ORDER BY time) AS __rn "
+        f"FROM ({history_sql})"
+    )
+    df = conn.sql(
+        f"SELECT {select} FROM ({numbered}) WHERE (__rn - 1) % {stride} = 0 ORDER BY time"
+    ).pl()
+
+    # Build the nested {store: {sub: array}} timeseries the readers expect.
     timeseries = {}
-    for path in query:
-        array_timeseries(data, path, timeseries)
-    timeseries["time"] = np.array(list(data.keys()))
+    for path, col in zip(query, col_names):
+        series = df[col]
+        arr = (
+            ndlist_to_ndarray(series)
+            if isinstance(series.dtype, pl.List)
+            else series.to_numpy()
+        )
+        subseries = timeseries
+        for key in path[:-1]:
+            subseries = subseries.setdefault(key, {})
+        subseries[path[-1]] = arr
+    timeseries["time"] = df["time"].to_numpy()
+    del df
 
     # Reshape arrays for number of bound transcription factors
     n_TU = len(sim_data.process.transcription.rna_data["id"])
@@ -142,7 +204,7 @@ def convert_dynamics(seriesOutDir, sim_data, node_list, edge_list, experiment_id
     def build_index_dict(id_array):
         return {mol: i for i, mol in enumerate(id_array)}
 
-    molecule_ids = config["state"]["bulk"]["_properties"]["metadata"]
+    molecule_ids = field_metadata(conn, config_sql, "bulk")
     indexes["BulkMolecules"] = build_index_dict(molecule_ids)
 
     gene_ids = sim_data.process.transcription.cistron_data["gene_id"]
@@ -159,9 +221,6 @@ def convert_dynamics(seriesOutDir, sim_data, node_list, edge_list, experiment_id
 
     # metabolism_rxn_ids = TableReader(
     # 	os.path.join(simOutDir, "FBAResults")).readAttribute("reactionIDs")
-    metabolism_rxn_ids = config["state"]["listeners"]["fba_results"]["reaction_fluxes"][
-        "_properties"
-    ]["metadata"]
     metabolism_rxn_ids = sim_data.process.metabolism.reaction_stoich.keys()
     indexes["MetabolismReactions"] = build_index_dict(metabolism_rxn_ids)
 
@@ -173,9 +232,9 @@ def convert_dynamics(seriesOutDir, sim_data, node_list, edge_list, experiment_id
 
     # unprocessed_rna_ids = TableReader(
     #     os.path.join(simOutDir, "RnaMaturationListener")).readAttribute("unprocessed_rna_ids")
-    unprocessed_rna_ids = config["state"]["listeners"]["rna_maturation_listener"][
-        "unprocessed_rnas_consumed"
-    ]["_properties"]["metadata"]
+    unprocessed_rna_ids = field_metadata(
+        conn, config_sql, "listeners__rna_maturation_listener__unprocessed_rnas_consumed"
+    )
     indexes["UnprocessedRnas"] = build_index_dict(unprocessed_rna_ids)
 
     tf_ids = sim_data.process.transcription_regulation.tf_ids
