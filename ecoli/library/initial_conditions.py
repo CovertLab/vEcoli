@@ -217,9 +217,36 @@ def create_expected_bulk_container(
     )
     counts = scaled_counts / complexation_scale
 
-    # Correct low count complexes for the need for whole subunits
+    # Correct low count complexes for the need for whole subunits. Subunits
+    # released by the correction return to the free pool of each direct reactant
+    # (a monomer or a child complex) so monomer equivalents are conserved.
+    # Complexes are corrected in order of nesting depth, children before parents,
+    # so child complexes released from a parent are not corrected a second time.
+    # Shared subunits need no special handling since each complex returns only
+    # what its own reduction released.
     molecule_index = {molecule: i for i, molecule in enumerate(molecule_names)}
+    reactants = {}  # complex index -> (direct reactant indices, stoich per complex)
     for complex_id in complexation.ids_complexes:
+        i = molecule_index[complex_id]
+        reaction = np.where(stoich_matrix[i, :] > 0)[0][0]
+        reactant_idx = np.where(stoich_matrix[:, reaction] < 0)[0]
+        reactants[i] = (
+            reactant_idx,
+            -stoich_matrix[reactant_idx, reaction] / stoich_matrix[i, reaction],
+        )
+
+    depths = {}
+
+    def nesting_depth(i):
+        if i not in reactants:
+            return 0
+        if i not in depths:
+            depths[i] = 1 + max(nesting_depth(r) for r in reactants[i][0])
+        return depths[i]
+
+    for complex_id in sorted(
+        complexation.ids_complexes, key=lambda c: nesting_depth(molecule_index[c])
+    ):
         monomers = complexation.get_monomers(complex_id)
         subunits = [
             (m, s)
@@ -235,7 +262,11 @@ def create_expected_bulk_container(
             continue
         expected = _expected_whole_complexes(subunit_counts, subunit_stoich)
         i = molecule_index[complex_id]
-        counts[i] = counts[i] * expected / limit if limit > 0 else expected
+        corrected = counts[i] * expected / limit if limit > 0 else expected
+        released = counts[i] - corrected
+        counts[i] = corrected
+        reactant_idx, reactant_stoich = reactants[i]
+        counts[reactant_idx] += released * reactant_stoich
     bulk_counts[molecule_idx] = counts
 
     return np.array(
