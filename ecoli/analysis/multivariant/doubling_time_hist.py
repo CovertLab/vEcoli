@@ -49,6 +49,60 @@ def plot(
     # Round for display
     avg_doubling_time_rounded = round(cast(float, avg_doubling_time), 2)
 
+    # Save doubling time averages to CSV at three levels: overall,
+    # per variant, and per variant + lineage seed
+    dt_col = pl.col("Doubling Time (min)")
+    summary_aggs = [
+        dt_col.mean().alias("mean_doubling_time_min"),
+        dt_col.std().alias("std_doubling_time_min"),
+        dt_col.min().alias("min_doubling_time_min"),
+        dt_col.max().alias("max_doubling_time_min"),
+        dt_col.len().alias("n_cells"),
+    ]
+    overall = doubling_times.select(summary_aggs).with_columns(
+        pl.lit("overall").alias("level"),
+        pl.lit(None, dtype=pl.String).alias("experiment_id"),
+        pl.lit(None, dtype=pl.Int64).alias("variant"),
+        pl.lit(None, dtype=pl.Int64).alias("lineage_seed"),
+    )
+    per_variant = (
+        doubling_times.group_by("experiment_id", "variant")
+        .agg(summary_aggs)
+        .with_columns(
+            pl.lit("variant").alias("level"),
+            pl.lit(None, dtype=pl.Int64).alias("lineage_seed"),
+        )
+    )
+    per_seed = (
+        doubling_times.group_by("experiment_id", "variant", "lineage_seed")
+        .agg(summary_aggs)
+        .with_columns(pl.lit("variant_seed").alias("level"))
+    )
+    col_order = [
+        "level",
+        "experiment_id",
+        "variant",
+        "lineage_seed",
+        "mean_doubling_time_min",
+        "std_doubling_time_min",
+        "min_doubling_time_min",
+        "max_doubling_time_min",
+        "n_cells",
+    ]
+    summary = pl.concat(
+        [
+            overall.select(col_order),
+            per_variant.select(col_order).sort("experiment_id", "variant"),
+            per_seed.select(col_order).sort("experiment_id", "variant", "lineage_seed"),
+        ],
+        how="vertical_relaxed",
+    )
+    summary.write_csv(f"{outdir}/doubling_time_averages.csv")
+    # Also save per-cell doubling times for reference
+    doubling_times.sort(
+        "experiment_id", "variant", "lineage_seed", "generation", "agent_id"
+    ).write_csv(f"{outdir}/doubling_times_per_cell.csv")
+
     # Create the base histogram - Define the main X-axis here
     hist = (
         alt.Chart(doubling_times)
