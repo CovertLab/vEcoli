@@ -71,6 +71,7 @@ class Metabolism(Step):
         "nutrientToDoublingTime": {},
         "use_trna_charging": False,
         "include_ppgpp": False,
+        "extended_solver_fallback": False,
         "mechanistic_aa_transport": False,
         "aa_names": [],
         "aa_targets_not_updated": set(),
@@ -912,6 +913,9 @@ class FluxBalanceAnalysisModel(object):
             # The "inconvenient constant"--limit secretion (e.g., of CO2)
             "secretionPenaltyCoeff": metabolism.secretion_penalty_coeff,
             "solver": solver,
+            "extended_solver_fallback": parameters.get(
+                "extended_solver_fallback", False
+            ),
             "maintenanceCostGAM": gam.asNumber(COUNTS_UNITS / MASS_UNITS),
             "maintenanceReaction": metabolism.maintenance_reaction,
         }
