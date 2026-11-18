@@ -86,6 +86,10 @@ class RnaInterference(Process):
             states["RNAs"],
             ["TU_index", "can_translate", "is_full_transcript", "unique_index"],
         )
+        # mRNAs being degraded in the 5' to 3' direction cannot be targeted
+        if "is_decaying" in states["RNAs"].dtype.names:
+            is_decaying = attrs(states["RNAs"], ["is_decaying"])[0]
+            can_translate = can_translate & ~is_decaying
 
         mRNA_index, ribosome_indexes = attrs(
             states["active_ribosome"], ["mRNA_index", "unique_index"]
