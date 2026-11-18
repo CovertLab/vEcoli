@@ -110,6 +110,10 @@ class NetworkFlowGLPK(NetworkFlowProblemBase):
         glp.glp_init_smcp(self._smcp)
         self._smcp.msg_lev = glp.GLP_MSG_ERR
         self.simplex_iteration_limit = 10000
+        # If True, also switch to the dual method when the primal method ends
+        # with a non-optimal status or an unusable warm start basis, not only
+        # when it reaches the iteration limit
+        self.extended_dual_fallback = False
         self._n_vars = 0
         self._n_eq_constraints = 0
 
@@ -494,18 +498,44 @@ class NetworkFlowGLPK(NetworkFlowProblemBase):
         result = glp.glp_simplex(self._lp, self._smcp)
 
         # Adjust solver options for robustness
-        ## If no solution within iteration limit, switch to dual method to find solution
-        if result == glp.GLP_EITLIM:
-            print(
-                "Warning: could not find solution with primal method, switching to dual"
+        ## If no solution within iteration limit, switch to dual method to find
+        ## solution. With extended_dual_fallback, also switch if the primal
+        ## method ends with a non-optimal status (e.g. a spurious GLP_UNBND from
+        ## numerical trouble when warm starting from the previous basis) or the
+        ## warm start basis is numerically unusable (singular, ill-conditioned
+        ## or solver failure).
+        basis_failure = self.extended_dual_fallback and result in (
+            glp.GLP_ESING,
+            glp.GLP_ECOND,
+            glp.GLP_EFAIL,
+        )
+        not_optimal = (
+            self.extended_dual_fallback
+            and result == 0
+            and self.status_code != glp.GLP_OPT
+        )
+        if result == glp.GLP_EITLIM or basis_failure or not_optimal:
+            reason = (
+                SIMPLEX_RETURN_CODE_TO_STRING.get(result)
+                if result
+                else self.status_string
             )
+            print(
+                f"Warning: could not find solution with primal method ({reason}), switching to dual"
+            )
+            ## A singular or ill-conditioned basis cannot be factorized, so
+            ## restart from the standard basis instead of the previous one
+            if basis_failure:
+                glp.glp_std_basis(self._lp)
             self.simplex_method = SimplexMethod.DUALP
             result = glp.glp_simplex(self._lp, self._smcp)
             self.simplex_method = SimplexMethod.PRIMAL
 
             ## If still no solution, presolve the problem to reduce complexity
             ## (also prevents warm start)
-            if self.status_code != glp.GLP_OPT:
+            if (
+                self.extended_dual_fallback and result != 0
+            ) or self.status_code != glp.GLP_OPT:
                 print(
                     "Warning: could not find solution with dual method, using primal with presolve"
                 )

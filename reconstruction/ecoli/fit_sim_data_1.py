@@ -20,7 +20,10 @@ import numpy as np
 import scipy.optimize
 import scipy.sparse
 
-from ecoli.library.initial_conditions import create_bulk_container
+from ecoli.library.initial_conditions import (
+    create_bulk_container,
+    create_expected_bulk_container,
+)
 from ecoli.library.schema import bulk_name_to_idx, counts
 from reconstruction.ecoli.simulation_data import SimulationDataEcoli
 from wholecell.utils import parallelization, units
@@ -496,10 +499,18 @@ def final_adjustments(sim_data, cell_specs, **kwargs):
     sim_data.process.transcription.adjust_ppgpp_expression_for_tfs(sim_data)
 
     # Set supply constants for amino acids based on condition supply requirements
-    average_basal_container = create_bulk_container(sim_data, n_seeds=5)
-    average_with_aa_container = create_bulk_container(
-        sim_data, condition="with_aa", n_seeds=5
-    )
+    # With directional mRNA decay, use expected counts instead of sampled
+    # cells so the fit does not depend on which cells are sampled
+    if sim_data.fit_for_directional_mrna_decay:
+        average_basal_container = create_expected_bulk_container(sim_data)
+        average_with_aa_container = create_expected_bulk_container(
+            sim_data, condition="with_aa"
+        )
+    else:
+        average_basal_container = create_bulk_container(sim_data, n_seeds=5)
+        average_with_aa_container = create_bulk_container(
+            sim_data, condition="with_aa", n_seeds=5
+        )
     sim_data.process.metabolism.set_phenomological_supply_constants(sim_data)
     sim_data.process.metabolism.set_mechanistic_supply_constants(
         sim_data, cell_specs, average_basal_container, average_with_aa_container
@@ -3890,6 +3901,17 @@ def calculatePromoterBoundProbability(sim_data, cell_specs):
         (regulation_v, (regulation_i, regulation_j)),
         shape=(len(tf_idx), len(sim_data.process.transcription.rna_data)),
     )
+    # A TU containing several cistrons regulated by the same TF gets one
+    # entry per cistron above, and csr_matrix sums duplicate entries, so that
+    # TU would be counted as several promoter targets. Each TU has a single
+    # promoter that the TF binds once (as in tf_binding at runtime), so
+    # collapse duplicates to 1. Without this, large operons (e.g. the dcw TUs,
+    # with 14 LexA-regulated cistrons each) inflate n_promoter_targets and
+    # underestimate the TF's probability of being bound. Applied to sim_data
+    # fit for directional mRNA decay.
+    if sim_data.fit_for_directional_mrna_decay:
+        regulation.sum_duplicates()
+        regulation.data[:] = 1
     rna_coords = sim_data.process.transcription.rna_data["replication_coordinate"]
 
     for conditionKey in sorted(cell_specs):

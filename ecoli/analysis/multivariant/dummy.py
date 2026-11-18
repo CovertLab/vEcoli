@@ -157,6 +157,8 @@ OUTPUT_COLUMN_NAMES: set[str] = {
     "listeners__ribosome_data__total_rRNA_initiated",
     "listeners__ribosome_data__total_rna_init",
     "listeners__ribosome_data__translation_supply",
+    "listeners__rna_counts__available_mRNA_cistron_counts",
+    "listeners__rna_counts__decaying_mRNA_counts",
     "listeners__rna_counts__full_mRNA_cistron_counts",
     "listeners__rna_counts__full_mRNA_counts",
     "listeners__rna_counts__mRNA_cistron_counts",

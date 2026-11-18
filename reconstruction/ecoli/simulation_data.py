@@ -64,6 +64,15 @@ class SimulationDataEcoli(object):
 
         self.operons_on = raw_data.operons_on
         self.stable_rrna = raw_data.stable_rrna
+        # True if this sim_data was fit with the ParCa changes used with
+        # directional mRNA decay (inputs selected in KnowledgeBaseEcoli and
+        # Translation, expected bulk counts for the amino acid supply fit,
+        # ppGpp-regulated expression for TUs with zero ppGpp-bound probability,
+        # one promoter target per TU in calculatePromoterBoundProbability, and
+        # applying the basal TF effect once in adjust_ppgpp_expression_for_tfs)
+        self.fit_for_directional_mrna_decay = getattr(
+            raw_data, "directional_mrna_decay", False
+        )
 
         self._add_condition_data(raw_data)
         self.condition = "basal"
@@ -374,6 +383,10 @@ class SimulationDataEcoli(object):
         # For cases with no basal ppGpp expression, assume the delta prob is the
         # same as without ppGpp control
         mask = prob == 0
+        # Delta prob is only an absolute probability change for TUs without
+        # basal prob since it is otherwise relative to basal prob
+        if getattr(self, "fit_for_directional_mrna_decay", False):
+            mask &= self.process.transcription_regulation.basal_prob == 0
         rna_expression[mask] = delta[mask] / factor[mask]
 
         rna_expression[rna_expression < 0] = 0

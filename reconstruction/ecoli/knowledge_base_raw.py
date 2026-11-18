@@ -181,10 +181,14 @@ class KnowledgeBaseEcoli(object):
         remove_rrff: bool,
         stable_rrna: bool,
         new_genes_option: str = "off",
+        directional_mrna_decay: bool = False,
     ):
         self.operons_on = operons_on
         self.stable_rrna = stable_rrna
         self.new_genes_option = new_genes_option
+        # Also selects the ParCa inputs used with directional mRNA decay (see
+        # reconstruction/ecoli/flat/dirdecay_options and Translation)
+        self.directional_mrna_decay = directional_mrna_decay
 
         if not operons_on and remove_rrna_operons:
             warnings.warn(
@@ -313,6 +317,11 @@ class KnowledgeBaseEcoli(object):
                     }
                 )
 
+        if self.directional_mrna_decay:
+            self.list_of_dict_filenames.append(
+                os.path.join("dirdecay_options", "fold_changes_removed.tsv")
+            )
+
         # Load raw data from TSV files
         for filename in self.list_of_dict_filenames:
             self._load_tsv(FLAT_DIR, os.path.join(FLAT_DIR, filename))
@@ -323,6 +332,16 @@ class KnowledgeBaseEcoli(object):
         self.genome_sequence = self._load_sequence(
             os.path.join(FLAT_DIR, SEQUENCE_FILE)
         )
+
+        # Remove the leuO edges to the rest of the leuLABCD TU, extending the
+        # existing leuO -> leuA removal (this was change made years ago that
+        # got undone by operons being added to the model)
+        if self.directional_mrna_decay:
+            # Attributes are set from file names when the TSV files load
+            removed_fold_changes: list[dict] = getattr(self, "fold_changes_removed")
+            removed_fold_changes.extend(
+                getattr(self, "dirdecay_options").fold_changes_removed
+            )
 
         self._prune_data()
 

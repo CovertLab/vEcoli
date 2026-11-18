@@ -141,6 +141,13 @@ class Translation(object):
             for p in raw_data.protein_half_lives_modified
         }
 
+        # With directional mRNA decay, use only measured rates (Macklin et al.
+        # 2020) and the N-end rule. The MurD override only protected MurD from
+        # its unstable pulsed-SILAC value, so both are dropped together.
+        if getattr(raw_data, "directional_mrna_decay", False):
+            pulsed_silac_deg_rates = {}
+            modified_deg_rates = {}
+
         deg_rate = np.zeros(len(all_proteins))
         for i, protein in enumerate(all_proteins):
             # Note: modified_deg_rates is used to override the

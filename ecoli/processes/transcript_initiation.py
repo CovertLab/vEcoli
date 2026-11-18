@@ -153,6 +153,7 @@ class TranscriptInitiation(PartitionedProcess):
         "active_rnap_foorprint_size": 1,
         "basal_prob": np.array([]),
         "delta_prob": {"deltaI": [], "deltaJ": [], "deltaV": [], "shape": tuple()},
+        "fit_for_directional_mrna_decay": False,
         "get_delta_prob_matrix": None,
         "perturbations": {},
         "rna_data": {},
@@ -200,6 +201,13 @@ class TranscriptInitiation(PartitionedProcess):
 
         # Initialize matrices used to calculate synthesis probabilities
         self.basal_prob = self.parameters["basal_prob"].copy()
+        # TUs whose delta prob is an absolute change. With sim_data fit for
+        # directional mRNA decay, these are only the TUs without basal prob;
+        # otherwise, all TUs with zero ppGpp-regulated basal prob use it.
+        if self.parameters["fit_for_directional_mrna_decay"]:
+            self.no_basal_prob = self.basal_prob == 0
+        else:
+            self.no_basal_prob = np.ones_like(self.basal_prob, dtype=bool)
         self.trna_attenuation = self.parameters["trna_attenuation"]
         if self.trna_attenuation:
             self.attenuated_rna_indices = self.parameters["attenuated_rna_indices"]
@@ -349,8 +357,10 @@ class TranscriptInitiation(PartitionedProcess):
                     ppgpp_conc
                 )
                 ppgpp_scale = basal_prob[TU_index]
-                # Use original delta prob if no ppGpp basal
-                ppgpp_scale[ppgpp_scale == 0] = 1
+                # Delta prob is only an absolute probability change for TUs
+                # without basal prob. For other TUs, it is relative to basal
+                # prob, so a scale of 1 would overexpress them.
+                ppgpp_scale[(ppgpp_scale == 0) & self.no_basal_prob[TU_index]] = 1
             else:
                 basal_prob = self.basal_prob
                 self.fracActiveRnap = self.fracActiveRnapDict[current_media_id]
