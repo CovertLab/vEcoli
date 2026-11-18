@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 import pickle
 import os
+import warnings
 from fsspec import open as fsspec_open
 from typing import Any, Optional, TYPE_CHECKING
 from vivarium.library.units import units as vivunits
@@ -57,6 +58,8 @@ class LoadSimData:
         translation_supply: bool = True,
         aa_supply_in_charging: bool = True,
         disable_ppgpp_elongation_inhibition: bool = False,
+        directional_mrna_decay: bool = False,
+        keep_mrnas_with_active_ribosomes: bool = False,
         emit_unique: bool = False,
         **kwargs,
     ):
@@ -135,6 +138,19 @@ class LoadSimData:
             disable_ppgpp_elongation_inhibition: Turn off ppGpp-mediated
                 inhibition in :py:class:`~ecoli.processes.polypeptide_elongation.PolypeptideElongation`
                 when ``trna_charging`` is ``True``
+            directional_mrna_decay: Degrade mRNAs targeted for degradation in
+                the 5' to 3' direction in
+                :py:class:`~ecoli.processes.rna_degradation.RnaDegradation`. A
+                degradation front starts at the 5' end and moves at the RNA
+                polymerase elongation rate without passing the RNA polymerase.
+                Each cistron stops binding new ribosomes once the front passes
+                its start position. If ``False``, the entire mRNA stops binding
+                ribosomes as soon as it is targeted.
+            keep_mrnas_with_active_ribosomes: Keep deactivated mRNAs in
+                :py:class:`~ecoli.processes.rna_degradation.RnaDegradation` until
+                all ribosomes already translating them have finished. If
+                ``False``, deactivated full-length mRNAs are deleted immediately
+                and the polypeptides being translated on them are lost.
         """
         self.seed = seed
         self.max_duration = max_duration
@@ -162,6 +178,8 @@ class LoadSimData:
         self.aa_supply_in_charging = aa_supply_in_charging
         self.disable_ppgpp_elongation_inhibition = disable_ppgpp_elongation_inhibition
         self.recycle_stalled_elongation = recycle_stalled_elongation
+        self.directional_mrna_decay = directional_mrna_decay
+        self.keep_mrnas_with_active_ribosomes = keep_mrnas_with_active_ribosomes
         self.emit_unique = emit_unique
 
         # NEW to vivarium-ecoli: Whether to lump miscRNA with mRNAs
@@ -174,6 +192,29 @@ class LoadSimData:
 
         if condition is not None:
             self.sim_data.condition = condition
+
+        fit_for_directional_mrna_decay = getattr(
+            self.sim_data, "fit_for_directional_mrna_decay", False
+        )
+        if directional_mrna_decay != fit_for_directional_mrna_decay:
+            warnings.warn(
+                f"directional_mrna_decay is {directional_mrna_decay} but sim_data"
+                f" at {sim_data_path} was fit with directional_mrna_decay set to"
+                f" {fit_for_directional_mrna_decay}. ParCa changes tied to this"
+                " option follow sim_data, not the simulation config."
+            )
+
+        # Add RNA attributes for directional mRNA decay. Both default to zero
+        # for new RNAs, since new and deleted unique molecule rows are zeroed.
+        # - is_decaying (bool): True if the mRNA has been targeted for
+        # degradation and is being degraded in the 5' to 3' direction.
+        # - decay_front (64-bit int): Position (in nucleotides from the 5' end)
+        # of the degradation front on a decaying mRNA. Cistrons with start
+        # positions upstream of this front cannot bind new ribosomes.
+        if directional_mrna_decay:
+            self.sim_data.internal_state.unique_molecule.unique_molecule_definitions[
+                "RNA"
+            ].update({"is_decaying": "?", "decay_front": "i8"})
 
         # Used by processes to apply submass updates to correct unique attr
         self.submass_indices = {
@@ -711,6 +752,9 @@ class LoadSimData:
             "active_rnap_footprint_size": self.sim_data.process.transcription.active_rnap_footprint_size,
             "basal_prob": self.sim_data.process.transcription_regulation.basal_prob,
             "delta_prob": self.sim_data.process.transcription_regulation.delta_prob,
+            "fit_for_directional_mrna_decay": getattr(
+                self.sim_data, "fit_for_directional_mrna_decay", False
+            ),
             "get_delta_prob_matrix": self.sim_data.process.transcription_regulation.get_delta_prob_matrix,
             "perturbations": getattr(self.sim_data, "genetic_perturbations", {}),
             "rna_data": self.sim_data.process.transcription.rna_data,
@@ -906,6 +950,10 @@ class LoadSimData:
                 )
             ),
             "seed": self._seedFromName("RnaDegradation"),
+            "directional_mrna_decay": self.directional_mrna_decay,
+            "keep_mrnas_with_active_ribosomes": self.keep_mrnas_with_active_ribosomes,
+            "rnaPolymeraseElongationRateDict": transcription.rnaPolymeraseElongationRateDict,
+            "cistron_start_end_pos_in_tu": transcription.cistron_start_end_pos_in_tu,
             "emit_unique": self.emit_unique,
         }
 
@@ -943,6 +991,7 @@ class LoadSimData:
             "ribosome50S": self.sim_data.molecule_ids.s50_full_complex,
             "seed": self._seedFromName("PolypeptideInitiation"),
             "monomer_ids": self.sim_data.process.translation.monomer_data["id"],
+            "directional_mrna_decay": self.directional_mrna_decay,
             "emit_unique": self.emit_unique,
         }
 
@@ -1282,6 +1331,8 @@ class LoadSimData:
 
         metabolism_config = {
             "time_step": time_step,
+            # Extra GLPK dual fallbacks are used with directional mRNA decay
+            "extended_solver_fallback": self.directional_mrna_decay,
             # metabolism parameters
             "stoichiometry": metabolism.reaction_stoich,
             "catalyst_ids": metabolism.catalyst_ids,
@@ -1437,6 +1488,8 @@ class LoadSimData:
                 "is_rRNA"
             ],
             "cistron_tu_mapping_matrix": self.sim_data.process.transcription.cistron_tu_mapping_matrix,
+            "cistron_start_end_pos_in_tu": self.sim_data.process.transcription.cistron_start_end_pos_in_tu,
+            "directional_mrna_decay": self.directional_mrna_decay,
             "emit_unique": self.emit_unique,
         }
         counts_config["mRNA_TU_ids"] = counts_config["all_TU_ids"][
