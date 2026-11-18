@@ -337,7 +337,11 @@ class KnowledgeBaseEcoli(object):
         # existing leuO -> leuA removal (this was change made years ago that
         # got undone by operons being added to the model)
         if self.directional_mrna_decay:
-            self.fold_changes_removed.extend(self.dirdecay_options.fold_changes_removed)
+            # Attributes are set from file names when the TSV files load
+            removed_fold_changes: list[dict] = getattr(self, "fold_changes_removed")
+            removed_fold_changes.extend(
+                getattr(self, "dirdecay_options").fold_changes_removed
+            )
 
         self._prune_data()
 
