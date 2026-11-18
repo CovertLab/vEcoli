@@ -44,6 +44,7 @@ def run_parca(config):
         remove_rrff=config["remove_rrff"],
         stable_rrna=config["stable_rrna"],
         new_genes_option=config["new_genes"],
+        directional_mrna_decay=config.get("directional_mrna_decay", False),
     )
     print(f"{time.ctime()}: Saving raw_data")
     with fsspec_open(raw_data_file, "wb") as f:
@@ -218,6 +219,15 @@ def main():
     for k, v in vars(args).items():
         if v is not None:
             parca_options[k] = v
+    # The top-level directional_mrna_decay option also selects the ParCa
+    # changes used with directional mRNA decay, so the fit matches the sim
+    parca_options["directional_mrna_decay"] = config.get(
+        "directional_mrna_decay", False
+    )
+    print(
+        f"{time.ctime()}: directional_mrna_decay="
+        f"{parca_options['directional_mrna_decay']}"
+    )
     # Handle outdir - only expand to absolute path for local paths
     outdir = parca_options["outdir"]
     if not is_cloud_uri(outdir):
