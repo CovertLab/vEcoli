@@ -20,7 +20,10 @@ import numpy as np
 import scipy.optimize
 import scipy.sparse
 
-from ecoli.library.initial_conditions import create_bulk_container
+from ecoli.library.initial_conditions import (
+    create_bulk_container,
+    create_expected_bulk_container,
+)
 from ecoli.library.schema import bulk_name_to_idx, counts
 from reconstruction.ecoli.simulation_data import SimulationDataEcoli
 from wholecell.utils import parallelization, units
@@ -496,10 +499,18 @@ def final_adjustments(sim_data, cell_specs, **kwargs):
     sim_data.process.transcription.adjust_ppgpp_expression_for_tfs(sim_data)
 
     # Set supply constants for amino acids based on condition supply requirements
-    average_basal_container = create_bulk_container(sim_data, n_seeds=5)
-    average_with_aa_container = create_bulk_container(
-        sim_data, condition="with_aa", n_seeds=5
-    )
+    # With directional mRNA decay, use expected counts instead of sampled
+    # cells so the fit does not depend on which cells are sampled
+    if sim_data.fit_for_directional_mrna_decay:
+        average_basal_container = create_expected_bulk_container(sim_data)
+        average_with_aa_container = create_expected_bulk_container(
+            sim_data, condition="with_aa"
+        )
+    else:
+        average_basal_container = create_bulk_container(sim_data, n_seeds=5)
+        average_with_aa_container = create_bulk_container(
+            sim_data, condition="with_aa", n_seeds=5
+        )
     sim_data.process.metabolism.set_phenomological_supply_constants(sim_data)
     sim_data.process.metabolism.set_mechanistic_supply_constants(
         sim_data, cell_specs, average_basal_container, average_with_aa_container
