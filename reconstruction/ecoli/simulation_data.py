@@ -66,8 +66,10 @@ class SimulationDataEcoli(object):
         self.stable_rrna = raw_data.stable_rrna
         # True if this sim_data was fit with the ParCa changes used with
         # directional mRNA decay (inputs selected in KnowledgeBaseEcoli and
-        # Translation, expected bulk counts for the amino acid supply fit, and
-        # ppGpp-regulated expression for TUs with zero ppGpp-bound probability)
+        # Translation, expected bulk counts for the amino acid supply fit,
+        # ppGpp-regulated expression for TUs with zero ppGpp-bound probability,
+        # one promoter target per TU in calculatePromoterBoundProbability, and
+        # applying the basal TF effect once in adjust_ppgpp_expression_for_tfs)
         self.fit_for_directional_mrna_decay = getattr(
             raw_data, "directional_mrna_decay", False
         )
