@@ -1,4 +1,6 @@
 import argparse
+from typing import cast
+
 import duckdb
 import numpy as np
 
@@ -23,11 +25,13 @@ if __name__ == "__main__":
     history_sql, _, _ = dataset_sql(args.output, list(args.exp_ids))
     id_cols = "experiment_id, variant, lineage_seed, generation, agent_id, time"
     ordered_sql = f"SELECT * FROM ({{sql_query}}) WHERE experiment_id = '{{exp_id}}' ORDER BY {id_cols}"
-    data_1 = duckdb.sql(
-        ordered_sql.format(sql_query=history_sql, exp_id=exp_id_1)
+    data_1 = cast(
+        duckdb.DuckDBPyRelation,
+        duckdb.sql(ordered_sql.format(sql_query=history_sql, exp_id=exp_id_1)),
     ).to_arrow_table()
-    data_2 = duckdb.sql(
-        ordered_sql.format(sql_query=history_sql, exp_id=exp_id_2)
+    data_2 = cast(
+        duckdb.DuckDBPyRelation,
+        duckdb.sql(ordered_sql.format(sql_query=history_sql, exp_id=exp_id_2)),
     ).to_arrow_table()
     assert data_1.column_names == data_2.column_names, "Different columns."
     for i, (col_1, col_2) in enumerate(zip(data_1, data_2)):
