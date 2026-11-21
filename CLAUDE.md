@@ -65,8 +65,8 @@ For reproducibility checks, `runscripts/debug/compare_pickles.py` diffs two ParC
       --experiment_id dev_short --variant_data_dir out/test_installation/variant_sim_data \
       --analysis_types single --outdir out/dev_short/analyses
   ```
-  `analysis.py` ignores `inherit_from`, so pass it a config without inheritance (as above)
-  and choose the run with `--experiment_id`. Each run overwrites the previous `out/dev_short`.
+  `analysis.py` expects an already-resolved config (as `workflow.py` produces), so pass one
+  without inheritance (as above) and choose the run with `--experiment_id`. Each run overwrites the previous `out/dev_short`.
 - When reconstruction changes do require a ParCa, try `parca_options.debug_parca: true` first
   for a fast smoke test.
 
