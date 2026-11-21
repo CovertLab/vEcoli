@@ -55,9 +55,18 @@ For reproducibility checks, `runscripts/debug/compare_pickles.py` diffs two ParC
   files). Process, listener and analysis changes do NOT need a new sim_data.
 - To skip the ParCa, set top-level `sim_data_path` to an existing pickle, e.g.
   `out/test_installation/parca/kb/simData.cPickle` (from the test installation run).
-- For quick checks, use `configs/dev_short.json` [TODO: create; inherits test_installation,
-  sets `sim_data_path` as above and a short `max_duration`, e.g. 600]. Full-length runs only
-  when asked.
+- For quick checks, use `configs/dev_short.json` (inherits test_installation, reuses the
+  sim_data above, simulates 600 s; about a minute). Full-length runs only when asked.
+  Run it directly, NOT through `workflow.py`: the cell doesn't divide in 600 s, and the
+  Nextflow sim task fails on any sim that ends without dividing, so its analyses never run.
+  ```bash
+  uv run --env-file .env ecoli/experiments/ecoli_master_sim.py --config configs/dev_short.json
+  uv run --env-file .env runscripts/analysis.py --config configs/test_installation.json \
+      --experiment_id dev_short --variant_data_dir out/test_installation/variant_sim_data \
+      --analysis_types single --outdir out/dev_short/analyses
+  ```
+  `analysis.py` ignores `inherit_from`, so pass it a config without inheritance (as above)
+  and choose the run with `--experiment_id`. Each run overwrites the previous `out/dev_short`.
 - When reconstruction changes do require a ParCa, try `parca_options.debug_parca: true` first
   for a fast smoke test.
 
