@@ -50,6 +50,27 @@ uv run --env-file .env runscripts/analysis.py --config <config.json>
 For reproducibility checks, `runscripts/debug/compare_pickles.py` diffs two ParCa outputs and
 `runscripts/debug/diff_simouts.py` diffs two simulation outputs (CI runs both).
 
+### Fast iteration (use this by default)
+- Don't rerun the ParCa unless you changed something under `reconstruction/` (including flat
+  files). Process, listener and analysis changes do NOT need a new sim_data.
+- To skip the ParCa, set top-level `sim_data_path` to an existing pickle, e.g.
+  `out/test_installation/parca/kb/simData.cPickle` (from the test installation run).
+- For quick checks, use `configs/dev_short.json` [TODO: create; inherits test_installation,
+  sets `sim_data_path` as above and a short `max_duration`, e.g. 600]. Full-length runs only
+  when asked.
+- When reconstruction changes do require a ParCa, try `parca_options.debug_parca: true` first
+  for a fast smoke test.
+
+### Verifying changes
+- Before modifying behavior, run a baseline with the same config and seed under a distinct
+  `experiment_id` (e.g. `baseline_<feature>`).
+- Refactors that should not change behavior: confirm with
+  `uv run --env-file .env runscripts/debug/diff_simouts.py -o out <baseline_id> <new_id>`
+  (must pass).
+- Intended behavior changes: diff_simouts will fail by design. Instead, run the health-check
+  analyses [TODO: list, e.g. mass_fraction_summary, ...] on both runs and report what changed,
+  including anything unexpected.
+
 ## Architecture
 
 ### Pipeline
@@ -97,37 +118,19 @@ analysis type then module name.
 - `wholecell/` holds utilities carried over from wcEcoli (units, polymerize, Cython extensions,
   fitting helpers).
 
-## Contributing notes (from `doc/contributing.rst`)
-- All commits must be signed.
-- Open an issue before non-trivial changes.
-
-### Fast iteration (use this by default)
-- Don't rerun the ParCa unless you changed something under `reconstruction/`
-  (including flat files). Process/listener/analysis changes do NOT need a new sim_data.
-- To skip the ParCa, set top-level `sim_data_path` to an existing pickle, e.g.
-  `out/test_installation/parca/kb/simData.cPickle` (from the test installation run).
-- For quick checks, use `configs/dev_short.json` [create: inherits test_installation,
-  sets sim_data_path as above, max_duration ~600]. Full-length runs only when asked.
-- When reconstruction changes do require a ParCa, try `parca_options.debug_parca: true`
-  first for a fast smoke test.
-
-### Verifying changes
-- Before modifying behavior, run a baseline with the same config and seed under a
-  distinct experiment_id (e.g. `baseline_<feature>`).
-- Refactors that should not change behavior: confirm with
-  `runscripts/debug/diff_simouts.py -o out <baseline_id> <new_id>` (must pass).
-- Intended behavior changes: diff_simouts will fail by design. Instead, run the
-  standard health-check analyses [list: mass_fraction_summary, ...] on both runs
-  and report what changed, including anything unexpected.
-
 ## Scientific rules
-- Every new or changed parameter needs a cited source in the relevant flat file.
-  Never invent values or hand-tune parameters to make output match data.
+- Every new or changed parameter needs a cited source in the relevant flat file. Never invent
+  values or hand-tune parameters to make output match data.
 - `validation/ecoli/flat/` is for evaluating the model, never for fitting it.
-- If results disagree with expectations, say so plainly. Don't explain it away.
+- If results disagree with expectations, say so plainly. Don't explain them away.
 
-## Boundaries
+## Git and boundaries
 - Work on a feature branch. Never push to master; never force-push.
-- Ask before: editing `.env`, `uv.lock`, or `configs/default.json`; deleting
-  anything under `out/`; submitting Sherlock or cloud jobs.
+- All commits must be signed (SSH signing is configured globally). If signing fails, stop and
+  tell me; never commit unsigned or change git identity/signing config yourself.
+- Before committing, run `uv run ruff check --fix` and `uv run ruff format`; if the pre-commit
+  hook modifies files, re-stage and commit again.
+- Ask before: editing `.env`, `uv.lock` or `configs/default.json`; deleting anything under
+  `out/`; submitting Sherlock or cloud jobs.
 - Before adding or changing a process, read `doc/processes.rst` and `doc/stores.rst`.
+- Open an issue before non-trivial changes (from `doc/contributing.rst`).
