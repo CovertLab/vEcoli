@@ -77,8 +77,8 @@ For reproducibility checks, `runscripts/debug/compare_pickles.py` diffs two ParC
   `uv run --env-file .env runscripts/debug/diff_simouts.py -o out <baseline_id> <new_id>`
   (must pass).
 - Intended behavior changes: diff_simouts will fail by design. Instead, run the health-check
-  analyses [TODO: list, e.g. mass_fraction_summary, ...] on both runs and report what changed,
-  including anything unexpected.
+  analyses (currently just `single/mass_fraction_summary`, which the `analysis.py` command
+  above runs) on both runs and report what changed, including anything unexpected.
 
 ## Architecture
 
