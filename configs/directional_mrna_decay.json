@@ -1,0 +1,39 @@
+{
+    "experiment_id": "directional_mRNA_decay_minimal_media",
+    "suffix_time": false,
+    "description": "Basal (minimal glucose) run with directional mRNA decay active",
+    "parca_options": {
+        "cpus": 4
+    },
+    "sim_data_path": null,
+    "fail_at_max_duration": true,
+    "generations": 8,
+    "n_init_sims": 2,
+    "single_daughters": true,
+    "directional_mrna_decay": true,
+    "keep_mrnas_with_active_ribosomes": true,
+    "emitter": "parquet",
+    "emitter_arg": {
+        "out_dir": "out"
+    },
+    "analysis_options": {
+        "single": {
+            "mass_fraction_summary": {}
+        },
+        "multigeneration": {
+            "mass_fraction_multigen_mpl": {}
+        },
+        "multiseed": {
+            "ecocyc_table": {
+                "ignore_first_n_gens": 2
+            },
+            "doubling_time_trajectories": {
+                "skip_n_gens": 2
+            },
+            "protein_counts_validation": {},
+            "subgenerational_expression_table": {
+                "ignore_first_n_gens": 2
+            }
+        }
+    }
+}
